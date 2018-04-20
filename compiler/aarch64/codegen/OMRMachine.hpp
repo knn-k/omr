@@ -35,10 +35,13 @@ namespace OMR { typedef OMR::ARM64::Machine MachineConnector; }
 
 #include "compiler/codegen/OMRMachine.hpp"
 
+#include "codegen/RealRegister.hpp" // for RealRegister, etc
 #include "infra/Annotations.hpp"
 
 namespace TR { class CodeGenerator; }
 
+#define NUM_ARM64_GPR 32
+#define NUM_ARM64_FPR 32
 
 namespace OMR
 {
@@ -56,9 +59,46 @@ public:
     */
    Machine(TR::CodeGenerator *cg);
 
+   /**
+    * @param[in] regNum : register number
+    */
+   TR::RealRegister *getARM64RealRegister(TR::RealRegister::RegNum regNum)
+      {
+      return _registerFile[regNum];
+      }
+
+   /**
+    * @param[in] rk : register kind
+    * @param[in] excludeGPR0 : exclude GPR0 or not
+    * @param[in] considerUnlatched : consider unlatched state or not
+    */
+   TR::RealRegister *findBestFreeRegister(TR_RegisterKinds rk,
+                                            bool excludeGPR0 = false,
+                                            bool considerUnlatched = false);
+
+   TR::RealRegister *freeBestRegister(TR::Instruction  *currentInstruction,
+                                        TR_RegisterKinds rk,
+                                        TR::RealRegister *forced = NULL,
+                                        bool excludeGPR0 = false);
+
+   bool getLinkRegisterKilled()
+      {
+      return _registerFile[TR::RealRegister::lr]->getHasBeenAssignedInMethod();
+      }
+
+   bool setLinkRegisterKilled(bool b)
+      {
+      return _registerFile[TR::RealRegister::lr]->setHasBeenAssignedInMethod(b);
+      }
+
+   TR::CodeGenerator *cg() {return _cg;}
+
 private:
 
    TR::CodeGenerator *_cg;
+   TR::RealRegister  **_registerFile;
+
+   void initialiseRegisterFile();
 
    };
 }
