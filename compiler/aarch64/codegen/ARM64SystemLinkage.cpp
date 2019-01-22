@@ -846,6 +846,75 @@ TR::Register *TR::ARM64SystemLinkage::buildDirectDispatch(TR::Node *callNode)
 
 TR::Register *TR::ARM64SystemLinkage::buildIndirectDispatch(TR::Node *callNode)
    {
-   TR_UNIMPLEMENTED();
-   return NULL;
+   const TR::ARM64LinkageProperties &pp = getProperties();
+   TR::RealRegister *sp = cg()->machine()->getRealRegister(pp.getStackPointerRegister());
+
+   TR::RegisterDependencyConditions *dependencies =
+      new (trHeapMemory()) TR::RegisterDependencyConditions(
+         pp.getNumberOfDependencyGPRegisters(),
+         pp.getNumberOfDependencyGPRegisters(), trMemory());
+
+   int32_t totalSize = buildArgs(callNode, dependencies);
+   if (totalSize > 0)
+      {
+      if (constantIsUnsignedImm12(totalSize))
+         {
+         generateTrg1Src1ImmInstruction(cg(), TR::InstOpCode::subimmx, callNode, sp, sp, totalSize);
+         }
+      else
+         {
+         TR_ASSERT_FATAL(false, "Too many arguments.");
+         }
+      }
+
+   TR_ASSERT(callNode->getSymbolReference()->getSymbol()->castToMethodSymbol()->isComputed(), "must be computed indirect call");
+
+   TR::Register *trgAddrReg = cg()->evaluate(callNode->getChild(0));
+   cg()->decReferenceCount(callNode->getChild(0));
+   generateRegBranchInstruction(cg(), TR::InstOpCode::blr, callNode,
+      trgAddrReg, dependencies);
+
+   cg()->machine()->setLinkRegisterKilled(true);
+
+   if (totalSize > 0)
+      {
+      if (constantIsUnsignedImm12(totalSize))
+         {
+         generateTrg1Src1ImmInstruction(cg(), TR::InstOpCode::addimmx, callNode, sp, sp, totalSize);
+         }
+      else
+         {
+         TR_ASSERT_FATAL(false, "Too many arguments.");
+         }
+      }
+
+   TR::Register *retReg;
+   switch(callNode->getOpCodeValue())
+      {
+      case TR::icalli:
+      case TR::iucalli:
+         retReg = dependencies->searchPostConditionRegister(
+                     pp.getIntegerReturnRegister());
+         break;
+      case TR::lcalli:
+      case TR::lucalli:
+      case TR::acalli:
+         retReg = dependencies->searchPostConditionRegister(
+                     pp.getLongReturnRegister());
+         break;
+      case TR::fcalli:
+      case TR::dcalli:
+         retReg = dependencies->searchPostConditionRegister(
+                     pp.getFloatReturnRegister());
+         break;
+      case TR::calli:
+         retReg = NULL;
+         break;
+      default:
+         retReg = NULL;
+         TR_ASSERT(false, "Unsupported indirect call Opcode.");
+      }
+
+   callNode->setRegister(retReg);
+   return retReg;
    }
