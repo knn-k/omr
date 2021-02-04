@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018, 2020 IBM Corp. and others
+ * Copyright (c) 2018, 2021 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -705,6 +705,16 @@ class ARM64ConditionalBranchInstruction : public ARM64LabelInstruction
     * @return estimated binary length
     */
    virtual int32_t estimateBinaryLength(int32_t currentEstimate);
+
+   /**
+    * @brief Returns ARM64ConditionalBranchInstruction or NULL
+    */
+   virtual TR::ARM64ConditionalBranchInstruction *getARM64ConditionalBranchInstruction()
+      {
+      return this;
+      }
+
+   void expandIntoFarBranch();
    };
 
 class ARM64CompareBranchInstruction : public ARM64LabelInstruction
