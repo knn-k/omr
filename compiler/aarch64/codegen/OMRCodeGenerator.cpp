@@ -98,6 +98,9 @@ OMR::ARM64::CodeGenerator::initialize()
 
    cg->setSupportsByteswap();
 
+   cg->setSupportsPrimitiveArrayCopy();
+   // cg->setSupportsReferenceArrayCopy();
+
    cg->setSupportsAlignedAccessOnly();
 
    if (!comp->getOption(TR_DisableTraps) && TR::Compiler->vm.hasResumableTrapHandler(comp))

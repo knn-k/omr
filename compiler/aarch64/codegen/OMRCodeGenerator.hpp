@@ -534,6 +534,8 @@ public:
     */
    bool supportsSinglePrecisionSQRT() { return true; }
 
+   bool canTransformUnsafeCopyToArrayCopy() { return true; }
+
    /**
     * @brief Generates instructions for incrementing debug counter
     * @param[in] cursor:   instruction cursor
