@@ -1724,10 +1724,11 @@ OMR::ARM64::TreeEvaluator::BNDCHKEvaluator(TR::Node *node, TR::CodeGenerator *cg
    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
    }
 
-static TR::Instruction *compareIntsAndBranchForArrayCopyBNDCHK(TR::ARM64ConditionCode  branchType,
-                                           TR::Node             *node,
-                                           TR::CodeGenerator    *cg,
-                                           TR::SymbolReference  *sr)
+static TR::Instruction *
+compareIntsAndBranchForArrayCopyBNDCHK(TR::ARM64ConditionCode branchCond,
+                                       TR::Node               *node,
+                                       TR::CodeGenerator      *cg,
+                                       TR::SymbolReference    *sr)
    {
    TR::Node *firstChild = node->getFirstChild();
    TR::Node *secondChild = node->getSecondChild();
@@ -1757,7 +1758,7 @@ static TR::Instruction *compareIntsAndBranchForArrayCopyBNDCHK(TR::ARM64Conditio
 
    TR_ASSERT_FATAL_WITH_NODE(node, sr, "Must provide an ArrayCopyBNDCHK symref");
    cg->addSnippet(new (cg->trHeapMemory()) TR::ARM64HelperCallSnippet(cg, node, snippetLabel, sr));
-   TR::Instruction *instr = generateConditionalBranchInstruction(cg, TR::InstOpCode::b_cond, node, snippetLabel, branchType);
+   TR::Instruction *instr = generateConditionalBranchInstruction(cg, TR::InstOpCode::b_cond, node, snippetLabel, branchCond);
 
    cg->machine()->setLinkRegisterKilled(true);
    cg->decReferenceCount(firstChild);
@@ -1768,6 +1769,8 @@ static TR::Instruction *compareIntsAndBranchForArrayCopyBNDCHK(TR::ARM64Conditio
 TR::Register*
 OMR::ARM64::TreeEvaluator::ArrayCopyBNDCHKEvaluator(TR::Node *node, TR::CodeGenerator *cg)
    {
+   // Check for firstChild >= secondChild
+   // If the first child is a constant and the second isn't, swap the children
 
    TR::Node *firstChild = node->getFirstChild();
    TR::Node *secondChild = node->getSecondChild();
