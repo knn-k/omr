@@ -174,6 +174,8 @@ OMR::ARM64::CodeGenerator::initialize()
    // Enable compaction of local stack slots.  i.e. variables with non-overlapping live ranges
    // can share the same slot.
    cg->setSupportsCompactedLocals();
+
+   cg->setSupportsProfiledInlining();
    }
 
 void
