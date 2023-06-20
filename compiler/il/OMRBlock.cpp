@@ -277,7 +277,7 @@ OMR::Block::createEmptyBlock(TR::Node * n, TR::Compilation *comp, int32_t freque
    {
    if (!comp->isPeekingMethod() && (comp->getFlowGraph()->getMaxFrequency() >= 0))
       {
-      TR_ASSERT((frequency >= 0), "Block frequency must be non negative\n");
+      TR_ASSERT_FATAL_WITH_NODE(n, (frequency >= 0), "Block frequency must be non negative\n");
       }
 
    if (block!=NULL) comp->setCurrentBlock(block);
