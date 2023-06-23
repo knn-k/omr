@@ -2007,7 +2007,7 @@ void OMR::Compilation::verifyAndFixRdbarAnchors()
          {
          if (!anchoredRdbarNodes.contains(node))
             {
-            TR_ASSERT(0, "node (n%dn) %p is rdbar but not anchored\n", node->getGlobalIndex(), node);
+            TR_ASSERT_FATAL_WITH_NODE(node, 0, "node (n%dn) %p is rdbar but not anchored\n", node->getGlobalIndex(), node);
             TR::Node *newttNode = TR::Node::create(TR::treetop, 1, node);
             iter.currentTree()->insertBefore(TR::TreeTop::create(self(), newttNode));
             traceMsg(self(), "node (n%dn) %p is an unanchored readbar, anchor it now under treetop node (n%dn) %p\n", node->getGlobalIndex(), node, newttNode->getGlobalIndex(), newttNode);
