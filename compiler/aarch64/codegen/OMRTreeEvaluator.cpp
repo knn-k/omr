@@ -6400,10 +6400,122 @@ OMR::ARM64::TreeEvaluator::arraytranslateAndTestEvaluator(TR::Node *node, TR::Co
 
 TR::Register *
 OMR::ARM64::TreeEvaluator::arraytranslateEvaluator(TR::Node *node, TR::CodeGenerator *cg)
-	{
-	// TODO:ARM64: Enable TR::TreeEvaluator::arraytranslateEvaluator in compiler/aarch64/codegen/TreeEvaluatorTable.hpp when Implemented.
-	return OMR::ARM64::TreeEvaluator::unImpOpEvaluator(node, cg);
-	}
+   {
+   // tree looks as follows:
+   // arraytranslate
+   //    (0) input ptr
+   //    (1) output ptr
+   //    (2) translation table
+   //    (3) stop character (terminal character, either 0xff00ff00 (ISO8859) or 0xff80ff80 (ASCII)
+   //    (4) input length (in elements)
+   //    (5) stoppingNode for SIMD/non-table based methods. Can take on values from -1 to 0xFFFF @@
+   //
+   // Number of elements translated is returned
+
+   TR::Compilation *comp = cg->comp();
+   bool sourceByte = node->isSourceByteArrayTranslate();
+   bool arrayTranslateTROT = false;
+   bool arrayTranslateTROTNB = false;
+   bool arrayTranslateTRTO255 = false;
+
+   if (sourceByte)
+      {
+      arrayTranslateTROT = true;
+      // @@ add arrayTranslateTROTNB case
+      }
+   else
+      {
+      if (node->getChild(3)->getOpCodeValue() == TR::iconst &&
+          node->getChild(3)->getInt() == 0x0ff00ff00)
+         arrayTranslateTRTO255 = true;
+      }
+
+   static bool verboseTRTOOT = (feGetEnv("TR_verboseTRTOOT") != NULL);
+   if (verboseTRTOOT)
+      fprintf(stderr, "%s @ %s [isSourceByte: %d] [isOT: %d] [isOTNB: %d] [isTO255: %d]\n",
+         comp->signature(),
+         comp->getHotnessName(comp->getMethodHotness()),
+         sourceByte,
+         arrayTranslateTROT,
+         arrayTranslateTROTNB,
+         arrayTranslateTRTO255
+         );
+
+   TR::Register *inputReg = cg->gprClobberEvaluate(node->getChild(0));
+   TR::Register *outputReg = cg->gprClobberEvaluate(node->getChild(1));
+   TR::Register *stopCharReg = arrayTranslateTRTO255 ? NULL : cg->gprClobberEvaluate(node->getChild(3));
+   TR::Register *inputLenReg = cg->gprClobberEvaluate(node->getChild(4));
+   TR::Register *outputLenReg = cg->allocateRegister();
+
+   int noOfDependecies = 12; // @@
+
+   TR::RegisterDependencyConditions *deps = new (cg->trHeapMemory()) TR::RegisterDependencyConditions(1, noOfDependecies, cg->trMemory());
+
+   deps->addPreCondition(inputReg, TR::RealRegister::x0);
+
+   deps->addPostCondition(outputLenReg, TR::RealRegister::x0);
+   deps->addPostCondition(outputReg, TR::RealRegister::x1);
+   deps->addPostCondition(inputLenReg, TR::RealRegister::x2);
+   if (!arrayTranslateTROT && !arrayTranslateTRTO255)
+      {
+      // arrayTranslateTRTO only
+      deps->addPostCondition(stopCharReg, TR::RealRegister::x3);
+      }
+
+   // Clobbered by the helper
+   TR::Register *clobberedReg;
+   if (arrayTranslateTROT || arrayTranslateTRTO255)
+      {
+      deps->addPostCondition(clobberedReg = cg->allocateRegister(), TR::RealRegister::x3);
+      cg->stopUsingRegister(clobberedReg);
+      }
+   deps->addPostCondition(clobberedReg = cg->allocateRegister(), TR::RealRegister::x4);
+   cg->stopUsingRegister(clobberedReg);
+   // @@
+   deps->addPostCondition(clobberedReg = cg->allocateRegister(), TR::RealRegister::x5);
+   cg->stopUsingRegister(clobberedReg);
+   deps->addPostCondition(clobberedReg = cg->allocateRegister(), TR::RealRegister::x6);
+   cg->stopUsingRegister(clobberedReg);
+
+   deps->addPostCondition(clobberedReg = cg->allocateRegister(TR_VRF), TR::RealRegister::v0);
+   cg->stopUsingRegister(clobberedReg);
+   deps->addPostCondition(clobberedReg = cg->allocateRegister(TR_VRF), TR::RealRegister::v1);
+   cg->stopUsingRegister(clobberedReg);
+   deps->addPostCondition(clobberedReg = cg->allocateRegister(TR_VRF), TR::RealRegister::v2);
+   cg->stopUsingRegister(clobberedReg);
+   // @@
+   deps->addPostCondition(clobberedReg = cg->allocateRegister(TR_VRF), TR::RealRegister::v3);
+   cg->stopUsingRegister(clobberedReg);
+
+   TR::LabelSymbol *labelArrayTranslateStart = generateLabelSymbol(cg);
+   TR::LabelSymbol *labelArrayTranslateDone = generateLabelSymbol(cg);
+   labelArrayTranslateStart->setStartInternalControlFlow();
+   labelArrayTranslateDone->setEndInternalControlFlow();
+
+   generateLabelInstruction(cg, TR::InstOpCode::label, node, labelArrayTranslateStart);
+
+   // Array Translate helper call @@ length can be zero
+   TR_RuntimeHelper helper;
+   if (arrayTranslateTROT)
+      {
+      TR_ASSERT(!node->isTargetByteArrayTranslate(), "Both source and target are byte for array translate");
+      helper = arrayTranslateTROTNB ? TR_ARM64arrayTranslateTROTNoBreak : TR_ARM64arrayTranslateTROT;
+      }
+   else
+      {
+      TR_ASSERT(node->isTargetByteArrayTranslate(), "Both source and target are char for array translate");
+      helper = arrayTranslateTRTO255 ? TR_ARM64arrayTranslateTRTO255 : TR_ARM64arrayTranslateTRTO;
+      }
+   TR::SymbolReference *helperSym = cg->symRefTab()->findOrCreateRuntimeHelper(helper);
+   uintptr_t addr = reinterpret_cast<uintptr_t>(helperSym->getMethodAddress());
+   generateImmSymInstruction(cg, TR::InstOpCode::bl, node, addr, deps, helperSym, NULL);
+
+   generateLabelInstruction(cg, TR::InstOpCode::label, node, labelArrayTranslateDone, deps);
+
+   cg->machine()->setLinkRegisterKilled(true);
+   node->setRegister(outputLenReg);
+   return outputLenReg;
+   }
 
 TR::Register *
 OMR::ARM64::TreeEvaluator::arraysetEvaluator(TR::Node *node, TR::CodeGenerator *cg)

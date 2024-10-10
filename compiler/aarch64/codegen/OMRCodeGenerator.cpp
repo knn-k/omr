@@ -190,10 +190,36 @@ OMR::ARM64::CodeGenerator::initialize()
          cg->setSupportsArrayCmpLen();
          }
       }
-      if (!comp->getOption(TR_DisableArraySetOpts))
-         {
-         cg->setSupportsArraySet();
-         }
+
+   if (!comp->getOption(TR_DisableArraySetOpts))
+      {
+      cg->setSupportsArraySet();
+      }
+
+   static bool disableTRTO = (feGetEnv("TR_disableTRTO") != NULL);
+   if (!disableTRTO)
+      {
+      cg->setSupportsArrayTranslateTRTO();
+      }
+
+   static bool disableTRTO255 = (feGetEnv("TR_disableTRTO255") != NULL);
+   if (!disableTRTO255)
+      {
+      cg->setSupportsArrayTranslateTRTO255();
+      }
+
+   static bool disableTROT = (feGetEnv("TR_disableTROT") != NULL);
+   if (!disableTROT)
+      {
+      cg->setSupportsArrayTranslateTROT();
+      }
+   /*
+   static bool disableTROTNoBreak = (feGetEnv("TR_disableTROTNoBreak") != NULL);
+   if (!disableTROTNoBreak)
+      {
+      cg->setSupportsArrayTranslateTROTNoBreak();
+      }
+   */
    }
 
 void
