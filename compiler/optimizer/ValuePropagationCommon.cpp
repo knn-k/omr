@@ -2405,8 +2405,6 @@ void OMR::ValuePropagation::generateArrayTranslateNode(TR::TreeTop *callTree,TR:
                              || rm == TR::java_lang_StringCoding_implEncodeISOArray);
    bool isAsciiEncoder = (rm == TR::java_lang_StringCoding_implEncodeAsciiArray);
    bool isISO88591Decoder = (rm == TR::sun_nio_cs_ISO_8859_1_Decoder_decodeISO8859_1);
-   bool isSBCSEncoder = (rm == TR::sun_nio_cs_ext_SBCS_Encoder_encodeSBCS)? true:false;
-   bool isSBCSDecoder = (rm == TR::sun_nio_cs_ext_SBCS_Decoder_decodeSBCS)? true:false;
    bool isEncodeUtf16 = (rm == TR::sun_nio_cs_UTF_16_Encoder_encodeUTF16Big || rm == TR::sun_nio_cs_UTF_16_Encoder_encodeUTF16Little);
 
 
@@ -2471,7 +2469,7 @@ void OMR::ValuePropagation::generateArrayTranslateNode(TR::TreeTop *callTree,TR:
    else
       strideNode = TR::Node::create(callNode, TR::iconst, 0, 2);
 
-   if ( isISO88591Encoder || isAsciiEncoder || isSBCSEncoder || isEncodeUtf16 ||
+   if ( isISO88591Encoder || isAsciiEncoder || isEncodeUtf16 ||
        (rm == TR::sun_nio_cs_US_ASCII_Encoder_encodeASCII)         ||
        (rm == TR::sun_nio_cs_UTF_8_Encoder_encodeUTF_8))
        encode = true;
@@ -2519,7 +2517,7 @@ void OMR::ValuePropagation::generateArrayTranslateNode(TR::TreeTop *callTree,TR:
          }
       }
 
-   if (encode && !isSBCSEncoder)
+   if (encode)
       {
       arrayTranslateNode->setTableBackedByRawStorage(true);
       if (isISO88591Encoder)
@@ -2565,7 +2563,7 @@ void OMR::ValuePropagation::generateArrayTranslateNode(TR::TreeTop *callTree,TR:
          }
       termCharNode = TR::Node::create(callNode,TR::iconst, 0, termchar);
       }
-   else if (!encode && !isSBCSDecoder)
+   else if (!encode)
       {
       arrayTranslateNode->setTermCharNodeIsHint(false);
       arrayTranslateNode->setSourceCellIsTermChar(false);
@@ -2603,25 +2601,6 @@ void OMR::ValuePropagation::generateArrayTranslateNode(TR::TreeTop *callTree,TR:
          }
 
       termCharNode = TR::Node::create(callNode,TR::iconst, 0, termchar);
-      }
-   else if (isSBCSEncoder) //only z
-      {
-      arrayTranslateNode->setTermCharNodeIsHint(false);
-      arrayTranslateNode->setSourceCellIsTermChar(false);
-      arrayTranslateNode->setTableBackedByRawStorage(true);
-      termCharNode = TR::Node::create(callNode,TR::iconst, 0, 0);
-      TR::Node *tableNodeAddr = tableRef? TR::Node::createLoad(callNode, tableRef):callNode->getChild(childId++)->duplicateTree();
-      tableNode = TR::Node::create(is64BitTarget? TR::aladd : TR::aiadd, 2, tableNodeAddr, hdrSize);
-      }
-
-   else if (isSBCSDecoder) //only z
-      {
-      arrayTranslateNode->setTermCharNodeIsHint(true);
-      arrayTranslateNode->setSourceCellIsTermChar(false);
-      arrayTranslateNode->setTableBackedByRawStorage(false);
-      termCharNode = TR::Node::create(callNode,TR::iconst, 0, 11);
-      TR::Node *tableNodeAddr = tableRef? TR::Node::createLoad(callNode, tableRef):callNode->getChild(childId++)->duplicateTree();
-      tableNode = tableNodeAddr;
       }
 
    stoppingNode = TR::Node::create(callNode,TR::iconst, 0, stopIndex);
@@ -4284,7 +4263,6 @@ void OMR::ValuePropagation::transformConverterCall(TR::TreeTop *callTree)
        childId++;
 
 
-
    srcObjNode = callNode->getChild(childId++);
    srcOff = callNode->getChild(childId++);//->createLongIfNeeded();
 
@@ -4297,14 +4275,6 @@ void OMR::ValuePropagation::transformConverterCall(TR::TreeTop *callTree)
 
    if (isISO88591Encoder || isAsciiEncoder)
       len = callNode->getChild(childId++);//->createLongIfNeeded();
-
-   if ( (rm == TR::sun_nio_cs_ext_SBCS_Encoder_encodeSBCS) ||
-         (rm == TR::sun_nio_cs_ext_SBCS_Decoder_decodeSBCS))
-      {
-      hasTable = true;
-      tableNode = callNode->getChild(childId++);
-      }
-
 
    dumpOptDetails(comp(), "Insert runtime tests for converter call transformation to arraytranslate (%p)\n", callNode);
 
@@ -4326,8 +4296,6 @@ void OMR::ValuePropagation::transformConverterCall(TR::TreeTop *callTree)
 
    // Compute arguments and store them before the call
    createStoresForConverterCallChildren(comp(), callTree, srcRef, dstRef, srcOffRef, dstOffRef, lenRef, thisRef, callTree);
-   if (hasTable)
-      tableNode->createStoresForVar(tableRef,callTree, true);
 
    //create arraytranslate and cold call
    generateArrayTranslateNode(callTree, arrayTranslateTree, srcRef, dstRef, srcOffRef, dstOffRef, lenRef,tableRef,hasTable);
@@ -4408,29 +4376,7 @@ void OMR::ValuePropagation::transformConverterCall(TR::TreeTop *callTree)
       // node before the arraytranslate tree. Thus we must fall back to the Java implementation in
       // such cases.
 
-      int32_t threshold;
-
-      // All converter methods except for sun_nio_cs_ext_SBCS_Encoder_encodeSBCS have default case threshold=0. The names of
-      // all the methods still remain inside the switch for easier searchability in the codebase for these converters and the prior
-      // analysis performed on them.
-      switch (rm)
-         {
-         case TR::sun_nio_cs_ext_SBCS_Encoder_encodeSBCS:
-            threshold = 11;
-            break;
-         case TR::sun_nio_cs_ISO_8859_1_Encoder_encodeISOArray:
-         case TR::java_lang_StringCoding_implEncodeISOArray:
-         case TR::sun_nio_cs_ISO_8859_1_Decoder_decodeISO8859_1:
-         case TR::sun_nio_cs_US_ASCII_Encoder_encodeASCII:
-         case TR::sun_nio_cs_US_ASCII_Decoder_decodeASCII:
-         case TR::java_lang_StringCoding_implEncodeAsciiArray:
-         case TR::sun_nio_cs_ext_SBCS_Decoder_decodeSBCS:
-         case TR::sun_nio_cs_UTF_8_Decoder_decodeUTF_8:
-         case TR::sun_nio_cs_UTF_8_Encoder_encodeUTF_8:
-         default:
-            threshold = 0;
-            break;
-         }
+      int32_t threshold = 0;
 
       static const char* overrideThreshold = feGetEnv("TR_ArrayTranslateOverrideThreshold");
 
