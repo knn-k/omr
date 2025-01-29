@@ -5242,7 +5242,7 @@ TR::Register *OMR::Power::TreeEvaluator::arraytranslateEvaluator(TR::Node *node,
 
 
       {  //Zero length input, return value in outputLenReg.
-         generateTrg1ImmInstruction(cg, TR::InstOpCode::li, node, inputReg, 0);
+         generateTrg1ImmInstruction(cg, TR::InstOpCode::li, node, outputLenReg, 0);
          generateLabelInstruction(cg, TR::InstOpCode::b, node, labelArrayTranslateDone);
       }
 
