@@ -12569,6 +12569,11 @@ OMR::Z::TreeEvaluator::arraytranslateEvaluator(TR::Node * node, TR::CodeGenerato
    // Number of elements translated is returned
    //
    TR::Compilation *comp = cg->comp();
+   if (!comp->getOption(TR_DisableSIMDArrayTranslate) && cg->getSupportsVectorRegisters() && node->getChild(5)->get32bitIntegralValue() == 0xFFFF && node->isByteToCharTranslate())
+      {
+      arraytranslateTROTNoBreakSIMDEvaluator(node, cg)
+      }
+
    if (!comp->getOption(TR_DisableSIMDArrayTranslate) && cg->getSupportsVectorRegisters() &&  node->getChild(5)->get32bitIntegralValue() != -1)
      {
      if (node->isCharToByteTranslate()) return OMR::Z::TreeEvaluator::arraytranslateEncodeSIMDEvaluator(node, cg, CharToByte);
@@ -15291,6 +15296,177 @@ OMR::Z::TreeEvaluator::vbitselectEvaluator(TR::Node *node, TR::CodeGenerator *cg
    return returnVecReg;
    }
 
+static TR::Register *arraytranslateTROTNoBreakSIMDEvaluator(TR::Node *node, TR::CodeGenerator *cg)
+   {
+   //
+   // tree looks as follows:
+   // arraytranslate
+   //    input ptr
+   //    output ptr
+   //    translation table
+   //    terminating character
+   //    input length (in characters)
+   //    limit (stop) character
+   //
+   // Number of characters translated is returned
+   //
+   TR::Compilation* comp = cg->comp();
+
+   // Create the necessary registers
+   TR::Register* output = cg->gprClobberEvaluate(node->getChild(1));
+   TR::Register* input  = cg->gprClobberEvaluate(node->getChild(0));
+
+   TR::Register* inputLen;
+   TR::Register* inputLen16     = cg->allocateRegister();
+   TR::Register* inputLenMinus1 = inputLen16;
+
+   // The number of characters currently translated
+   TR::Register* translated = cg->allocateRegister();
+
+   TR::Node* inputLenNode = node->getChild(4);
+
+   // Optimize the constant length case
+   bool isLenConstant = inputLenNode->getOpCode().isLoadConst() && performTransformation(comp, "O^O [%p] Reduce input length to constant.\n", inputLenNode);
+
+   // Initialize the number of translated characters to 0
+   generateRREInstruction(cg, TR::InstOpCode::getXORRegOpCode(), node, translated, translated);
+
+   if (isLenConstant)
+      {
+      inputLen = cg->allocateRegister();
+
+      generateLoad32BitConstant(cg, inputLenNode, (getIntegralValue(inputLenNode)), inputLen, true);
+      generateLoad32BitConstant(cg, inputLenNode, (getIntegralValue(inputLenNode) >> 4) << 4, inputLen16, true);
+      }
+   else
+      {
+      inputLen = cg->gprClobberEvaluate(inputLenNode, true);
+
+      // Sign extend the value if needed
+      if (cg->comp()->target().is64Bit() && !(inputLenNode->getOpCode().isLong()))
+         {
+         generateRRInstruction(cg, TR::InstOpCode::getLoadRegWidenOpCode(), node, inputLen,   inputLen);
+         generateRRInstruction(cg, TR::InstOpCode::getLoadRegWidenOpCode(), node, inputLen16, inputLen);
+         }
+      else
+         {
+         generateRRInstruction(cg, TR::InstOpCode::getLoadRegOpCode(), node, inputLen16, inputLen);
+         }
+
+      // Truncate the 4 right most bits
+      generateRIInstruction(cg, TR::InstOpCode::NILL, node, inputLen16, static_cast <int16_t> (0xFFF0));
+      }
+
+   // Create the necessary labels
+   TR::LabelSymbol * processMultiple16Bytes    = generateLabelSymbol(cg);
+   TR::LabelSymbol * processMultiple16BytesEnd = generateLabelSymbol(cg);
+
+   TR::LabelSymbol * processUnder16Bytes    = generateLabelSymbol(cg);
+   TR::LabelSymbol * processUnder16BytesEnd = generateLabelSymbol(cg);
+
+   TR::LabelSymbol * processSaturated         = generateLabelSymbol(cg);
+   TR::LabelSymbol * processSaturatedEnd      = generateLabelSymbol(cg);
+   TR::LabelSymbol * processUnSaturatedInput1 = generateLabelSymbol(cg);
+   TR::LabelSymbol * processUnSaturatedInput2 = generateLabelSymbol(cg);
+   TR::LabelSymbol * cFlowRegionEnd           = generateLabelSymbol(cg);
+
+   // Create the necessary vector registers
+   TR::Register* vOutput1   = cg->allocateRegister(TR_VRF); // 1st 16 bytes of output (8 chars)
+   TR::Register* vOutput2   = cg->allocateRegister(TR_VRF); // 2nd 16 bytes of output (8 chars)
+   TR::Register* vInput     = cg->allocateRegister(TR_VRF); // Input buffer
+   TR::Register* vSaturated = cg->allocateRegister(TR_VRF); // Track index of first saturated char
+
+   TR::Register* vRange        = cg->allocateRegister(TR_VRF);
+   TR::Register* vRangeControl = cg->allocateRegister(TR_VRF);
+
+   uint32_t saturatedRange        = getIntegralValue(node->getChild(5));
+   uint16_t saturatedRangeControl = 0x20; // > comparison
+
+   TR_ASSERT((convType == CharToByte || convType == CharToChar) ? saturatedRange <= 0xFFFF : saturatedRange <= 0xFF, "Value should be less be less than 16 (8) bit. Current value is %d", saturatedRange);
+
+   // Branch to the slow path if input is less than 16 bytes as we can only process multiples of 16 in vector registers
+   generateS390CompareAndBranchInstruction(cg, TR::InstOpCode::getCmpLogicalOpCode(), node, inputLen16, 0, TR::InstOpCode::COND_MASK8, processMultiple16BytesEnd, false, false);
+
+   // ----------------- Incoming branch -----------------
+
+   generateS390LabelInstruction(cg, TR::InstOpCode::label, node, processMultiple16Bytes);
+   processMultiple16Bytes->setStartInternalControlFlow();
+
+   // Load 16 bytes into a vector register and check for saturation
+   generateVRXInstruction(cg, TR::InstOpCode::VL, node, vInput, generateS390MemoryReference(input, translated, 0, cg));
+
+   // Unpack the 1st and 2nd halves of the input vector
+   generateVRRaInstruction(cg, TR::InstOpCode::VUPLH, node, vOutput1, vInput, 0, 0, 0);
+   generateVRRaInstruction(cg, TR::InstOpCode::VUPLL, node, vOutput2, vInput, 0, 0, 0);
+
+   // Store the result and advance the output pointer
+   generateVRSaInstruction(cg, TR::InstOpCode::VSTM, node, vOutput1, vOutput2, generateS390MemoryReference(output, 0, cg), 0);
+
+   generateRXInstruction(cg, TR::InstOpCode::getLoadAddressOpCode(), node, output, generateS390MemoryReference(output, 32, cg));
+   generateRXInstruction(cg, TR::InstOpCode::getLoadAddressOpCode(), node, translated, generateS390MemoryReference(translated, 16, cg));
+
+   // ed : perf : Use BRXLE (can't directly use BRCT since VL uses translated to iterate through input)
+   // Loop back if there is at least 16 chars left to process
+   generateS390CompareAndBranchInstruction(cg, TR::InstOpCode::getCmpRegOpCode(), node, translated, inputLen16, TR::InstOpCode::COND_BL, processMultiple16Bytes, false, false);
+
+   generateS390LabelInstruction(cg, TR::InstOpCode::label, node, processMultiple16BytesEnd);
+   processMultiple16BytesEnd->setEndInternalControlFlow();
+
+   // ----------------- Incoming branch -----------------
+
+   // Slow path in the event of fewer than 16 bytes left to unpack
+   generateS390LabelInstruction(cg, TR::InstOpCode::label, node, processUnder16Bytes);
+   processUnder16Bytes->setStartInternalControlFlow();
+
+   // Calculate the number of residue bytes available
+   generateRRInstruction(cg, TR::InstOpCode::getSubstractRegOpCode(), node, inputLen, translated);
+
+   // Branch to the end if there is no residue
+   generateS390BranchInstruction(cg, TR::InstOpCode::BRC, TR::InstOpCode::COND_CC0, node, cFlowRegionEnd);
+
+   // VLL and VSTL work on indices so we must subtract 1
+   generateRIEInstruction(cg, TR::InstOpCode::getAddLogicalRegRegImmediateOpCode(), node, inputLenMinus1, inputLen, -1);
+
+   // Zero out the input register to avoid invalid VSTRC result
+   generateVRIaInstruction(cg, TR::InstOpCode::VGBM, node, vInput, 0, 0 /*unused*/);
+
+   // VLL instruction can only handle memory references of type D(B), so increment the base input address
+   generateRRInstruction (cg, TR::InstOpCode::getAddRegOpCode(), node, input, translated);
+
+   // Load residue bytes into vector register
+   generateVRSbInstruction(cg, TR::InstOpCode::VLL, node, vInput, inputLenMinus1, generateS390MemoryReference(input, 0, cg));
+
+   generateS390LabelInstruction(cg, TR::InstOpCode::label, node, processUnder16BytesEnd);
+   processUnder16BytesEnd->setEndInternalControlFlow();
+
+   // Update the result value
+   generateRRInstruction (cg, TR::InstOpCode::getAddRegOpCode(), node, translated, inputLen);
+
+   // Cleanup nodes before returning
+   cg->decReferenceCount(node->getChild(0));
+   cg->decReferenceCount(node->getChild(1));
+   cg->decReferenceCount(node->getChild(4));
+
+   cg->recursivelyDecReferenceCount(node->getChild(2)); // Unevaluated
+   cg->recursivelyDecReferenceCount(node->getChild(3)); // Unevaluated
+   cg->recursivelyDecReferenceCount(node->getChild(5)); // Unevaluated
+
+   // Cleanup registers before returning
+   cg->stopUsingRegister(output);
+   cg->stopUsingRegister(input);
+   cg->stopUsingRegister(inputLen);
+   cg->stopUsingRegister(inputLen16);
+
+   cg->stopUsingRegister(vOutput1);
+   cg->stopUsingRegister(vOutput2);
+   cg->stopUsingRegister(vInput);
+   cg->stopUsingRegister(vSaturated);
+   cg->stopUsingRegister(vRange);
+   cg->stopUsingRegister(vRangeControl);
+
+   return node->setRegister(translated);
+   }
+                                  
 TR::Register *
 OMR::Z::TreeEvaluator::arraytranslateDecodeSIMDEvaluator(TR::Node * node, TR::CodeGenerator * cg, ArrayTranslateFlavor convType)
    {
