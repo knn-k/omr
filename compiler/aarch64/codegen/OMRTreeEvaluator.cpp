@@ -6505,19 +6505,20 @@ OMR::ARM64::TreeEvaluator::arraytranslateEvaluator(TR::Node *node, TR::CodeGener
       }
 
    // Clobbered by the helper
+   TR::Register *temp1Reg = cg->allocateRegister();
+   TR::Register *temp2Reg = cg->allocateRegister();
+   deps->addPostCondition(temp1Reg, TR::RealRegister::x4);
+   deps->addPostCondition(temp2Reg, TR::RealRegister::x5);
+
    TR::Register *clobberedReg;
-   deps->addPostCondition(clobberedReg = cg->allocateRegister(), TR::RealRegister::x4);
-   cg->stopUsingRegister(clobberedReg);
-   deps->addPostCondition(clobberedReg = cg->allocateRegister(), TR::RealRegister::x5);
-   cg->stopUsingRegister(clobberedReg);
    if (useX6)
       {
       deps->addPostCondition(clobberedReg = cg->allocateRegister(), TR::RealRegister::x6);
       cg->stopUsingRegister(clobberedReg);
       }
 
-   deps->addPostCondition(clobberedReg = cg->allocateRegister(TR_VRF), TR::RealRegister::v0);
-   cg->stopUsingRegister(clobberedReg);
+   TR::Register *v0Reg = cg->allocateRegister(TR_VRF);
+   deps->addPostCondition(v0Reg, TR::RealRegister::v0);
    deps->addPostCondition(clobberedReg = cg->allocateRegister(TR_VRF), TR::RealRegister::v1);
    cg->stopUsingRegister(clobberedReg);
    if (useV2)
@@ -6531,10 +6532,70 @@ OMR::ARM64::TreeEvaluator::arraytranslateEvaluator(TR::Node *node, TR::CodeGener
       cg->stopUsingRegister(clobberedReg);
       }
 
-   // Array Translate helper call
-   TR::SymbolReference *helperSym = cg->symRefTab()->findOrCreateRuntimeHelper(helper);
-   uintptr_t addr = reinterpret_cast<uintptr_t>(helperSym->getMethodAddress());
-   generateImmSymInstruction(cg, TR::InstOpCode::bl, node, addr, deps, helperSym, NULL);
+   if (helper == TR_ARM64arrayTranslateTROTNoBreak)
+      {
+      TR::LabelSymbol *atTROTNBCallHelperLabel = generateLabelSymbol(cg);
+      TR::LabelSymbol *atTROTNB7Label = generateLabelSymbol(cg);
+      TR::LabelSymbol *atTROTNB3Label = generateLabelSymbol(cg);
+      TR::LabelSymbol *atTROTNB1LoopLabel = generateLabelSymbol(cg);
+      TR::LabelSymbol *atTROTNBDoneLabel = generateLabelSymbol(cg);
+
+      TR::RegisterDependencyConditions *startDeps = new (cg->trHeapMemory()) TR::RegisterDependencyConditions(3, 3, cg->trMemory());
+      TR::addDependency(startDeps, inputReg, TR::RealRegister::x0, TR_GPR, cg);
+      TR::addDependency(startDeps, outputReg, TR::RealRegister::x1, TR_GPR, cg);
+      TR::addDependency(startDeps, inputLenReg, TR::RealRegister::x2, TR_GPR, cg);
+
+      TR::RegisterDependencyConditions *doneDeps = new (cg->trHeapMemory()) TR::RegisterDependencyConditions(1, 1, cg->trMemory());
+      TR::addDependency(doneDeps, outputLenReg, TR::RealRegister::x0, TR_GPR, cg);
+
+      generateLabelInstruction(cg, TR::InstOpCode::label, node, generateLabelSymbol(cg), startDeps);
+
+      generateCompareImmInstruction(cg, node, inputLenReg, 0 /* 16 */, false); // @@ for testing
+      generateConditionalBranchInstruction(cg, TR::InstOpCode::b_cond, node, atTROTNBCallHelperLabel, TR::CC_GE);
+
+      // 15 elements or less
+      generateMovInstruction(cg, node, temp1Reg, inputReg, true); // x4 <- x0 (src ptr)
+      generateMovInstruction(cg, node, outputLenReg, inputLenReg, true); // x0 <- x2 (result)
+      generateTestImmInstruction(cg, node, outputLenReg, 0x740); // immr:imms = 0x740 for 8
+      generateConditionalBranchInstruction(cg, TR::InstOpCode::b_cond, node, atTROTNB7Label, TR::CC_EQ);
+      generateTrg1MemInstruction(cg, TR::InstOpCode::vldrpostd, node, v0Reg, TR::MemoryReference::createWithDisplacement(cg, temp1Reg, 8)); // load 8 elements // ldr d0, [x0], #8
+      generateVectorUXTLInstruction(cg, TR::Int8, node, v0Reg, v0Reg, false); // unsigned extension // uxtl v0.8h, v0.8b
+      generateMemSrc1Instruction(cg, TR::InstOpCode::vstrpostq, node, TR::MemoryReference::createWithDisplacement(cg, outputReg, 16), v0Reg); // store 8 elements // str q0, [x1], #16
+      generateLabelInstruction(cg, TR::InstOpCode::label, node, atTROTNB7Label);
+
+      // 7 elements or less
+      generateTestImmInstruction(cg, node, outputLenReg, 0x780); // immr:imms = 0x780 for 4
+      generateConditionalBranchInstruction(cg, TR::InstOpCode::b_cond, node, atTROTNB3Label, TR::CC_EQ);
+      generateTrg1MemInstruction(cg, TR::InstOpCode::vldrposts, node, v0Reg, TR::MemoryReference::createWithDisplacement(cg, temp1Reg, 4)); // load 4 elements // ldr s0, [x4], #4
+      generateVectorUXTLInstruction(cg, TR::Int8, node, v0Reg, v0Reg, false); // unsigned extension // uxtl v0.8h, v0.8b
+      generateMemSrc1Instruction(cg, TR::InstOpCode::vstrpostd, node, TR::MemoryReference::createWithDisplacement(cg, outputReg, 8), v0Reg); // store 4 elements // str d0, [x1], #8
+      generateLabelInstruction(cg, TR::InstOpCode::label, node, atTROTNB3Label);
+
+      // 3 elements or less
+      generateTrg1Src1ImmInstruction(cg, TR::InstOpCode::andsimmw, node, inputLenReg, outputLenReg, 0x001); // ands w2, w0, #3 // immr:imms = 0x001 for 3
+      generateLabelInstruction(cg, TR::InstOpCode::label, node, atTROTNB1LoopLabel);
+      generateConditionalBranchInstruction(cg, TR::InstOpCode::b_cond, node, atTROTNBDoneLabel, TR::CC_EQ); // b.eq	atTROTNB_Done
+      generateTrg1MemInstruction(cg, TR::InstOpCode::ldrbpost, node, temp2Reg, TR::MemoryReference::createWithDisplacement(cg, temp1Reg, 1)); // ldrb w5, [x4], #1
+      generateTrg1Src1ImmInstruction(cg, TR::InstOpCode::subsw, node, inputLenReg, inputLenReg, 1); // subs w2, w2, #1
+      generateMemSrc1Instruction(cg, TR::InstOpCode::strhpost, node, TR::MemoryReference::createWithDisplacement(cg, temp1Reg, 2), temp2Reg); // strh w5, [x1], #2
+      generateLabelInstruction(cg, TR::InstOpCode::b, node, atTROTNB1LoopLabel);
+      // regDeps: before comparison and at the done label
+      // generate callHelperLabel
+      // Array Translate helper call
+      generateLabelInstruction(cg, TR::InstOpCode::label, node, atTROTNBCallHelperLabel);
+      TR::SymbolReference *helperSym = cg->symRefTab()->findOrCreateRuntimeHelper(helper);
+      uintptr_t addr = reinterpret_cast<uintptr_t>(helperSym->getMethodAddress());
+      generateImmSymInstruction(cg, TR::InstOpCode::bl, node, addr, deps, helperSym, NULL);
+
+      generateLabelInstruction(cg, TR::InstOpCode::label, node, atTROTNBDoneLabel, doneDeps);
+      }
+   else
+      {
+      // Array Translate helper call
+      TR::SymbolReference *helperSym = cg->symRefTab()->findOrCreateRuntimeHelper(helper);
+      uintptr_t addr = reinterpret_cast<uintptr_t>(helperSym->getMethodAddress());
+      generateImmSymInstruction(cg, TR::InstOpCode::bl, node, addr, deps, helperSym, NULL);
+      }
 
    for (uint32_t i = 0; i < node->getNumChildren(); i++)
       cg->decReferenceCount(node->getChild(i));
@@ -6550,6 +6611,10 @@ OMR::ARM64::TreeEvaluator::arraytranslateEvaluator(TR::Node *node, TR::CodeGener
 
    if (inputLenReg != node->getChild(4)->getRegister())
       cg->stopUsingRegister(inputLenReg);
+
+   cg->stopUsingRegister(temp1Reg);
+   cg->stopUsingRegister(temp2Reg);
+   cg->stopUsingRegister(v0Reg);
 
    cg->machine()->setLinkRegisterKilled(true);
    node->setRegister(outputLenReg);

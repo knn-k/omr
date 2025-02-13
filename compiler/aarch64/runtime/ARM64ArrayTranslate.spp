@@ -265,6 +265,7 @@ atTRTO255_Done:
 // trash: x4-x5, v0-v1
 
 FUNC_LABEL(__arrayTranslateTROTNoBreak):
+	// caller to guarantee len >= 16
 	cmp	w2, #16
 	b.cc	atTROTNB_15
 	lsr	w4, w2, #4
