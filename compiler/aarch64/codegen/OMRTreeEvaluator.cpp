@@ -6601,8 +6601,7 @@ OMR::ARM64::TreeEvaluator::arraytranslateEvaluator(TR::Node *node, TR::CodeGener
 
       // 15 elements or less
       generateMovInstruction(cg, node, temp1Reg, inputReg, true);
-      generateMovInstruction(cg, node, outputLenReg, inputLenReg, true);
-      generateTestImmInstruction(cg, node, outputLenReg, 0x740); // immr:imms = 0x740 for 8
+      generateTrg1Src1ImmInstruction(cg, TR::InstOpCode::andsimmw, node, outputLenReg, inputLenReg, 0x740); // immr:imms = 0x740 for 8
       generateConditionalBranchInstruction(cg, TR::InstOpCode::b_cond, node, atTROTNB7Label, TR::CC_EQ);
       generateTrg1MemInstruction(cg, TR::InstOpCode::vldrpostd, node, v0Reg, TR::MemoryReference::createWithDisplacement(cg, temp1Reg, 8)); // load 8 elements
       generateVectorUXTLInstruction(cg, TR::Int8, node, v0Reg, v0Reg, false); // unsigned extension

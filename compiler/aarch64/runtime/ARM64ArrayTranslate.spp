@@ -300,12 +300,12 @@ atTROTNB_7:
 atTROTNB_3:
 	// 3 elements or less remaining
 	ands	w4, w2, #3
-atTROTNB_1Loop:
 	b.eq	atTROTNB_Done
+atTROTNB_1Loop:
 	ldrb	w5, [x0], #1
 	subs	w4, w4, #1
 	strh	w5, [x1], #2
-	b	atTROTNB_1Loop
+	b.ne	atTROTNB_1Loop
 atTROTNB_Done:
 	mov	x0, x2
 	ret
