@@ -262,7 +262,7 @@ atTRTO255_Done:
 //      x1: output
 //      x2: len
 // out: x0: num of translated elements
-// trash: x4-x5, v0-v1
+// trash: x4, v0-v1
 
 FUNC_LABEL(__arrayTranslateTROTNoBreak):
 	cmp	w2, #16
@@ -280,33 +280,57 @@ atTROTNB_16Loop:
 	b.ne	atTROTNB_16Loop
 atTROTNB_15:
 	// 15 elements or less remaining
-	tst	w2, #8
-	b.eq	atTROTNB_7
-	// load 8 elements
-	ldr	d0, [x0], #8
-	// unsigned extension
-	uxtl	v1.8h, v0.8b
-	// store 8 elements
-	str	q1, [x1], #16
-atTROTNB_7:
-	// 7 elements or less remaining
-	tst	w2, #4
-	b.eq	atTROTNB_3
-	// load 4 elements
-	ldr	s0, [x0], #4
-	// unsigned extension
-	uxtl	v1.8h, v0.8b
-	// store 4 elements
-	str	d1, [x1], #8
+	and	x4, x2, #15
+	cmp	x4, #9
+	b.cc	atTROTNB_8
+	// process 9-15 elements: load and store 8 elements x2
+	sub	x4, x4, #8
+	ldr	d0, [x0]
+	ldr	d1, [x0, x4]
+	uxtl	v0.8h, v0.8b
+	uxtl	v1.8h, v1.8b
+	lsl	x4, x4, #1
+	str	q0, [x1]
+	str	q1, [x1, x4]
+	mov	x0, x2
+	ret
+atTROTNB_8:
+	// 8 elements or less remaining
+	cmp	x4, #5
+	b.cc	atTROTNB_4
+	// process 5-8 elements: load and store 4 elements x2
+	sub	x4, x4, #4
+	ldr	s0, [x0]
+	ldr	s1, [x0, x4]
+	uxtl	v0.8h, v0.8b
+	uxtl	v1.8h, v1.8b
+	lsl	x4, x4, #1
+	str	d0, [x1]
+	str	d1, [x1, x4]
+	mov	x0, x2
+	ret
+atTROTNB_4:
+	// 4 elements or less remaining
+	tbz	x4, #2, atTROTNB_3	// test bit 2
+	// load and store 4 elements
+	ldr	s0, [x0]
+	uxtl	v0.8h, v0.8b
+	str	d0, [x1]
+	mov	x0, x2
+	ret
 atTROTNB_3:
 	// 3 elements or less remaining
-	ands	w4, w2, #3
-atTROTNB_1Loop:
-	b.eq	atTROTNB_Done
-	ldrb	w5, [x0], #1
-	subs	w4, w4, #1
-	strh	w5, [x1], #2
-	b	atTROTNB_1Loop
+	tbz	x4, #1, atTROTNB_1	// test bit 1
+	// load and store 2 elements
+	ldr	h0, [x0], #2
+	uxtl	v0.8h, v0.8b
+	str	s0, [x1], #4
+	// fall through
+atTROTNB_1:
+	// 1 element or less remaining
+	tbz	x4, #0, atTROTNB_Done	// test bit 0
+	ldrb	w4, [x0]
+	strh	w4, [x1]
 atTROTNB_Done:
 	mov	x0, x2
 	ret
