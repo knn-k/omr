@@ -6128,7 +6128,7 @@ TR::Register *commonLoadEvaluator(TR::Node *node, TR::InstOpCode::Mnemonic op, i
 
    if (needSync)
       {
-      generateSynchronizationInstruction(cg, TR::InstOpCode::dmb, node, TR::InstOpCode::ishld);
+      generateSynchronizationInstruction(cg, TR::InstOpCode::dmb, node, TR::InstOpCode::sy); // TR::InstOpCode::ishld
       }
 
    tempMR->decNodeReferenceCounts(cg);
@@ -6195,7 +6195,7 @@ OMR::ARM64::TreeEvaluator::aloadEvaluator(TR::Node *node, TR::CodeGenerator *cg)
    bool needSync = cg->comp()->target().isSMP() && sym->isAtLeastOrStrongerThanAcquireRelease();
    if (needSync)
       {
-      generateSynchronizationInstruction(cg, TR::InstOpCode::dmb, node, TR::InstOpCode::ishld);
+      generateSynchronizationInstruction(cg, TR::InstOpCode::dmb, node, TR::InstOpCode::sy); // TR::InstOpCode::ishld
       }
 
    tempMR->decNodeReferenceCounts(cg);
@@ -6256,7 +6256,7 @@ TR::Register *commonStoreEvaluator(TR::Node *node, TR::InstOpCode::Mnemonic op, 
 
    if (cg->comp()->target().isSMP() && sym->isAtLeastOrStrongerThanAcquireRelease())
       {
-      generateSynchronizationInstruction(cg, TR::InstOpCode::dmb, node, TR::InstOpCode::ishst);
+      generateSynchronizationInstruction(cg, TR::InstOpCode::dmb, node, TR::InstOpCode::sy); // TR::InstOpCode::ishst
       }
 
    TR::Node *valueChildRoot = NULL;
