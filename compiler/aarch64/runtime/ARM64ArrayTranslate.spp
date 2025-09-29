@@ -123,23 +123,35 @@ atTRTO_3:
 	// 3 elements or less remaining
 	ands	w4, w2, #3
 atTRTO_1Loop:
-	b.eq	atTRTO_Done
+	b.eq	atTRTO_Done1
 	ldrh	w5, [x0], #2
 	tst	w5, w3
-	b.ne	atTRTO_Done
+	b.ne	atTRTO_Done2
 	subs	w4, w4, #1
 	strb	w5, [x1], #1
 	b	atTRTO_1Loop
 atTRTO_Fail:
 	ldrh	w5, [x0], #2
 	tst	w5, w3
-	b.ne	atTRTO_Done
+	b.ne	atTRTO_Done2
 	strb	w5, [x1], #1
 	b	atTRTO_Fail
-atTRTO_Done:
+atTRTO_Done1:
 	// number of translated elements
 	sub	x0, x1, x6
+	cmp	x0, x2
+	b.hi	atTRTO_Error1 // x0 > x2
 	ret
+atTRTO_Error1:
+	hlt	#0
+atTRTO_Done2:
+	// number of translated elements
+	sub	x0, x1, x6
+	cmp	x0, x2
+	b.hi	atTRTO_Error2 // x0 > x2
+	ret
+atTRTO_Error2:
+	hlt	#0
 
 // ----
 // arrayTranslateTRTO255
@@ -166,6 +178,7 @@ atTRTO_Done:
 // trash: x4-x6, v0-v2
 
 FUNC_LABEL(__arrayTranslateTRTO255):
+	mov	x3, x0 // preserve src addr
 	// preserve output address
 	mov	x6, x1
 	cmp	w2, #16
@@ -179,7 +192,7 @@ atTRTO255_16Loop:
 	// fail when any one of them is non-zero
 	umaxp	v2.4s, v2.4s, v2.4s
 	mov	x5, v2.D[0]
-	cbnz	x5, atTRTO255_Fail
+	cbnz	x5, atTRTO255_Fail16
 	// collect lower 8 bits
 	uzp1	v2.16b, v0.16b, v1.16b
 	add	x0, x0, #32
@@ -198,7 +211,7 @@ atTRTO255_15:
 	// fail when any one of them is non-zero
 	umaxp	v2.4s, v2.4s, v2.4s
 	mov	x5, v2.D[0]
-	cbnz	x5, atTRTO255_Fail
+	cbnz	x5, atTRTO255_Fail8
 	// collect lower 8 bits
 	xtn	v2.8b, v0.8h
 	add	x0, x0, #16
@@ -214,7 +227,7 @@ atTRTO255_7:
 	trn2	v2.8b, v0.8b, v0.8b
 	// fail when any one of them is non-zero
 	mov	x5, v2.D[0]
-	cbnz	x5, atTRTO255_Fail
+	cbnz	x5, atTRTO255_Fail8
 	// collect lower 8 bits
 	xtn	v2.8b, v0.8h
 	add	x0, x0, #8
@@ -224,23 +237,51 @@ atTRTO255_3:
 	// 3 elements or less remaining
 	ands	w4, w2, #3
 atTRTO255_1Loop:
-	b.eq	atTRTO255_Done
+	b.eq	atTRTO255_Done1
 	ldrh	w5, [x0], #2
 	cmp	w5, #256
-	b.cs	atTRTO255_Done
+	b.cs	atTRTO255_Done2
 	subs	w4, w4, #1
 	strb	w5, [x1], #1
 	b	atTRTO255_1Loop
-atTRTO255_Fail:
-	ldrh	w5, [x0], #2
+atTRTO255_Fail16:
+	// 16 elements in v0 and v1
+	// collect upper 8 bits
+	trn2	v2.16b, v0.16b, v0.16b
+	umaxp	v2.4s, v2.4s, v2.4s
+	mov	x5, v2.D[0]
+	cbnz	x5, atTRTO255_Fail8
+	// collect lower 8 bits
+	xtn	v2.8b, v0.8h
+	// store 8 elements
+	str	d2, [x1], #8
+	mov	q0, q1
+	// fall through
+atTRTO255_Fail8:
+	// 8 or 4 elements in v0
+	mov	w5, v0.H[0]
 	cmp	w5, #256
-	b.cs	atTRTO255_Done
+	b.cs	atTRTO255_Done2
 	strb	w5, [x1], #1
-	b	atTRTO255_Fail
-atTRTO255_Done:
+	// shift v0 to right 16 bits
+	ext	v0.16b, v0.16b, v0.16b, #16
+	b	atTRTO255_Fail8
+atTRTO255_Done1:
 	// number of translated elements
 	sub	x0, x1, x6
+	cmp	x0, x2
+	b.hi	atTRTO255_Error1 // x0 > x2
 	ret
+atTRTO255_Error1:
+	hlt	#0
+atTRTO255_Done2:
+	// number of translated elements
+	sub	x0, x1, x6
+	cmp	x0, x2
+	b.hi	atTRTO255_Error2 // x0 > x2
+	ret
+atTRTO255_Error2:
+	hlt	#0
 
 // ----
 // arrayTranslateTROTNoBreak
