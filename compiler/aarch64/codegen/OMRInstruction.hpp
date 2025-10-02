@@ -46,6 +46,7 @@ typedef OMR::ARM64::Instruction InstructionConnector;
 #include "codegen/InstOpCode.hpp"
 
 namespace TR {
+class ARM64ConditionalBranchInstruction;
 class CodeGenerator;
 class Instruction;
 class Node;
@@ -238,6 +239,11 @@ public:
      * @param[in] v : flag status
      */
     void setWillBePatched(bool v = true) { v ? _index |= WillBePatched : _index &= ~WillBePatched; }
+
+    /**
+     * @brief Returns ARM64ConditionalBranchInstruction or NULL
+     */
+    virtual TR::ARM64ConditionalBranchInstruction *getARM64ConditionalBranchInstruction() { return NULL; }
 
 private:
     TR::RegisterDependencyConditions *_conditions;

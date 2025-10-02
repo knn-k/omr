@@ -738,6 +738,16 @@ public:
      * @return estimated binary length
      */
     virtual int32_t estimateBinaryLength(int32_t currentEstimate);
+
+    /**
+     * @brief Returns ARM64ConditionalBranchInstruction or NULL
+     */
+    virtual TR::ARM64ConditionalBranchInstruction *getARM64ConditionalBranchInstruction()
+    {
+        return this;
+    }
+
+    void expandIntoFarBranch();
 };
 
 class ARM64CompareBranchInstruction : public ARM64LabelInstruction {
