@@ -255,11 +255,11 @@ atTRTO255_Fail16:
 	xtn	v2.8b, v0.8h
 	// store 8 elements
 	str	d2, [x1], #8
-	mov	q0, q1
+	mov	v0.16b, v1.16b
 	// fall through
 atTRTO255_Fail8:
 	// 8 or 4 elements in v0
-	mov	w5, v0.H[0]
+	umov	w5, v0.H[0]
 	cmp	w5, #256
 	b.cs	atTRTO255_Done2
 	strb	w5, [x1], #1
