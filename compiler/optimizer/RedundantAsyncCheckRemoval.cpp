@@ -133,7 +133,7 @@ int32_t TR_RedundantAsyncCheckRemoval::perform()
     //
     // Under (voluntary) OSR, it's safe to insert asynccheck immediately before
     // return, but not necessarily elsewhere.
-    if (comp()->getMethodHotness() <= warm || !comp()->mayHaveLoops() || comp()->getOption(TR_EnableOSR)) {
+    if (comp()->getMethodHotness() < warm || !comp()->mayHaveLoops() || comp()->getOption(TR_EnableOSR)) {
         static const char *p;
         static uint32_t numNodesInLargeMethod
             = (p = feGetEnv("TR_LargeMethodNodes")) ? atoi(p) : NUMBER_OF_NODES_IN_LARGE_METHOD;
@@ -853,7 +853,7 @@ int32_t TR_RedundantAsyncCheckRemoval::processNaturalLoop(TR_RegionStructure *re
             }
         }
 
-        if ((comp()->getMethodHotness() == scorching) && originatesFromShortRunningMethod(region)) {
+        if ((comp()->getMethodHotness() >= warm) && originatesFromShortRunningMethod(region)) {
             isShortRunning = true;
             if (trace())
                 traceMsg(comp(),
