@@ -4430,6 +4430,8 @@ TR::Register *OMR::X86::TreeEvaluator::passThroughEvaluator(TR::Node *node, TR::
         TR_ASSERT_FATAL(kind == TR_GPR || kind == TR_FPR || kind == TR_VRF || kind == TR_VMR,
             "passThrough does not work for this type of register\n");
 
+        printf("@@ passThrough n:%d c:%d %s\n", node->getReferenceCount(), child->getReferenceCount(), cg->comp()->signature());
+
         if (srcReg->containsInternalPointer() || !srcReg->containsCollectedReference()) {
             copyReg = cg->allocateRegister(kind);
             if (srcReg->containsInternalPointer()) {
