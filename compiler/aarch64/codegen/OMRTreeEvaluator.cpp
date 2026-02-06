@@ -7453,6 +7453,10 @@ TR::Register *OMR::ARM64::TreeEvaluator::passThroughEvaluator(TR::Node *node, TR
         || (node->getOpCodeValue() == TR::PassThrough && node->isCopyToNewVirtualRegister() && kind == TR_GPR)) {
         TR::Register *copyReg;
 
+        if (node->getOpCodeValue() != TR::PassThrough) {
+            printf("@@ %s @%p n:%d c:%d %s\n", node->getOpCode().getName(), node, node->getReferenceCount(), child->getReferenceCount(), cg->comp()->signature());
+        }
+
         if (srcReg->containsInternalPointer() || !srcReg->containsCollectedReference()) {
             copyReg = cg->allocateRegister(kind);
             if (srcReg->containsInternalPointer()) {

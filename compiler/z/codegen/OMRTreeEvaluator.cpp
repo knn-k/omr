@@ -10767,7 +10767,11 @@ TR::Register *OMR::Z::TreeEvaluator::passThroughEvaluator(TR::Node *node, TR::Co
     TR::Register *targetRegister = NULL;
     TR::Compilation *comp = cg->comp();
     if ((node->getOpCodeValue() != TR::PassThrough && cg->useClobberEvaluate())) {
-        targetRegister = cg->gprClobberEvaluate(node->getFirstChild());
+        TR::Node *child = node->getFirstChild();
+	if (child->getReferenceCount() > 1) {
+            printf("@@ %s @%p n:%d c:%d %s\n", node->getOpCode().getName(), node, node->getReferenceCount(), child->getReferenceCount(), cg->comp()->signature());
+	}
+        targetRegister = cg->gprClobberEvaluate(child);
     } else {
         targetRegister = cg->evaluate(node->getFirstChild());
     }

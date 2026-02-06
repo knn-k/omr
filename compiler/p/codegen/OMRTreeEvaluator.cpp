@@ -7504,6 +7504,10 @@ TR::Register *OMR::Power::TreeEvaluator::passThroughEvaluator(TR::Node *node, TR
                 break;
         }
 
+        if (node->getOpCodeValue() != TR::PassThrough) {
+            printf("@@ passThrough %s@%p n:%d c:%d %s\n", node->getOpCode().getName(), node, node->getReferenceCount(), child->getReferenceCount(), cg->comp()->signature());
+        }
+
         if (srcReg->containsInternalPointer() || !srcReg->containsCollectedReference()) {
             copyReg = cg->allocateRegister(kind);
             if (srcReg->containsInternalPointer()) {
