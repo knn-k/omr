@@ -7480,6 +7480,8 @@ TR::Register *OMR::Power::TreeEvaluator::passThroughEvaluator(TR::Node *node, TR
         TR_ASSERT(kind == TR_GPR || kind == TR_FPR, "passThrough does not work for this type of register\n");
         TR::InstOpCode::Mnemonic move_opcode = (srcReg->getKind() == TR_GPR) ? TR::InstOpCode::mr : TR::InstOpCode::fmr;
 
+	printf("@@ passThrough n:%d c:%d %s\n", node->getReferenceCount(), child->getReferenceCount(), cg->comp()->signature());
+
         if (srcReg->containsInternalPointer() || !srcReg->containsCollectedReference()) {
             copyReg = cg->allocateRegister(kind);
             if (srcReg->containsInternalPointer()) {
