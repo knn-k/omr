@@ -4421,6 +4421,7 @@ TR::Register *OMR::X86::TreeEvaluator::passThroughEvaluator(TR::Node *node, TR::
 {
     TR::Node *child = node->getFirstChild();
     TR::Register *srcReg = cg->evaluate(child);
+    static bool enableDebug = feGetEnv("TR_enableDebugPT") != NULL;
 
     if ((child->getReferenceCount() > 1 && node->getOpCodeValue() != TR::PassThrough)
         || (node->getOpCodeValue() == TR::PassThrough && node->isCopyToNewVirtualRegister()
@@ -4430,7 +4431,9 @@ TR::Register *OMR::X86::TreeEvaluator::passThroughEvaluator(TR::Node *node, TR::
         TR_ASSERT_FATAL(kind == TR_GPR || kind == TR_FPR || kind == TR_VRF || kind == TR_VMR,
             "passThrough does not work for this type of register\n");
 
-        printf("@@ passThrough n:%d c:%d %s\n", node->getReferenceCount(), child->getReferenceCount(), cg->comp()->signature());
+	if (enableDebug) {
+            printf("@@ passThrough %s@%p n:%d c:%d %s\n", node->getOpCode().getName(), node, node->getReferenceCount(), child->getReferenceCount(), cg->comp()->signature());
+	}
 
         if (srcReg->containsInternalPointer() || !srcReg->containsCollectedReference()) {
             copyReg = cg->allocateRegister(kind);
