@@ -10767,12 +10767,12 @@ TR::Register *OMR::Z::TreeEvaluator::passThroughEvaluator(TR::Node *node, TR::Co
     TR::Register *targetRegister = NULL;
     TR::Compilation *comp = cg->comp();
     TR::Node *child = node->getFirstChild();
-    if (child->getReferenceCount() > 1 && node->getOpCodeValue() != TR::PassThrough) {
-         printf("@@ %s @%p n:%d c:%d %s\n", node->getOpCode().getName(), node, node->getReferenceCount(), child->getReferenceCount(), cg->comp()->signature());
-    }
+    //if (child->getReferenceCount() > 1 && node->getOpCodeValue() != TR::PassThrough) {
+    //     printf("@@ %s @%p n:%d c:%d %s\n", node->getOpCode().getName(), node, node->getReferenceCount(), child->getReferenceCount(), cg->comp()->signature());
+    //}
 
     if ((node->getOpCodeValue() != TR::PassThrough && cg->useClobberEvaluate())) {
-        targetRegister = cg->gprClobberEvaluate(node->getFirstChild());
+        targetRegister = cg->gprClobberEvaluate(child);
     } else {
         targetRegister = cg->evaluate(node->getFirstChild());
     }
@@ -10833,6 +10833,10 @@ TR::Register *OMR::Z::TreeEvaluator::passThroughEvaluator(TR::Node *node, TR::Co
         }
 
         targetRegister = copyReg;
+    }
+
+    if (targetRegister != child->getRegister() && node->getOpCodeValue() != TR::PassThrough) {
+        printf("@@ %s @%p n:%d c:%d %s\n", node->getOpCode().getName(), node, node->getReferenceCount(), child->getReferenceCount(), cg->comp()->signature());
     }
 
     node->setRegister(targetRegister);
