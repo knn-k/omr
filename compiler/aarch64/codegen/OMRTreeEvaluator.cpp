@@ -7143,21 +7143,23 @@ TR::Register *OMR::ARM64::TreeEvaluator::arraycopyEvaluator(TR::Node *node, TR::
     // Inline primitive arraycopies that are either known forward arraycopies
     // or where the direction is unknown.
     //
-    static const bool disableInlinePrimitiveForwardArraycopy = feGetEnv("TR_DisableInlinePrimitiveForwardArraycopy");
+    static const bool disableInlinePrimitiveForwardArraycopy = true; // feGetEnv("TR_DisableInlinePrimitiveForwardArraycopy");
     if (simpleCopy && (node->isForwardArrayCopy() || !node->isBackwardArrayCopy())
         && !disableInlinePrimitiveForwardArraycopy) {
         inlinePrimitiveForwardArraycopy(node, srcAddrReg, dstAddrReg, lengthReg, cg);
     } else {
-        // x0-x3 and v30-v31 are destroyed in the helper
+        // x0-x4 and v30-v31 are destroyed in the helper
         TR::RegisterDependencyConditions *deps
-            = new (cg->trHeapMemory()) TR::RegisterDependencyConditions(6, 6, cg->trMemory());
+            = new (cg->trHeapMemory()) TR::RegisterDependencyConditions(7, 7, cg->trMemory());
         TR::addDependency(deps, lengthReg, TR::RealRegister::x0, TR_GPR, cg);
         TR::addDependency(deps, srcAddrReg, TR::RealRegister::x1, TR_GPR, cg);
         TR::addDependency(deps, dstAddrReg, TR::RealRegister::x2, TR_GPR, cg);
         TR::addDependency(deps, NULL, TR::RealRegister::x3, TR_GPR, cg);
+        TR::addDependency(deps, NULL, TR::RealRegister::x4, TR_GPR, cg);
         TR::addDependency(deps, NULL, TR::RealRegister::v30, TR_FPR, cg);
         TR::addDependency(deps, NULL, TR::RealRegister::v31, TR_FPR, cg);
         TR::Register *x3Reg = deps->searchPostConditionRegister(TR::RealRegister::x3);
+        TR::Register *x4Reg = deps->searchPostConditionRegister(TR::RealRegister::x4);
         TR::Register *v30Reg = deps->searchPostConditionRegister(TR::RealRegister::v30);
         TR::Register *v31Reg = deps->searchPostConditionRegister(TR::RealRegister::v31);
 
@@ -7170,6 +7172,7 @@ TR::Register *OMR::ARM64::TreeEvaluator::arraycopyEvaluator(TR::Node *node, TR::
         }
 
         cg->stopUsingRegister(x3Reg);
+        cg->stopUsingRegister(x4Reg);
         cg->stopUsingRegister(v30Reg);
         cg->stopUsingRegister(v31Reg);
     }
