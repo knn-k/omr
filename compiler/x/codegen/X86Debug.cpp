@@ -421,7 +421,7 @@ void TR_Debug::print(OMR::Logger *log, TR::X86LabelInstruction *instr)
     printPrefix(log, instr);
     TR::LabelSymbol *label = instr->getLabelSymbol();
     TR::Snippet *snippet = label ? label->getSnippet() : NULL;
-    if (instr->getOpCodeValue() == TR::InstOpCode::label) {
+    if (instr->getOpCodeValue() == OP::label) {
         print(log, label);
 
         log->printc(':');
@@ -2419,13 +2419,13 @@ const char *TR_Debug::getMnemonicName(TR::InstOpCode *opCode)
 {
     if (_comp->target().isLinux()) {
         int32_t o = opCode->getOpCodeValue();
-        if (o == (int32_t)TR::InstOpCode::DQImm64)
+        if (o == (int32_t)OP::DQImm64)
             return dqString();
-        if (o == (int32_t)TR::InstOpCode::DDImm4)
+        if (o == (int32_t)OP::DDImm4)
             return ddString();
-        if (o == (int32_t)TR::InstOpCode::DWImm2)
+        if (o == (int32_t)OP::DWImm2)
             return dwString();
-        if (o == (int32_t)TR::InstOpCode::DBImm1)
+        if (o == (int32_t)OP::DBImm1)
             return dbString();
     }
     return opCodeToMnemonicMap[opCode->getOpCodeValue()];

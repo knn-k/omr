@@ -660,9 +660,9 @@ TR::Register *OMR::X86::MemoryReference::evaluate(TR::Node *node, TR::CodeGenera
             // Sign extension in the 64-bit case
             TR::Instruction *instr = NULL;
             if (node->getSize() == 4)
-                instr = Inst_RegReg(TR::InstOpCode::MOVSXReg8Reg4, node, reg, reg, cg);
+                instr = Inst_RegReg(OP::MOVSXReg8Reg4, node, reg, reg, cg);
             else if (node->getSize() == 2)
-                instr = Inst_RegReg(TR::InstOpCode::MOVSXReg8Reg2, node, reg, reg, cg);
+                instr = Inst_RegReg(OP::MOVSXReg8Reg2, node, reg, reg, cg);
 
             logprintf(trace, log, "Add a sign extension instruction to 64-bit in Upcasting Mode %x\n", instr);
         }
@@ -671,7 +671,7 @@ TR::Register *OMR::X86::MemoryReference::evaluate(TR::Node *node, TR::CodeGenera
             // Sign extension in the 32-bit case
             TR::Instruction *instr = NULL;
             if (node->getSize() == 2)
-                instr = Inst_RegReg(TR::InstOpCode::MOVSXReg4Reg2, node, reg, reg, cg);
+                instr = Inst_RegReg(OP::MOVSXReg4Reg2, node, reg, reg, cg);
 
             logprintf(trace, log, "Add a sign extension instruction to 32-bit in Upcasting Mode %x\n", instr);
         }
@@ -706,7 +706,7 @@ void OMR::X86::MemoryReference::consolidateRegisters(TR::Node *node, TR::CodeGen
 
     TR::MemoryReference *interimMemoryReference
         = generateX86MemoryReference(_baseRegister, _indexRegister, _stride, cg);
-    Inst_RegMem(TR::InstOpCode::LEARegMem(), node, tempTargetRegister, interimMemoryReference, cg);
+    Inst_RegMem(OP::LEARegMem(), node, tempTargetRegister, interimMemoryReference, cg);
     self()->decNodeReferenceCounts(cg);
     _baseRegister = tempTargetRegister;
     _baseNode = NULL;

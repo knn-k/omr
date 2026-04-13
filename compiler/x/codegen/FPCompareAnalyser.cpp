@@ -252,8 +252,8 @@ const uint8_t TR_X86FPCompareAnalyser::_actionMap[NUM_FPCOMPARE_ACTION_SETS] = {
     /* 1  1  1  1  1  1  1 */ fpCmpReg1Reg2
 };
 
-TR::Register *TR_IA32XMMCompareAnalyser::xmmCompareAnalyser(TR::Node *root, TR::InstOpCode::Mnemonic cmpRegRegOpCode,
-    TR::InstOpCode::Mnemonic cmpRegMemOpCode)
+TR::Register *TR_IA32XMMCompareAnalyser::xmmCompareAnalyser(TR::Node *root, OP::Mnemonic cmpRegRegOpCode,
+    OP::Mnemonic cmpRegMemOpCode)
 {
     TR::Node *firstChild, *secondChild;
     TR::ILOpCodes cmpOp = root->getOpCodeValue();

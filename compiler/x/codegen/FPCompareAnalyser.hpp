@@ -126,7 +126,6 @@ public:
         : TR_X86FPCompareAnalyser(cg)
     {}
 
-    TR::Register *xmmCompareAnalyser(TR::Node *root, TR::InstOpCode::Mnemonic cmpRegRegOpCode,
-        TR::InstOpCode::Mnemonic cmpRegMemOpCode);
+    TR::Register *xmmCompareAnalyser(TR::Node *root, OP::Mnemonic cmpRegRegOpCode, OP::Mnemonic cmpRegMemOpCode);
 };
 #endif

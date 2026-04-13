@@ -45,13 +45,13 @@ uint8_t *TR::X86DivideCheckSnippet::emitSnippetBody()
     // CMP realDivisorReg, -1
     //
     uint8_t rexPrefix = cg()->comp()->target().is64Bit() ? realDivisorReg->rexBits(TR::RealRegister::REX_B, false) : 0;
-    buffer = TR::InstOpCode(TR::InstOpCode::CMPRegImms(_divOp.isLong())).binary(buffer, OMR::X86::Default, rexPrefix);
+    buffer = TR::InstOpCode(OP::CMPRegImms(_divOp.isLong())).binary(buffer, OMR::X86::Default, rexPrefix);
     realDivisorReg->setRMRegisterFieldInModRM(buffer - 1);
     *buffer++ = -1;
 
     // JNE divideLabel
     //
-    buffer = genRestartJump(TR::InstOpCode::JNE4, buffer, _divideLabel);
+    buffer = genRestartJump(OP::JNE4, buffer, _divideLabel);
 
     TR::Machine *machine = cg()->machine();
     if (_divOp.isDiv() && realDividendReg->getRegisterNumber() != TR::RealRegister::eax) {
@@ -114,8 +114,8 @@ void TR_Debug::print(OMR::Logger *log, TR::X86DivideCheckSnippet *snippet)
     log->printf("cmp\t%s, -1", getName(realDivisorReg)); // TODO: Might be 64-bit register
     bufferPos += cmpSize;
 
-    int32_t size = snippet->estimateRestartJumpLength(TR::InstOpCode::JNE4,
-        static_cast<int32_t>(bufferPos - (uint8_t *)0), snippet->getDivideLabel());
+    int32_t size = snippet->estimateRestartJumpLength(OP::JNE4, static_cast<int32_t>(bufferPos - (uint8_t *)0),
+        snippet->getDivideLabel());
     printPrefix(log, NULL, bufferPos, size);
     printLabelInstruction(log, "jne", snippet->getDivideLabel());
     bufferPos += size;
@@ -163,8 +163,7 @@ uint32_t TR::X86DivideCheckSnippet::getLength(int32_t estimatedSnippetStart)
         if (rexPrefix)
             fixedLength++;
     }
-    uint32_t jumpLength
-        = estimateRestartJumpLength(TR::InstOpCode::JNE4, estimatedSnippetStart + fixedLength + 2, _divideLabel);
+    uint32_t jumpLength = estimateRestartJumpLength(OP::JNE4, estimatedSnippetStart + fixedLength + 2, _divideLabel);
 
     if (_divOp.isDiv() && realDividendReg->getRegisterNumber() != TR::RealRegister::eax) {
         fixedLength += 2;

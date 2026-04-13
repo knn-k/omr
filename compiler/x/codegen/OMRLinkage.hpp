@@ -210,7 +210,7 @@ public:
         }
     }
 
-    static inline TR::InstOpCode::Mnemonic movOpcodes(TR_MovOperandTypes operandType, TR_MovDataTypes dataType)
+    static inline OP::Mnemonic movOpcodes(TR_MovOperandTypes operandType, TR_MovDataTypes dataType)
     {
         TR_ASSERT(OMR::X86::Linkage::getTargetFromComp().is64Bit() || dataType != Int8,
             "MOV Int8 should not occur on X86-32");
@@ -253,7 +253,7 @@ protected:
 private:
     static TR::Environment &getTargetFromComp();
 
-    static TR::InstOpCode::Mnemonic _movOpcodes[NumMovOperandTypes][NumMovDataTypes];
+    static OP::Mnemonic _movOpcodes[NumMovOperandTypes][NumMovDataTypes];
     uint8_t _minimumFirstInstructionSize;
 };
 }} // namespace OMR::X86

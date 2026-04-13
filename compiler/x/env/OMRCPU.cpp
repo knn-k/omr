@@ -182,10 +182,7 @@ bool OMR::X86::CPU::isAuthenticAMD()
     return self()->isAtLeast(OMR_PROCESSOR_X86_AMD_FIRST) && self()->isAtMost(OMR_PROCESSOR_X86_AMD_LAST);
 }
 
-bool OMR::X86::CPU::requiresLFence()
-{
-    return false; /* Dummy for now, we may need TR::InstOpCode::LFENCE in future processors*/
-}
+bool OMR::X86::CPU::requiresLFence() { return false; /* Dummy for now, we may need OP::LFENCE in future processors*/ }
 
 bool OMR::X86::CPU::supportsMFence()
 {

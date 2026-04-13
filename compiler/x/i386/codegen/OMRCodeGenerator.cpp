@@ -141,8 +141,8 @@ TR::Register *OMR::X86::I386::CodeGenerator::longClobberEvaluate(TR::Node *node)
         TR::Register *highReg = self()->allocateRegister();
         TR::RegisterPair *longReg = self()->allocateRegisterPair(lowReg, highReg);
 
-        Inst_RegReg(TR::InstOpCode::MOV4RegReg, node, lowReg, temp->getLowOrder(), self());
-        Inst_RegReg(TR::InstOpCode::MOV4RegReg, node, highReg, temp->getHighOrder(), self());
+        Inst_RegReg(OP::MOV4RegReg, node, lowReg, temp->getLowOrder(), self());
+        Inst_RegReg(OP::MOV4RegReg, node, highReg, temp->getHighOrder(), self());
         return longReg;
     } else {
         return self()->evaluate(node);

@@ -534,7 +534,7 @@ uint8_t *OMR::X86::AMD64::MemoryReference::generateBinaryEncoding(uint8_t *modRM
             symRef = new (cg->trHeapMemory()) TR::SymbolReference(cg->symRefTab(), _symbolReference, 0);
 
             addressLoadInstruction
-                = Inst_RegImm64Sym(containingInstruction->getPrev(), TR::InstOpCode::MOV8RegImm64, _addressRegister,
+                = Inst_RegImm64Sym(containingInstruction->getPrev(), OP::MOV8RegImm64, _addressRegister,
                     (!self()->getUnresolvedDataSnippet() && sr.getSymbol()->isStatic()
                         && sr.getSymbol()->isClassObject() && cg->needClassAndMethodPointerRelocations())
                         ? (uint64_t)TR::Compiler->cls.persistentClassPointerFromClassPointer(comp,
@@ -549,8 +549,8 @@ uint8_t *OMR::X86::AMD64::MemoryReference::generateBinaryEncoding(uint8_t *modRM
         } else {
             TR_ASSERT(!self()->getUnresolvedDataSnippet(), "Unresolved references should always have a symbol");
 
-            addressLoadInstruction = Inst_RegImm64(containingInstruction->getPrev(), TR::InstOpCode::MOV8RegImm64,
-                _addressRegister, displacement, cg);
+            addressLoadInstruction
+                = Inst_RegImm64(containingInstruction->getPrev(), OP::MOV8RegImm64, _addressRegister, displacement, cg);
         }
 
         self()->addMetaDataForCodeAddressWithLoad(displacementLocation, containingInstruction, cg, symRef);
@@ -577,7 +577,7 @@ uint8_t *OMR::X86::AMD64::MemoryReference::generateBinaryEncoding(uint8_t *modRM
         cg->setBinaryBufferCursor(cursor);
 
         if (self()->getBaseRegister() && self()->getIndexRegister()) {
-            TR::Instruction *addressAddInstruction = Inst_RegReg(addressLoadInstruction, TR::InstOpCode::ADD8RegReg,
+            TR::Instruction *addressAddInstruction = Inst_RegReg(addressLoadInstruction, OP::ADD8RegReg,
                 self()->getAddressRegister(), self()->getBaseRegister(), cg);
             cursor = addressAddInstruction->generateBinaryEncoding();
             cg->setBinaryBufferCursor(cursor);

@@ -96,12 +96,11 @@ protected:
 #endif
 
 protected:
-    Instruction(TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic op, TR::Node *node,
+    Instruction(TR::CodeGenerator *cg, OP::Mnemonic op, TR::Node *node, OMR::X86::Encoding encoding = Default);
+    Instruction(TR::CodeGenerator *cg, TR::Instruction *precedingInstruction, OP::Mnemonic op, TR::Node *node = 0,
         OMR::X86::Encoding encoding = Default);
-    Instruction(TR::CodeGenerator *cg, TR::Instruction *precedingInstruction, TR::InstOpCode::Mnemonic op,
-        TR::Node *node = 0, OMR::X86::Encoding encoding = Default);
     void initialize(TR::CodeGenerator *cg = NULL, TR::RegisterDependencyConditions *cond = NULL,
-        TR::InstOpCode::Mnemonic op = TR::InstOpCode::bad, bool flag = false);
+        OP::Mnemonic op = OP::bad, bool flag = false);
 
 public:
     virtual const char *description() { return "X86"; }

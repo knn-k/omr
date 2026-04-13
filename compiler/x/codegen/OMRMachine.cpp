@@ -143,9 +143,9 @@ bool existsNextInstructionToTestFlags(TR::Instruction *startInstr, uint8_t testM
         // Mask out those eflags that are modified by this instruction.
         //
         testMask = testMask & ~(cursor->getOpCode().getModifiedEFlags());
-    } while (testMask && cursor->getOpCodeValue() != TR::InstOpCode::label
-        && cursor->getOpCodeValue() != TR::InstOpCode::RET && cursor->getOpCodeValue() != TR::InstOpCode::RETImm2
-        && cursor->getOpCodeValue() != TR::InstOpCode::retn && !cursor->getOpCode().isBranchOp());
+    } while (testMask && cursor->getOpCodeValue() != OP::label && cursor->getOpCodeValue() != OP::RET
+        && cursor->getOpCodeValue() != OP::RETImm2 && cursor->getOpCodeValue() != OP::retn
+        && !cursor->getOpCode().isBranchOp());
 
     return false;
 }
@@ -357,10 +357,10 @@ TR::RealRegister *OMR::X86::Machine::findBestFreeGPRegister(TR::Instruction *cur
         TR::Instruction *cursor;
         int32_t distance = 0;
         for (cursor = currentInstruction->getPrev(); cursor && numCandidates > 1; cursor = cursor->getPrev()) {
-            if (cursor->getOpCodeValue() == TR::InstOpCode::proc)
+            if (cursor->getOpCodeValue() == OP::proc)
                 break;
 
-            if (cursor->getOpCodeValue() == TR::InstOpCode::assocreg)
+            if (cursor->getOpCodeValue() == OP::assocreg)
                 continue;
 
             for (i = 0; i < numCandidates; i++) {
@@ -433,7 +433,7 @@ TR::RealRegister *OMR::X86::Machine::freeBestGPRegister(TR::Instruction *current
             TR_ASSERT_FATAL(0, "unknown register size requested\n");
     }
 
-    TR::InstOpCode::Mnemonic vmrSpillOpcode;
+    OP::Mnemonic vmrSpillOpcode;
     int32_t vmrStoreSize;
 
     if (virtReg->getKind() == TR_VMR) {
@@ -499,7 +499,7 @@ TR::RealRegister *OMR::X86::Machine::freeBestGPRegister(TR::Instruction *current
     //
     TR::RealRegister::RegNum registerNumber;
     for (cursor = currentInstruction->getPrev(); cursor; cursor = cursor->getPrev()) {
-        if (cursor->getOpCodeValue() == TR::InstOpCode::proc)
+        if (cursor->getOpCodeValue() == OP::proc)
             break;
 
         if (numCandidates == 0)
@@ -508,7 +508,7 @@ TR::RealRegister *OMR::X86::Machine::freeBestGPRegister(TR::Instruction *current
         if (distance > FREE_BEST_REGISTER_SEARCH_DISTANCE)
             break;
 
-        if (cursor->getOpCodeValue() == TR::InstOpCode::fence) {
+        if (cursor->getOpCodeValue() == OP::fence) {
             // Don't walk past the start of the super (extended) block.
             // This is primarily for the non-linear register assigner because
             // the linear RA won't even have values live beyond the start of the
@@ -518,7 +518,7 @@ TR::RealRegister *OMR::X86::Machine::freeBestGPRegister(TR::Instruction *current
                 break;
         }
 
-        if (cursor->getOpCodeValue() == TR::InstOpCode::fence)
+        if (cursor->getOpCodeValue() == OP::fence)
             continue;
 
         for (i = 0; i < numCandidates; i++) {
@@ -684,11 +684,11 @@ done:
     TR::Instruction *instr = NULL;
 
     if (virtReg->getKind() == TR_VMR) {
-        vmrSpillOpcode = TR::InstOpCode::KMOVWMaskMem;
+        vmrSpillOpcode = OP::KMOVWMaskMem;
         vmrStoreSize = 2;
 
         if (comp->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512BW)) {
-            vmrSpillOpcode = TR::InstOpCode::KMOVQMaskMem;
+            vmrSpillOpcode = OP::KMOVQMaskMem;
             vmrStoreSize = 8;
         }
     }
@@ -708,21 +708,21 @@ done:
             }
 
             if (info->getDataType() == TR_RematerializableFloat) {
-                instr = Inst_RegMem(currentInstruction, TR::InstOpCode::MOVSSRegMem, best, tempMR, cg());
+                instr = Inst_RegMem(currentInstruction, OP::MOVSSRegMem, best, tempMR, cg());
             } else {
                 instr = TR::TreeEvaluator::insertLoadMemory(0, best, tempMR, info->getDataType(), cg(),
                     currentInstruction);
             }
         } else if (info->isRematerializableFromAddress()) {
             TR::MemoryReference *tempMR = generateX86MemoryReference(info->getSymbolReference(), cg());
-            instr = Inst_RegMem(currentInstruction, TR::InstOpCode::LEARegMem(), best, tempMR, cg());
+            instr = Inst_RegMem(currentInstruction, OP::LEARegMem(), best, tempMR, cg());
         } else {
             if (info->getDataType() == TR_RematerializableFloat) {
                 TR::MemoryReference *tempMR
                     = generateX86MemoryReference(cg()->findOrCreate4ByteConstant(currentInstruction->getNode(),
                                                      static_cast<int32_t>(info->getConstant())),
                         cg());
-                instr = Inst_RegMem(currentInstruction, TR::InstOpCode::MOVSSRegMem, best, tempMR, cg());
+                instr = Inst_RegMem(currentInstruction, OP::MOVSSRegMem, best, tempMR, cg());
             } else {
                 instr = TR::TreeEvaluator::insertLoadConstant(0, best, info->getConstant(), info->getDataType(), cg(),
                     currentInstruction);
@@ -833,16 +833,16 @@ done:
         bestRegister->setAssignedRegister(NULL);
         cg()->getSpilledIntRegisters().push_front(bestRegister);
 
-        TR::InstOpCode::Mnemonic op;
+        OP::Mnemonic op;
         if (bestRegister->getKind() == TR_FPR) {
-            op = (bestRegister->isSinglePrecision()) ? TR::InstOpCode::MOVSSRegMem : (cg()->getXMMDoubleLoadOpCode());
+            op = bestRegister->isSinglePrecision() ? OP::MOVSSRegMem : cg()->getXMMDoubleLoadOpCode();
         } else if (bestRegister->getKind() == TR_VRF) {
-            op = comp->target().cpu.supportsAVX() ? TR::InstOpCode::VMOVDQUYmmMem : TR::InstOpCode::MOVDQURegMem;
-            op = comp->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512F) ? TR::InstOpCode::VMOVDQUZmmMem : op;
+            op = comp->target().cpu.supportsAVX() ? OP::VMOVDQUYmmMem : OP::MOVDQURegMem;
+            op = comp->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512F) ? OP::VMOVDQUZmmMem : op;
         } else if (bestRegister->getKind() == TR_VMR) {
             op = vmrSpillOpcode;
         } else {
-            op = TR::InstOpCode::LRegMem();
+            op = OP::LRegMem();
         }
         instr = new (cg()->trHeapMemory()) TR::X86RegMemInstruction(currentInstruction, op, best, tempMR, cg());
 
@@ -922,8 +922,7 @@ TR::RealRegister *OMR::X86::Machine::reverseGPRSpillState(TR::Instruction *curre
 
     if (spilledRegister->getKind() == TR_FPR) {
         instr = new (cg()->trHeapMemory()) TR::X86MemRegInstruction(currentInstruction,
-            spilledRegister->isSinglePrecision() ? TR::InstOpCode::MOVSSMemReg : TR::InstOpCode::MOVSDMemReg, tempMR,
-            targetRegister, cg());
+            spilledRegister->isSinglePrecision() ? OP::MOVSSMemReg : OP::MOVSDMemReg, tempMR, targetRegister, cg());
 
         // Do not add a freed spill slot back onto the free list if the list is locked.
         // This is to enforce re-use of the same spill slot for a virtual register
@@ -935,10 +934,9 @@ TR::RealRegister *OMR::X86::Machine::reverseGPRSpillState(TR::Instruction *curre
             spilledRegister->setBackingStorage(NULL);
         }
     } else if (spilledRegister->getKind() == TR_VRF) {
-        TR::InstOpCode::Mnemonic movOpcode;
-        movOpcode = comp->target().cpu.supportsAVX() ? TR::InstOpCode::VMOVDQUMemYmm : TR::InstOpCode::MOVDQUMemReg;
-        movOpcode
-            = comp->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512F) ? TR::InstOpCode::VMOVDQUMemZmm : movOpcode;
+        OP::Mnemonic movOpcode;
+        movOpcode = comp->target().cpu.supportsAVX() ? OP::VMOVDQUMemYmm : OP::MOVDQUMemReg;
+        movOpcode = comp->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512F) ? OP::VMOVDQUMemZmm : movOpcode;
         instr = new (cg()->trHeapMemory())
             TR::X86MemRegInstruction(currentInstruction, movOpcode, tempMR, targetRegister, cg());
 
@@ -953,11 +951,11 @@ TR::RealRegister *OMR::X86::Machine::reverseGPRSpillState(TR::Instruction *curre
             spilledRegister->setBackingStorage(NULL);
         }
     } else if (spilledRegister->getKind() == TR_VMR) {
-        TR::InstOpCode::Mnemonic opcode = TR::InstOpCode::KMOVWMemMask;
+        OP::Mnemonic opcode = OP::KMOVWMemMask;
         int32_t spillSize = 2;
 
         if (comp->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512BW)) {
-            opcode = TR::InstOpCode::KMOVQMemMask;
+            opcode = OP::KMOVQMemMask;
             spillSize = 8;
         }
 
@@ -971,7 +969,7 @@ TR::RealRegister *OMR::X86::Machine::reverseGPRSpillState(TR::Instruction *curre
         cg()->freeSpill(location, spillSize, 0);
     } else {
         instr = new (cg()->trHeapMemory())
-            TR::X86MemRegInstruction(currentInstruction, TR::InstOpCode::SMemReg(), tempMR, targetRegister, cg());
+            TR::X86MemRegInstruction(currentInstruction, OP::SMemReg(), tempMR, targetRegister, cg());
         // Do not add a freed spill slot back onto the free list if the list is locked.
         // This is to enforce re-use of the same spill slot for a virtual register
         // while assigning non-linear control flow regions.
@@ -995,12 +993,11 @@ void OMR::X86::Machine::coerceGPRegisterAssignment(TR::Instruction *currentInstr
     TR::RealRegister *currentAssignedRegister = virtualRegister->getAssignedRealRegister();
     TR::Instruction *instr = NULL;
 
-    TR::InstOpCode::Mnemonic movOpcode = TR::InstOpCode::MOVRegReg();
+    OP::Mnemonic movOpcode = OP::MOVRegReg();
 
     if (virtualRegister->getKind() == TR_VMR) {
-        movOpcode = cg()->comp()->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512BW)
-            ? TR::InstOpCode::KMOVQMaskMask
-            : TR::InstOpCode::KMOVWMaskMask;
+        movOpcode = cg()->comp()->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512BW) ? OP::KMOVQMaskMask
+                                                                                         : OP::KMOVWMaskMask;
     }
 
     if (targetRegister->getState() == TR::RealRegister::Free) {
@@ -1030,8 +1027,8 @@ void OMR::X86::Machine::coerceGPRegisterAssignment(TR::Instruction *currentInstr
 
         // Cannot XCHG vector mask registers
         if (currentAssignedRegister != NULL && currentTargetVirtual->getKind() != TR_VMR) {
-            instr = new (cg()->trHeapMemory()) TR::X86RegRegInstruction(currentInstruction,
-                TR::InstOpCode::XCHGRegReg(), currentAssignedRegister, targetRegister, cg());
+            instr = new (cg()->trHeapMemory()) TR::X86RegRegInstruction(currentInstruction, OP::XCHGRegReg(),
+                currentAssignedRegister, targetRegister, cg());
 
             if (targetRegister->getState() == TR::RealRegister::Assigned)
                 currentAssignedRegister->setState(TR::RealRegister::Assigned, currentTargetVirtual->isPlaceholderReg());
@@ -1103,20 +1100,18 @@ void OMR::X86::Machine::coerceXMMRegisterAssignment(TR::Instruction *currentInst
             }
         } else {
             if (virtualRegister->getKind() == TR_VRF) {
-                TR::InstOpCode::Mnemonic movOpcode;
-                movOpcode
-                    = comp->target().cpu.supportsAVX() ? TR::InstOpCode::VMOVDQUYmmYmm : TR::InstOpCode::MOVDQURegReg;
-                movOpcode = comp->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512F) ? TR::InstOpCode::VMOVDQUZmmZmm
-                                                                                        : movOpcode;
+                OP::Mnemonic movOpcode;
+                movOpcode = comp->target().cpu.supportsAVX() ? OP::VMOVDQUYmmYmm : OP::MOVDQURegReg;
+                movOpcode = comp->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512F) ? OP::VMOVDQUZmmZmm : movOpcode;
 
                 instr = new (cg()->trHeapMemory()) TR::X86RegRegInstruction(currentInstruction, movOpcode,
                     currentAssignedRegister, targetRegister, cg());
             } else if (virtualRegister->isSinglePrecision()) {
-                instr = new (cg()->trHeapMemory()) TR::X86RegRegInstruction(currentInstruction,
-                    TR::InstOpCode::MOVAPSRegReg, currentAssignedRegister, targetRegister, cg());
+                instr = new (cg()->trHeapMemory()) TR::X86RegRegInstruction(currentInstruction, OP::MOVAPSRegReg,
+                    currentAssignedRegister, targetRegister, cg());
             } else {
-                instr = new (cg()->trHeapMemory()) TR::X86RegRegInstruction(currentInstruction,
-                    TR::InstOpCode::MOVAPDRegReg, currentAssignedRegister, targetRegister, cg());
+                instr = new (cg()->trHeapMemory()) TR::X86RegRegInstruction(currentInstruction, OP::MOVAPDRegReg,
+                    currentAssignedRegister, targetRegister, cg());
             }
             currentAssignedRegister->setState(TR::RealRegister::Free);
             currentAssignedRegister->setAssignedRegister(NULL);
@@ -1133,15 +1128,14 @@ void OMR::X86::Machine::coerceXMMRegisterAssignment(TR::Instruction *currentInst
         if (currentAssignedRegister != NULL) {
             // Exchange the contents of two XMM registers without an XCHG instruction.
             //
-            TR::InstOpCode::Mnemonic xchgOp = TR::InstOpCode::bad;
+            OP::Mnemonic xchgOp = OP::bad;
             if (virtualRegister->getKind() == TR_FPR && virtualRegister->isSinglePrecision()) {
-                xchgOp = TR::InstOpCode::XORPSRegReg;
+                xchgOp = OP::XORPSRegReg;
             } else if (virtualRegister->getKind() == TR_VRF) {
-                xchgOp = comp->target().cpu.supportsAVX() ? TR::InstOpCode::VXORPDYmmYmm : TR::InstOpCode::XORPDRegReg;
-                xchgOp = comp->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512F) ? TR::InstOpCode::VPXORDZmmZmm
-                                                                                     : xchgOp;
+                xchgOp = comp->target().cpu.supportsAVX() ? OP::VXORPDYmmYmm : OP::XORPDRegReg;
+                xchgOp = comp->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512F) ? OP::VPXORDZmmZmm : xchgOp;
             } else {
-                xchgOp = TR::InstOpCode::XORPDRegReg;
+                xchgOp = OP::XORPDRegReg;
             }
 
             cg()->traceRegAssigned(currentTargetVirtual, currentAssignedRegister);
@@ -1174,20 +1168,18 @@ void OMR::X86::Machine::coerceXMMRegisterAssignment(TR::Instruction *currentInst
 
             if (targetRegister != candidate) {
                 if (virtualRegister->getKind() == TR_VRF) {
-                    TR::InstOpCode::Mnemonic movOpcode;
-                    movOpcode = comp->target().cpu.supportsAVX() ? TR::InstOpCode::VMOVDQUYmmYmm
-                                                                 : TR::InstOpCode::MOVDQURegReg;
-                    movOpcode = comp->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512F)
-                        ? TR::InstOpCode::VMOVDQUZmmZmm
-                        : movOpcode;
+                    OP::Mnemonic movOpcode;
+                    movOpcode = comp->target().cpu.supportsAVX() ? OP::VMOVDQUYmmYmm : OP::MOVDQURegReg;
+                    movOpcode
+                        = comp->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512F) ? OP::VMOVDQUZmmZmm : movOpcode;
                     instr = new (cg()->trHeapMemory())
                         TR::X86RegRegInstruction(currentInstruction, movOpcode, targetRegister, candidate, cg());
                 } else if (currentTargetVirtual->isSinglePrecision()) {
-                    instr = new (cg()->trHeapMemory()) TR::X86RegRegInstruction(currentInstruction,
-                        TR::InstOpCode::MOVAPSRegReg, targetRegister, candidate, cg());
+                    instr = new (cg()->trHeapMemory())
+                        TR::X86RegRegInstruction(currentInstruction, OP::MOVAPSRegReg, targetRegister, candidate, cg());
                 } else {
-                    instr = new (cg()->trHeapMemory()) TR::X86RegRegInstruction(currentInstruction,
-                        TR::InstOpCode::MOVAPDRegReg, targetRegister, candidate, cg());
+                    instr = new (cg()->trHeapMemory())
+                        TR::X86RegRegInstruction(currentInstruction, OP::MOVAPDRegReg, targetRegister, candidate, cg());
                 }
                 candidate->setState(TR::RealRegister::Blocked);
                 candidate->setAssignedRegister(currentTargetVirtual);
@@ -1211,15 +1203,14 @@ void OMR::X86::Machine::coerceXMMRegisterAssignment(TR::Instruction *currentInst
 
         cg()->setRegisterAssignmentFlag(TR_IndirectCoercion);
         if (currentAssignedRegister != NULL) {
-            TR::InstOpCode::Mnemonic xchgOp = TR::InstOpCode::bad;
+            OP::Mnemonic xchgOp = OP::bad;
             if (virtualRegister->getKind() == TR_FPR && virtualRegister->isSinglePrecision()) {
-                xchgOp = TR::InstOpCode::XORPSRegReg;
+                xchgOp = OP::XORPSRegReg;
             } else if (virtualRegister->getKind() == TR_VRF) {
-                xchgOp = comp->target().cpu.supportsAVX() ? TR::InstOpCode::VXORPDYmmYmm : TR::InstOpCode::XORPDRegReg;
-                xchgOp = comp->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512F) ? TR::InstOpCode::VPXORDZmmZmm
-                                                                                     : xchgOp;
+                xchgOp = comp->target().cpu.supportsAVX() ? OP::VXORPDYmmYmm : OP::XORPDRegReg;
+                xchgOp = comp->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512F) ? OP::VPXORDZmmZmm : xchgOp;
             } else {
-                xchgOp = TR::InstOpCode::XORPDRegReg;
+                xchgOp = OP::XORPDRegReg;
             }
 
             cg()->traceRegAssigned(currentTargetVirtual, currentAssignedRegister);
@@ -1251,20 +1242,18 @@ void OMR::X86::Machine::coerceXMMRegisterAssignment(TR::Instruction *currentInst
 
             if (targetRegister != candidate) {
                 if (virtualRegister->getKind() == TR_VRF) {
-                    TR::InstOpCode::Mnemonic movOpcode;
-                    movOpcode = comp->target().cpu.supportsAVX() ? TR::InstOpCode::VMOVDQUYmmYmm
-                                                                 : TR::InstOpCode::MOVDQURegReg;
-                    movOpcode = comp->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512F)
-                        ? TR::InstOpCode::VMOVDQUZmmZmm
-                        : movOpcode;
+                    OP::Mnemonic movOpcode;
+                    movOpcode = comp->target().cpu.supportsAVX() ? OP::VMOVDQUYmmYmm : OP::MOVDQURegReg;
+                    movOpcode
+                        = comp->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512F) ? OP::VMOVDQUZmmZmm : movOpcode;
                     instr = new (cg()->trHeapMemory())
                         TR::X86RegRegInstruction(currentInstruction, movOpcode, targetRegister, candidate, cg());
                 } else if (currentTargetVirtual->isSinglePrecision()) {
-                    instr = new (cg()->trHeapMemory()) TR::X86RegRegInstruction(currentInstruction,
-                        TR::InstOpCode::MOVAPSRegReg, targetRegister, candidate, cg());
+                    instr = new (cg()->trHeapMemory())
+                        TR::X86RegRegInstruction(currentInstruction, OP::MOVAPSRegReg, targetRegister, candidate, cg());
                 } else {
-                    instr = new (cg()->trHeapMemory()) TR::X86RegRegInstruction(currentInstruction,
-                        TR::InstOpCode::MOVAPDRegReg, targetRegister, candidate, cg());
+                    instr = new (cg()->trHeapMemory())
+                        TR::X86RegRegInstruction(currentInstruction, OP::MOVAPDRegReg, targetRegister, candidate, cg());
                 }
                 candidate->setState(TR::RealRegister::Assigned, currentTargetVirtual->isPlaceholderReg());
                 candidate->setAssignedRegister(currentTargetVirtual);
@@ -1296,7 +1285,7 @@ void OMR::X86::Machine::swapGPRegisters(TR::Instruction *currentInstruction, TR:
     TR::RealRegister *realReg1 = self()->getRealRegister(regNum1);
     TR::RealRegister *realReg2 = self()->getRealRegister(regNum2);
     TR::Instruction *instr = new (cg()->trHeapMemory())
-        TR::X86RegRegInstruction(currentInstruction, TR::InstOpCode::XCHGRegReg(), realReg1, realReg2, cg());
+        TR::X86RegRegInstruction(currentInstruction, OP::XCHGRegReg(), realReg1, realReg2, cg());
 
     TR::Register *virtReg1 = realReg1->getAssignedRegister();
     TR::Register *virtReg2 = realReg2->getAssignedRegister();
@@ -1436,11 +1425,11 @@ void OMR::X86::Machine::createRegisterAssociationDirective(TR::Instruction *curs
 
     associations->stopAddingPostConditions();
 
-    new (cg()->trHeapMemory()) TR::Instruction(associations, TR::InstOpCode::assocreg, cursor, cg());
+    new (cg()->trHeapMemory()) TR::Instruction(associations, OP::assocreg, cursor, cg());
     if (cursor == cg()->getAppendInstruction())
         cg()->setAppendInstruction(cursor->getNext());
 
-    // There's no need to have a virtual appear in more than one TR::InstOpCode::assocreg after
+    // There's no need to have a virtual appear in more than one OP::assocreg after
     // its live range has ended.  One is enough.  So we clear out all the dead
     // registers from the associations.
     //

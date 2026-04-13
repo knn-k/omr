@@ -727,7 +727,7 @@ TR::Register *TR::AMD64SystemLinkage::buildIndirectDispatch(TR::Node *callNode)
 
     // Dispatch
     //
-    Inst_Reg(TR::InstOpCode::CALLReg, callNode, vftRegister, callDeps, cg());
+    Inst_Reg(OP::CALLReg, callNode, vftRegister, callDeps, cg());
     cg()->resetIsLeafMethod();
 
     // Build label post-conditions
@@ -737,7 +737,7 @@ TR::Register *TR::AMD64SystemLinkage::buildIndirectDispatch(TR::Node *callNode)
     postDeps->stopAddingPostConditions();
 
     TR::LabelSymbol *postDepLabel = generateLabelSymbol(cg());
-    Inst_Label(TR::InstOpCode::label, callNode, postDepLabel, postDeps, cg());
+    Inst_Label(OP::label, callNode, postDepLabel, postDeps, cg());
 
     return returnReg;
 }
@@ -783,16 +783,16 @@ TR::Register *TR::AMD64SystemLinkage::buildDirectDispatch(TR::Node *callNode, bo
     TR::Instruction *instr;
     if (methodSymbol->getMethodAddress()) {
         TR_ASSERT(scratchReg, "could not find second scratch register");
-        auto LoadRegisterInstruction = Inst_RegImm64Sym(TR::InstOpCode::MOV8RegImm64, callNode, scratchReg,
+        auto LoadRegisterInstruction = Inst_RegImm64Sym(OP::MOV8RegImm64, callNode, scratchReg,
             (uintptr_t)methodSymbol->getMethodAddress(), methodSymRef, cg());
 
         if (comp()->getOption(TR_EmitRelocatableELFFile)) {
             LoadRegisterInstruction->setReloKind(TR_NativeMethodAbsolute);
         }
 
-        instr = Inst_Reg(TR::InstOpCode::CALLReg, callNode, scratchReg, preDeps, cg());
+        instr = Inst_Reg(OP::CALLReg, callNode, scratchReg, preDeps, cg());
     } else {
-        instr = Inst_ImmSym(TR::InstOpCode::CALLImm4, callNode,
+        instr = Inst_ImmSym(OP::CALLImm4, callNode,
             static_cast<int32_t>(reinterpret_cast<uintptr_t>(methodSymbol->getMethodAddress())), methodSymRef, preDeps,
             cg());
     }
@@ -804,7 +804,7 @@ TR::Register *TR::AMD64SystemLinkage::buildDirectDispatch(TR::Node *callNode, bo
     cg()->stopUsingRegister(scratchReg);
 
     TR::LabelSymbol *postDepLabel = generateLabelSymbol(cg());
-    Inst_Label(TR::InstOpCode::label, callNode, postDepLabel, postDeps, cg());
+    Inst_Label(OP::label, callNode, postDepLabel, postDeps, cg());
 
     return returnReg;
 }

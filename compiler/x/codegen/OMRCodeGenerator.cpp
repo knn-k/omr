@@ -342,9 +342,9 @@ void OMR::X86::CodeGenerator::initializeX86(TR::Compilation *comp)
         "isAuthenticAMD() failed\n");
     static char *forceMOVLPD = feGetEnv("TR_forceMOVLPDforDoubleLoads");
     if (comp->target().cpu.isAuthenticAMD() || forceMOVLPD) {
-        self()->setXMMDoubleLoadOpCode(TR::InstOpCode::MOVLPDRegMem);
+        self()->setXMMDoubleLoadOpCode(OP::MOVLPDRegMem);
     } else {
-        self()->setXMMDoubleLoadOpCode(TR::InstOpCode::MOVSDRegMem);
+        self()->setXMMDoubleLoadOpCode(OP::MOVSDRegMem);
     }
 
     if (comp->getOption(TR_TLHPrefetch)) {
@@ -631,30 +631,30 @@ void OMR::X86::CodeGenerator::beginInstructionSelection()
     if (methodSymbol->getLinkageConvention() == TR_Private && !_returnTypeInfoInstruction) {
         // linkageInfo word
         if (getAppendInstruction())
-            _returnTypeInfoInstruction = Inst_Imm(TR::InstOpCode::DDImm4, startNode, 0, self());
+            _returnTypeInfoInstruction = Inst_Imm(OP::DDImm4, startNode, 0, self());
         else
-            _returnTypeInfoInstruction = new (self()->trHeapMemory())
-                TR::X86ImmInstruction((TR::Instruction *)NULL, TR::InstOpCode::DDImm4, 0, self());
+            _returnTypeInfoInstruction
+                = new (self()->trHeapMemory()) TR::X86ImmInstruction((TR::Instruction *)NULL, OP::DDImm4, 0, self());
     }
 
     if (methodSymbol->getLinkageConvention() == TR_System && !_returnTypeInfoInstruction) {
         // linkageInfo word
         if (getAppendInstruction())
-            _returnTypeInfoInstruction = Inst_Imm(TR::InstOpCode::DDImm4, startNode, 0, self());
+            _returnTypeInfoInstruction = Inst_Imm(OP::DDImm4, startNode, 0, self());
         else
-            _returnTypeInfoInstruction = new (self()->trHeapMemory())
-                TR::X86ImmInstruction((TR::Instruction *)NULL, TR::InstOpCode::DDImm4, 0, self());
+            _returnTypeInfoInstruction
+                = new (self()->trHeapMemory()) TR::X86ImmInstruction((TR::Instruction *)NULL, OP::DDImm4, 0, self());
     }
 
     if (getAppendInstruction())
-        Inst(TR::InstOpCode::proc, startNode, self());
+        Inst(OP::proc, startNode, self());
     else
-        new (self()->trHeapMemory()) TR::Instruction(TR::InstOpCode::proc, (TR::Instruction *)NULL, self());
+        new (self()->trHeapMemory()) TR::Instruction(OP::proc, (TR::Instruction *)NULL, self());
 
     // Set the default FPCW to single precision mode if we are allowed to.
     //
     if (self()->enableSinglePrecisionMethods() && comp->getJittedMethodSymbol()->usesSinglePrecisionMode()) {
-        Inst_Mem(TR::InstOpCode::LDCWMem, startNode,
+        Inst_Mem(OP::LDCWMem, startNode,
             generateX86MemoryReference(self()->findOrCreate2ByteConstant(startNode, SINGLE_PRECISION_ROUND_TO_NEAREST),
                 self()),
             self());
@@ -676,7 +676,7 @@ void OMR::X86::CodeGenerator::endInstructionSelection()
     if (self()->enableSinglePrecisionMethods() && comp->getJittedMethodSymbol()->usesSinglePrecisionMode()) {
         TR_ASSERT(self()->getLastCatchAppendInstruction(),
             "endInstructionSelection() ==> Could not find the dummy finally block!\n");
-        Inst_Mem(self()->getLastCatchAppendInstruction(), TR::InstOpCode::LDCWMem,
+        Inst_Mem(self()->getLastCatchAppendInstruction(), OP::LDCWMem,
             generateX86MemoryReference(
                 self()->findOrCreate2ByteConstant(self()->getLastCatchAppendInstruction()->getNode(),
                     DOUBLE_PRECISION_ROUND_TO_NEAREST),
@@ -1105,7 +1105,7 @@ bool OMR::X86::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILO
         case TR::vmfma:
         case TR::vfma: {
             if (et.isFloatingPoint()) {
-                TR::InstOpCode fmaOpcode = TR::InstOpCode::VFMADD213PRegRegReg(et.isDouble());
+                TR::InstOpCode fmaOpcode = OP::VFMADD213PRegRegReg(et.isDouble());
                 return fmaOpcode.getSIMDEncoding(cpu, ot.getVectorLength()) != OMR::X86::Bad;
             }
 
@@ -1218,7 +1218,7 @@ bool OMR::X86::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILO
         // and are implemented as a sequence. Since the reduction evaluator can
         // only handle 1-to-1 relationship, we must query the opcode table instead
         // of calling getSupportsOpcodeForAutoSIMD(cpu, ilOp)
-        if (nativeOpcode.getMnemonic() != TR::InstOpCode::bad) {
+        if (nativeOpcode.getMnemonic() != OP::bad) {
             return nativeOpcode.getSIMDEncoding(cpu, ot.getVectorLength()) != OMR::X86::Bad;
         }
 
@@ -1229,7 +1229,7 @@ bool OMR::X86::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILO
 
     // check if the operation can be mapped to a single native instruction,
     // and that instruction is supported on the target cpu
-    if (nativeOpcode.getMnemonic() != TR::InstOpCode::bad) {
+    if (nativeOpcode.getMnemonic() != OP::bad) {
         return nativeOpcode.getSIMDEncoding(cpu, ot.getVectorLength()) != OMR::X86::Bad;
     }
 
@@ -1475,10 +1475,10 @@ void OMR::X86::CodeGenerator::performNonLinearRegisterAssignmentAtBranch(TR::X86
 
     if (deps) {
         TR::Instruction *ins
-            = Inst_Label(oi->getFirstInstruction(), TR::InstOpCode::label, generateLabelSymbol(self()), deps, self());
+            = Inst_Label(oi->getFirstInstruction(), OP::label, generateLabelSymbol(self()), deps, self());
 
         if (comp->getOption(TR_TraceNonLinearRegisterAssigner)) {
-            comp->log()->printf("creating TR::InstOpCode::label instruction %p for dependencies\n", ins);
+            comp->log()->printf("creating OP::label instruction %p for dependencies\n", ins);
         }
     }
 
@@ -1684,7 +1684,7 @@ void OMR::X86::CodeGenerator::doBackwardsRegisterAssignment(TR_RegisterKinds kin
         instructionCursor->assignRegisters(kindsToAssign);
         // code to increment or decrement counter when a internal control flow end or start label is hit
         TR::LabelSymbol *label;
-        if (((TR::X86LabelInstruction *)instructionCursor)->getOpCodeValue() == TR::InstOpCode::label
+        if (((TR::X86LabelInstruction *)instructionCursor)->getOpCodeValue() == OP::label
             && (label = ((TR::X86LabelInstruction *)instructionCursor)->getLabelSymbol())) {
             if (label->isStartInternalControlFlow()) {
                 self()->decInternalControlFlowNestingDepth();
@@ -1767,8 +1767,8 @@ void OMR::X86::CodeGenerator::doRegisterAssignment(TR_RegisterKinds kindsToAssig
 
 bool OMR::X86::CodeGenerator::isReturnInstruction(TR::Instruction *instr)
 {
-    if (instr->getOpCodeValue() == TR::InstOpCode::RET || instr->getOpCodeValue() == TR::InstOpCode::RETImm2
-        || instr->getOpCodeValue() == TR::InstOpCode::retn)
+    if (instr->getOpCodeValue() == OP::RET || instr->getOpCodeValue() == OP::RETImm2
+        || instr->getOpCodeValue() == OP::retn)
         return true;
     else
         return false;
@@ -1776,8 +1776,7 @@ bool OMR::X86::CodeGenerator::isReturnInstruction(TR::Instruction *instr)
 
 bool OMR::X86::CodeGenerator::isBranchInstruction(TR::Instruction *instr)
 {
-    return (instr->getOpCode().isBranchOp() || instr->getOpCode().getOpCodeValue() == TR::InstOpCode::CALLImm4 ? true
-                                                                                                               : false);
+    return (instr->getOpCode().isBranchOp() || instr->getOpCode().getOpCodeValue() == OP::CALLImm4 ? true : false);
 }
 
 struct DescendingSortX86DataSnippetByDataSize {
@@ -1862,10 +1861,10 @@ void OMR::X86::CodeGenerator::doBinaryEncoding()
 
     LexicalTimer pt1("code generation", comp->phaseTimer());
 
-    // Generate fixup code for the interpreter entry point right before TR::InstOpCode::proc
+    // Generate fixup code for the interpreter entry point right before OP::proc
     //
     TR::Instruction *procEntryInstruction = getFirstInstruction();
-    while (procEntryInstruction && procEntryInstruction->getOpCodeValue() != TR::InstOpCode::proc) {
+    while (procEntryInstruction && procEntryInstruction->getOpCodeValue() != OP::proc) {
         procEntryInstruction = procEntryInstruction->getNext();
     }
 
@@ -1886,9 +1885,9 @@ void OMR::X86::CodeGenerator::doBinaryEncoding()
     int32_t estimate = 0;
     int32_t warmEstimate = 0;
 
-    // Estimate the binary length up to TR::InstOpCode::proc
+    // Estimate the binary length up to OP::proc
     //
-    while (estimateCursor && estimateCursor->getOpCodeValue() != TR::InstOpCode::proc) {
+    while (estimateCursor && estimateCursor->getOpCodeValue() != OP::proc) {
         estimate = estimateCursor->estimateBinaryLength(estimate);
         estimateCursor = estimateCursor->getNext();
     }
@@ -1974,7 +1973,7 @@ void OMR::X86::CodeGenerator::doBinaryEncoding()
             }
         }
 
-        // Insert epilogue before each TR::InstOpCode::RET.
+        // Insert epilogue before each OP::RET.
         //
         if (self()->isReturnInstruction(estimateCursor)) {
             if (skipOneReturn == false) {
@@ -1990,14 +1989,14 @@ void OMR::X86::CodeGenerator::doBinaryEncoding()
                 } else {
                     estimateCursor = temp->getNext();
 
-                    // Make sure we don't process the same TR::InstOpCode::RET again when we hit it
+                    // Make sure we don't process the same OP::RET again when we hit it
                     // at the end of the epilogue.
                     //
                     skipOneReturn = true;
                 }
 
             } else {
-                // We've already seen this TR::InstOpCode::RET; don't process it again.
+                // We've already seen this OP::RET; don't process it again.
                 //
                 skipOneReturn = false;
             }
@@ -2113,10 +2112,10 @@ void OMR::X86::CodeGenerator::doBinaryEncoding()
             getDebug() ? getDebug()->getOpCodeName(&cursorInstruction->getOpCode()) : "(unknown)",
             cursorInstruction->getEstimatedBinaryLength(), self()->getBinaryBufferCursor() - instructionStart);
 
-        if (comp->target().is64Bit() && (cursorInstruction->getOpCodeValue() == TR::InstOpCode::proc)) {
+        if (comp->target().is64Bit() && (cursorInstruction->getOpCodeValue() == OP::proc)) {
             // A hack to set the linkage info word
             //
-            TR_ASSERT(_returnTypeInfoInstruction->getOpCodeValue() == TR::InstOpCode::DDImm4, "assertion failure");
+            TR_ASSERT(_returnTypeInfoInstruction->getOpCodeValue() == OP::DDImm4, "assertion failure");
             uint32_t linkageInfoWord = self()->initializeLinkageInfo(_returnTypeInfoInstruction->getBinaryEncoding());
             _returnTypeInfoInstruction->setSourceImmediate(linkageInfoWord);
         }
@@ -2194,7 +2193,7 @@ void OMR::X86::CodeGenerator::doBinaryEncoding()
 }
 
 // different from evaluate in that it returns a clobberable register
-TR::Register *OMR::X86::CodeGenerator::gprClobberEvaluate(TR::Node *node, TR::InstOpCode::Mnemonic movRegRegOpCode)
+TR::Register *OMR::X86::CodeGenerator::gprClobberEvaluate(TR::Node *node, OP::Mnemonic movRegRegOpCode)
 {
     TR::Compilation *comp = self()->comp();
     OMR::Logger *log = comp->log();
@@ -2250,7 +2249,7 @@ TR::Register *OMR::X86::CodeGenerator::intClobberEvaluate(TR::Node *node)
     TR_ASSERT(!node->getOpCode().is8Byte() || node->getOpCode().isRef(), "Non-ref 8bytes must use longClobberEvaluate");
     TR_ASSERT(!node->getOpCode().isRef() || comp()->target().is32Bit() || comp()->useCompressedPointers(),
         "64-bit references must use longClobberEvaluate unless under compression");
-    return self()->gprClobberEvaluate(node, TR::InstOpCode::MOV4RegReg);
+    return self()->gprClobberEvaluate(node, OP::MOV4RegReg);
 }
 
 TR::Register *OMR::X86::CodeGenerator::shortClobberEvaluate(TR::Node *node)
@@ -2259,7 +2258,7 @@ TR::Register *OMR::X86::CodeGenerator::shortClobberEvaluate(TR::Node *node)
         "Ints/Longs must use int/longClobberEvaluate");
     TR_ASSERT(!(node->getOpCode().isRef() && comp()->target().is64Bit()),
         "64-bit references must use longClobberEvaluate");
-    return self()->gprClobberEvaluate(node, TR::InstOpCode::MOV2RegReg);
+    return self()->gprClobberEvaluate(node, OP::MOV2RegReg);
 }
 
 TR::Register *OMR::X86::CodeGenerator::floatClobberEvaluate(TR::Node *node)
@@ -2268,7 +2267,7 @@ TR::Register *OMR::X86::CodeGenerator::floatClobberEvaluate(TR::Node *node)
         TR::Register *temp = self()->evaluate(node);
         TR::Register *targetRegister = self()->allocateSinglePrecisionRegister(temp->getKind());
 
-        Inst_RegReg(TR::InstOpCode::MOVAPSRegReg, node, targetRegister, temp, self());
+        Inst_RegReg(OP::MOVAPSRegReg, node, targetRegister, temp, self());
 
         return targetRegister;
     } else {
@@ -2282,7 +2281,7 @@ TR::Register *OMR::X86::CodeGenerator::doubleClobberEvaluate(TR::Node *node)
         TR::Register *temp = self()->evaluate(node);
         TR::Register *targetRegister = self()->allocateRegister(temp->getKind());
 
-        Inst_RegReg(TR::InstOpCode::MOVAPDRegReg, node, targetRegister, temp, self());
+        Inst_RegReg(OP::MOVAPDRegReg, node, targetRegister, temp, self());
 
         return targetRegister;
     } else {
@@ -2537,8 +2536,7 @@ TR::RealRegister::RegNum OMR::X86::CodeGenerator::pickNOPRegister(TR::Instructio
         TR::Instruction *cursor = successor->getPrev();
         static const int32_t WINDOW_SIZE = 5;
         while (j <= WINDOW_SIZE && cursor) {
-            if (cursor->getOpCodeValue() != TR::InstOpCode::fence
-                && cursor->getOpCodeValue() != TR::InstOpCode::label) {
+            if (cursor->getOpCodeValue() != OP::fence && cursor->getOpCodeValue() != OP::label) {
                 ++j;
 
                 if (!ebxLastDef && cursor->defsRegister(ebx))
@@ -2868,12 +2866,12 @@ uint8_t *OMR::X86::CodeGenerator::generatePadding(uint8_t *cursor, intptr_t leng
             TR_ASSERT(0, "Oops -- we should never get here because using JMPs for no-ops is very slow");
             if (length >= 5) {
                 length -= 5;
-                cursor = TR::InstOpCode(TR::InstOpCode::JMP4).binary(cursor, X86::Encoding::Default);
+                cursor = TR::InstOpCode(OP::JMP4).binary(cursor, X86::Encoding::Default);
                 *(int32_t *)cursor = static_cast<int32_t>(length);
                 cursor += 4;
             } else {
                 length -= 2;
-                cursor = TR::InstOpCode(TR::InstOpCode::JMP1).binary(cursor, X86::Encoding::Default);
+                cursor = TR::InstOpCode(OP::JMP1).binary(cursor, X86::Encoding::Default);
                 *(int8_t *)cursor = static_cast<int8_t>(length);
                 cursor += 1;
             }
@@ -2981,7 +2979,7 @@ uint8_t *OMR::X86::CodeGenerator::generatePadding(uint8_t *cursor, intptr_t leng
                             break;
                         }
                         if (ninst->isPatchBarrier(self())) {
-                            if (ninst->getOpCodeValue() != TR::InstOpCode::label)
+                            if (ninst->getOpCodeValue() != OP::label)
                                 TR::DebugCounter::incStaticDebugCounter(comp,
                                     TR::DebugCounter::debugCounterName(comp, "vgnopNoPatchReason/%d/patchBarrier",
                                         blockFrequency));
@@ -3047,11 +3045,10 @@ TR::Instruction *OMR::X86::CodeGenerator::generateDebugCounterBump(TR::Instructi
     TR::DebugCounterBase *counter, int32_t delta, TR::RegisterDependencyConditions *cond)
 {
     if (delta == 1)
-        return Inst_Mem(cursor, TR::InstOpCode::INC4Mem,
-            generateX86MemoryReference(counter->getBumpCountSymRef(comp()), self()), self());
+        return Inst_Mem(cursor, OP::INC4Mem, generateX86MemoryReference(counter->getBumpCountSymRef(comp()), self()),
+            self());
     else
-        return Inst_MemImm(cursor,
-            (-128 <= delta && delta <= 127) ? TR::InstOpCode::ADD4MemImms : TR::InstOpCode::ADD4MemImm4,
+        return Inst_MemImm(cursor, (-128 <= delta && delta <= 127) ? OP::ADD4MemImms : OP::ADD4MemImm4,
             generateX86MemoryReference(counter->getBumpCountSymRef(comp()), self()), delta, self());
 }
 
@@ -3059,7 +3056,7 @@ TR::Instruction *OMR::X86::CodeGenerator::generateDebugCounterBump(TR::Instructi
     TR::DebugCounterBase *counter, TR::Register *deltaReg, TR::RegisterDependencyConditions *cond)
 {
     if (deltaReg)
-        return Inst_MemReg(cursor, TR::InstOpCode::ADD4MemReg,
+        return Inst_MemReg(cursor, OP::ADD4MemReg,
             generateX86MemoryReference(counter->getBumpCountSymRef(comp()), self()), deltaReg, self());
     else
         return cursor;

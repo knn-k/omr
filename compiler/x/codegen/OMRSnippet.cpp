@@ -193,7 +193,7 @@ void TR_Debug::printx(OMR::Logger *log, TR::Snippet *snippet)
 
 int32_t TR_Debug::printRestartJump(OMR::Logger *log, TR::X86RestartSnippet *snippet, uint8_t *bufferPos)
 {
-    int32_t size = snippet->estimateRestartJumpLength(TR::InstOpCode::JMP4,
+    int32_t size = snippet->estimateRestartJumpLength(OP::JMP4,
         static_cast<int32_t>(bufferPos - (uint8_t *)snippet->cg()->getBinaryBufferStart()));
     printPrefix(log, NULL, bufferPos, size);
     printLabelInstruction(log, "jmp", snippet->getRestartLabel());
@@ -203,7 +203,7 @@ int32_t TR_Debug::printRestartJump(OMR::Logger *log, TR::X86RestartSnippet *snip
 int32_t TR_Debug::printRestartJump(OMR::Logger *log, TR::X86RestartSnippet *snippet, uint8_t *bufferPos,
     int32_t branchOp, const char *branchOpName)
 {
-    int32_t size = snippet->estimateRestartJumpLength((TR::InstOpCode::Mnemonic)branchOp,
+    int32_t size = snippet->estimateRestartJumpLength((OP::Mnemonic)branchOp,
         static_cast<int32_t>(bufferPos - (uint8_t *)snippet->cg()->getBinaryBufferStart()));
     printPrefix(log, NULL, bufferPos, size);
     printLabelInstruction(log, branchOpName, snippet->getRestartLabel());

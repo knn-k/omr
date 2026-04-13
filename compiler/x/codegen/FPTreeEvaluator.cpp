@@ -104,14 +104,14 @@ TR::Register *OMR::X86::TreeEvaluator::coerceST0ToFPR(TR::Node *node, TR::DataTy
         }
     }
 
-    TR::InstOpCode::Mnemonic st0FlushOp, xmm0LoadOp;
+    OP::Mnemonic st0FlushOp, xmm0LoadOp;
     TR::MemoryReference *flushMR = cg->machine()->getDummyLocalMR(dt);
 
     if (node->getDataType() == TR::Float) {
-        st0FlushOp = TR::InstOpCode::FSTPMemReg;
-        xmm0LoadOp = TR::InstOpCode::MOVSSRegMem;
+        st0FlushOp = OP::FSTPMemReg;
+        xmm0LoadOp = OP::MOVSSRegMem;
     } else {
-        st0FlushOp = TR::InstOpCode::DSTPMemReg;
+        st0FlushOp = OP::DSTPMemReg;
         xmm0LoadOp = cg->getXMMDoubleLoadOpCode();
     }
 
@@ -126,11 +126,11 @@ TR::Register *OMR::X86::TreeEvaluator::fconstEvaluator(TR::Node *node, TR::CodeG
     TR::Register *targetRegister = cg->allocateSinglePrecisionRegister(TR_FPR);
 
     if (node->getFloatBits() == 0) {
-        Inst_RegReg(TR::InstOpCode::XORPSRegReg, node, targetRegister, targetRegister, cg);
+        Inst_RegReg(OP::XORPSRegReg, node, targetRegister, targetRegister, cg);
     } else {
         TR::MemoryReference *tempMR
             = generateX86MemoryReference(cg->findOrCreate4ByteConstant(node, node->getFloatBits()), cg);
-        TR::Instruction *instr = Inst_RegMem(TR::InstOpCode::MOVSSRegMem, node, targetRegister, tempMR, cg);
+        TR::Instruction *instr = Inst_RegMem(OP::MOVSSRegMem, node, targetRegister, tempMR, cg);
         setDiscardableIfPossible(TR_RematerializableFloat, targetRegister, node, instr, (intptr_t)node->getFloatBits(),
             cg);
     }
@@ -144,7 +144,7 @@ TR::Register *OMR::X86::TreeEvaluator::dconstEvaluator(TR::Node *node, TR::CodeG
     TR::Register *targetRegister = cg->allocateRegister(TR_FPR);
 
     if (node->getLongInt() == 0) {
-        Inst_RegReg(TR::InstOpCode::XORPDRegReg, node, targetRegister, targetRegister, cg);
+        Inst_RegReg(OP::XORPDRegReg, node, targetRegister, targetRegister, cg);
     } else {
         TR::MemoryReference *tempMR
             = generateX86MemoryReference(cg->findOrCreate8ByteConstant(node, node->getLongInt()), cg);
@@ -168,15 +168,15 @@ TR::Register *OMR::X86::TreeEvaluator::performFload(TR::Node *node, TR::MemoryRe
         // first.
         //
         TR::Register *memReg = cg->allocateRegister(TR_GPR);
-        Inst_RegMem(TR::InstOpCode::LEA8RegMem, node, memReg, sourceMR, cg);
+        Inst_RegMem(OP::LEA8RegMem, node, memReg, sourceMR, cg);
         sourceMR = generateX86MemoryReference(memReg, 0, cg);
         cg->stopUsingRegister(memReg);
 
         targetRegister = cg->allocateSinglePrecisionRegister(TR_FPR);
-        instr = Inst_RegMem(TR::InstOpCode::MOVSSRegMem, node, targetRegister, sourceMR, cg);
+        instr = Inst_RegMem(OP::MOVSSRegMem, node, targetRegister, sourceMR, cg);
     } else {
         targetRegister = cg->allocateSinglePrecisionRegister(TR_FPR);
-        instr = Inst_RegMem(TR::InstOpCode::MOVSSRegMem, node, targetRegister, sourceMR, cg);
+        instr = Inst_RegMem(OP::MOVSSRegMem, node, targetRegister, sourceMR, cg);
         setDiscardableIfPossible(TR_RematerializableFloat, targetRegister, node, instr, sourceMR, cg);
     }
 
@@ -209,7 +209,7 @@ TR::Register *OMR::X86::TreeEvaluator::performDload(TR::Node *node, TR::MemoryRe
         // first.
         //
         TR::Register *memReg = cg->allocateRegister(TR_GPR);
-        Inst_RegMem(TR::InstOpCode::LEA8RegMem, node, memReg, sourceMR, cg);
+        Inst_RegMem(OP::LEA8RegMem, node, memReg, sourceMR, cg);
         sourceMR = generateX86MemoryReference(memReg, 0, cg);
         cg->stopUsingRegister(memReg);
     }
@@ -271,19 +271,19 @@ TR::Register *OMR::X86::TreeEvaluator::floatingPointStoreEvaluator(TR::Node *nod
             if (cg->comp()->target().is64Bit()) {
                 TR::Register *floatConstReg = cg->allocateRegister(TR_GPR);
                 if (valueChild->getLongInt() == 0) {
-                    Inst_RegReg(TR::InstOpCode::XOR4RegReg, node, floatConstReg, floatConstReg, cg);
+                    Inst_RegReg(OP::XOR4RegReg, node, floatConstReg, floatConstReg, cg);
                 } else {
-                    Inst_RegImm64(TR::InstOpCode::MOV8RegImm64, node, floatConstReg, valueChild->getLongInt(), cg);
+                    Inst_RegImm64(OP::MOV8RegImm64, node, floatConstReg, valueChild->getLongInt(), cg);
                 }
-                exceptionPoint = Inst_MemReg(TR::InstOpCode::S8MemReg, node, tempMR, floatConstReg, cg);
+                exceptionPoint = Inst_MemReg(OP::S8MemReg, node, tempMR, floatConstReg, cg);
                 cg->stopUsingRegister(floatConstReg);
             } else {
-                exceptionPoint = Inst_MemImm(TR::InstOpCode::S4MemImm4, node, tempMR, valueChild->getLongIntLow(), cg);
-                Inst_MemImm(TR::InstOpCode::S4MemImm4, node, generateX86MemoryReference(*tempMR, 4, cg),
+                exceptionPoint = Inst_MemImm(OP::S4MemImm4, node, tempMR, valueChild->getLongIntLow(), cg);
+                Inst_MemImm(OP::S4MemImm4, node, generateX86MemoryReference(*tempMR, 4, cg),
                     valueChild->getLongIntHigh(), cg);
             }
         } else {
-            exceptionPoint = Inst_MemImm(TR::InstOpCode::S4MemImm4, node, tempMR, valueChild->getFloatBits(), cg);
+            exceptionPoint = Inst_MemImm(OP::S4MemImm4, node, tempMR, valueChild->getFloatBits(), cg);
         }
     } else if (debug("useGPRsForFP")
         && (cg->getLiveRegisters(TR_GPR)->getNumberOfLiveRegisters() < cg->getMaximumNumbersOfAssignableGPRs() - 1)
@@ -291,8 +291,8 @@ TR::Register *OMR::X86::TreeEvaluator::floatingPointStoreEvaluator(TR::Node *nod
         && valueChild->getReferenceCount() == 1) {
         TR::Register *tempRegister = cg->allocateRegister(TR_GPR);
         TR::MemoryReference *loadMR = generateX86MemoryReference(valueChild, cg);
-        Inst_RegMem(TR::InstOpCode::LRegMem(nodeIs64Bit), node, tempRegister, loadMR, cg);
-        exceptionPoint = Inst_MemReg(TR::InstOpCode::SMemReg(nodeIs64Bit), node, tempMR, tempRegister, cg);
+        Inst_RegMem(OP::LRegMem(nodeIs64Bit), node, tempRegister, loadMR, cg);
+        exceptionPoint = Inst_MemReg(OP::SMemReg(nodeIs64Bit), node, tempMR, tempRegister, cg);
         cg->stopUsingRegister(tempRegister);
         loadMR->decNodeReferenceCounts(cg);
     } else {
@@ -305,7 +305,7 @@ TR::Register *OMR::X86::TreeEvaluator::floatingPointStoreEvaluator(TR::Node *nod
                 // The 64-bit static case does not require the LEA instruction as we can resolve the address in the
                 // MOV reg, imm  instruction preceeding the store.
                 //
-                exceptionPoint = Inst_MemReg(TR::InstOpCode::MOVSMemReg(nodeIs64Bit), node, tempMR, sourceRegister, cg);
+                exceptionPoint = Inst_MemReg(OP::MOVSMemReg(nodeIs64Bit), node, tempMR, sourceRegister, cg);
             } else {
                 // The 64-bit store instructions may be wider than 8-bytes (our patching
                 // window) but we won't know that for sure until after register assignment.
@@ -313,17 +313,17 @@ TR::Register *OMR::X86::TreeEvaluator::floatingPointStoreEvaluator(TR::Node *nod
                 // first.
                 //
                 TR::Register *memReg = cg->allocateRegister(TR_GPR);
-                Inst_RegMem(TR::InstOpCode::LEA8RegMem, node, memReg, tempMR, cg);
+                Inst_RegMem(OP::LEA8RegMem, node, memReg, tempMR, cg);
                 TR::MemoryReference *mr = generateX86MemoryReference(memReg, 0, cg);
                 TR_ASSERT(nodeIs64Bit != sourceRegister->isSinglePrecision(),
                     "Wrong operand type to floating point store\n");
-                exceptionPoint = Inst_MemReg(TR::InstOpCode::MOVSMemReg(nodeIs64Bit), node, mr, sourceRegister, cg);
+                exceptionPoint = Inst_MemReg(OP::MOVSMemReg(nodeIs64Bit), node, mr, sourceRegister, cg);
 
                 tempMR->setProcessAsFPVolatile();
 
                 if (cg->comp()->getOption(TR_X86UseMFENCE))
-                    insertUnresolvedReferenceInstructionMemoryBarrier(cg, TR::InstOpCode::MFENCE, exceptionPoint,
-                        tempMR, sourceRegister, tempMR);
+                    insertUnresolvedReferenceInstructionMemoryBarrier(cg, OP::MFENCE, exceptionPoint, tempMR,
+                        sourceRegister, tempMR);
                 else
                     insertUnresolvedReferenceInstructionMemoryBarrier(cg, LockOR, exceptionPoint, tempMR,
                         sourceRegister, tempMR);
@@ -333,7 +333,7 @@ TR::Register *OMR::X86::TreeEvaluator::floatingPointStoreEvaluator(TR::Node *nod
         } else {
             TR_ASSERT(nodeIs64Bit != sourceRegister->isSinglePrecision(),
                 "Wrong operand type to floating point store\n");
-            exceptionPoint = Inst_MemReg(TR::InstOpCode::MOVSMemReg(nodeIs64Bit), node, tempMR, sourceRegister, cg);
+            exceptionPoint = Inst_MemReg(OP::MOVSMemReg(nodeIs64Bit), node, tempMR, sourceRegister, cg);
         }
     }
 
@@ -366,13 +366,13 @@ TR::Register *OMR::X86::TreeEvaluator::fpReturnEvaluator(TR::Node *node, TR::Cod
     TR::RegisterDependencyConditions *dependencies = NULL;
     if (comp->target().is32Bit() && (machineReturnRegister == TR::RealRegister::st0Return)) {
         TR::DataType mrType = TR::Double;
-        TR::InstOpCode::Mnemonic xmmOpCode = TR::InstOpCode::MOVSDMemReg;
-        TR::InstOpCode::Mnemonic x87OpCode = TR::InstOpCode::DLDMem;
+        OP::Mnemonic xmmOpCode = OP::MOVSDMemReg;
+        OP::Mnemonic x87OpCode = OP::DLDMem;
 
         if (returnRegister->isSinglePrecision()) {
             mrType = TR::Float;
-            xmmOpCode = TR::InstOpCode::MOVSSMemReg;
-            x87OpCode = TR::InstOpCode::FLDMem;
+            xmmOpCode = OP::MOVSSMemReg;
+            x87OpCode = OP::FLDMem;
         }
 
         TR::MemoryReference *tempMR = cg->machine()->getDummyLocalMR(mrType);
@@ -385,9 +385,9 @@ TR::Register *OMR::X86::TreeEvaluator::fpReturnEvaluator(TR::Node *node, TR::Cod
     }
 
     if (linkageProperties.getCallerCleanup()) {
-        Inst(TR::InstOpCode::RET, node, dependencies, cg);
+        Inst(OP::RET, node, dependencies, cg);
     } else {
-        Inst_Imm(TR::InstOpCode::RETImm2, node, 0, dependencies, cg);
+        Inst_Imm(OP::RETImm2, node, 0, dependencies, cg);
     }
 
     if (comp->getJittedMethodSymbol()->getLinkageConvention() == TR_Private) {
@@ -474,23 +474,23 @@ TR::Register *OMR::X86::TreeEvaluator::fpUnaryMaskEvaluator(TR::Node *node, TR::
     };
 
     uint8_t *mask;
-    TR::InstOpCode::Mnemonic opcode;
+    OP::Mnemonic opcode;
     switch (node->getOpCodeValue()) {
         case TR::fabs:
             mask = MASK_FABS;
-            opcode = TR::InstOpCode::PANDRegMem;
+            opcode = OP::PANDRegMem;
             break;
         case TR::dabs:
             mask = MASK_DABS;
-            opcode = TR::InstOpCode::PANDRegMem;
+            opcode = OP::PANDRegMem;
             break;
         case TR::fneg:
             mask = MASK_FNEG;
-            opcode = TR::InstOpCode::PXORRegMem;
+            opcode = OP::PXORRegMem;
             break;
         case TR::dneg:
             mask = MASK_DNEG;
-            opcode = TR::InstOpCode::PXORRegMem;
+            opcode = OP::PXORRegMem;
             break;
         default:
             TR_ASSERT(false, "Unsupported OpCode");
@@ -510,7 +510,7 @@ TR::Register *OMR::X86::TreeEvaluator::fpUnaryMaskEvaluator(TR::Node *node, TR::
         Inst_RegRegMem(opcode, node, result, value, mr, cg);
     } else {
         if (result != value) {
-            Inst_RegReg(TR::InstOpCode::MOVDQURegReg, node, result, value, cg);
+            Inst_RegReg(OP::MOVDQURegReg, node, result, value, cg);
         }
         Inst_RegMem(opcode, node, result, mr, cg);
     }
@@ -529,8 +529,7 @@ TR::Register *OMR::X86::TreeEvaluator::fpSqrtEvaluator(TR::Node *node, TR::CodeG
         result->setIsSinglePrecision();
     }
 
-    Inst_RegReg(value->isSinglePrecision() ? TR::InstOpCode::SQRTSSRegReg : TR::InstOpCode::SQRTSDRegReg, node, result,
-        value, cg);
+    Inst_RegReg(value->isSinglePrecision() ? OP::SQRTSSRegReg : OP::SQRTSDRegReg, node, result, value, cg);
 
     node->setRegister(result);
     cg->decReferenceCount(node->getFirstChild());
@@ -543,7 +542,7 @@ TR::Register *OMR::X86::TreeEvaluator::dsqrtEvaluator(TR::Node *node, TR::CodeGe
     TR::Register *opRegister = cg->evaluate(operand);
     TR::Register *targetRegister = cg->allocateRegister(TR_FPR);
 
-    Inst_RegReg(TR::InstOpCode::SQRTSDRegReg, node, targetRegister, opRegister, cg);
+    Inst_RegReg(OP::SQRTSDRegReg, node, targetRegister, opRegister, cg);
 
     node->setRegister(targetRegister);
     cg->decReferenceCount(operand);
@@ -633,23 +632,23 @@ TR::Register *OMR::X86::TreeEvaluator::i2fEvaluator(TR::Node *node, TR::CodeGene
         && child->getOpCode().isLoadVar()) {
         tempMR = generateX86MemoryReference(child, cg);
         target = cg->allocateSinglePrecisionRegister(TR_FPR);
-        Inst_RegMem(TR::InstOpCode::CVTSI2SSRegMem, node, target, tempMR, cg);
+        Inst_RegMem(OP::CVTSI2SSRegMem, node, target, tempMR, cg);
         tempMR->decNodeReferenceCounts(cg);
     } else {
         TR::Register *intReg = cg->evaluate(child);
 
         switch (node->getOpCodeValue()) {
             case TR::b2f:
-                Inst_RegReg(TR::InstOpCode::MOVSXReg4Reg1, node, intReg, intReg, cg);
+                Inst_RegReg(OP::MOVSXReg4Reg1, node, intReg, intReg, cg);
                 break;
             case TR::bu2f:
-                Inst_RegReg(TR::InstOpCode::MOVZXReg4Reg1, node, intReg, intReg, cg);
+                Inst_RegReg(OP::MOVZXReg4Reg1, node, intReg, intReg, cg);
                 break;
             case TR::s2f:
-                Inst_RegReg(TR::InstOpCode::MOVSXReg4Reg2, node, intReg, intReg, cg);
+                Inst_RegReg(OP::MOVSXReg4Reg2, node, intReg, intReg, cg);
                 break;
             case TR::su2f:
-                Inst_RegReg(TR::InstOpCode::MOVZXReg4Reg2, node, intReg, intReg, cg);
+                Inst_RegReg(OP::MOVZXReg4Reg2, node, intReg, intReg, cg);
                 break;
             case TR::i2f:
                 break;
@@ -658,7 +657,7 @@ TR::Register *OMR::X86::TreeEvaluator::i2fEvaluator(TR::Node *node, TR::CodeGene
                 break;
         }
         target = cg->allocateSinglePrecisionRegister(TR_FPR);
-        Inst_RegReg(TR::InstOpCode::CVTSI2SSRegReg4, node, target, intReg, cg);
+        Inst_RegReg(OP::CVTSI2SSRegReg4, node, target, intReg, cg);
 
         cg->decReferenceCount(child);
     }
@@ -682,23 +681,23 @@ TR::Register *OMR::X86::TreeEvaluator::i2dEvaluator(TR::Node *node, TR::CodeGene
         && child->getOpCode().isLoadVar()) {
         tempMR = generateX86MemoryReference(child, cg);
         target = cg->allocateRegister(TR_FPR);
-        Inst_RegMem(TR::InstOpCode::CVTSI2SDRegMem, node, target, tempMR, cg);
+        Inst_RegMem(OP::CVTSI2SDRegMem, node, target, tempMR, cg);
         tempMR->decNodeReferenceCounts(cg);
     } else {
         TR::Register *intReg = cg->evaluate(child);
 
         switch (node->getOpCodeValue()) {
             case TR::b2d:
-                Inst_RegReg(TR::InstOpCode::MOVSXReg4Reg1, node, intReg, intReg, cg);
+                Inst_RegReg(OP::MOVSXReg4Reg1, node, intReg, intReg, cg);
                 break;
             case TR::bu2d:
-                Inst_RegReg(TR::InstOpCode::MOVZXReg4Reg1, node, intReg, intReg, cg);
+                Inst_RegReg(OP::MOVZXReg4Reg1, node, intReg, intReg, cg);
                 break;
             case TR::s2d:
-                Inst_RegReg(TR::InstOpCode::MOVSXReg4Reg2, node, intReg, intReg, cg);
+                Inst_RegReg(OP::MOVSXReg4Reg2, node, intReg, intReg, cg);
                 break;
             case TR::su2d:
-                Inst_RegReg(TR::InstOpCode::MOVZXReg4Reg2, node, intReg, intReg, cg);
+                Inst_RegReg(OP::MOVZXReg4Reg2, node, intReg, intReg, cg);
                 break;
             case TR::i2d:
                 break;
@@ -708,7 +707,7 @@ TR::Register *OMR::X86::TreeEvaluator::i2dEvaluator(TR::Node *node, TR::CodeGene
         }
 
         target = cg->allocateRegister(TR_FPR);
-        Inst_RegReg(TR::InstOpCode::CVTSI2SDRegReg4, node, target, intReg, cg);
+        Inst_RegReg(OP::CVTSI2SDRegReg4, node, target, intReg, cg);
 
         cg->decReferenceCount(child);
     }
@@ -752,16 +751,16 @@ TR::Register *OMR::X86::TreeEvaluator::fpConvertToLong(TR::Node *node, TR::Symbo
         // Attempt to convert a double in an XMM register to an integer using CVTTSD2SI.
         // If the conversion succeeds, put the integer in lowReg and sign-extend it to highReg.
         // If the conversion fails (the double is too large), call the helper.
-        Inst_RegReg(TR::InstOpCode::CVTTSD2SIReg4Reg, node, lowReg, doubleReg, cg);
-        Inst_RegImm(TR::InstOpCode::CMP4RegImm4, node, lowReg, 0x80000000, cg);
+        Inst_RegReg(OP::CVTTSD2SIReg4Reg, node, lowReg, doubleReg, cg);
+        Inst_RegImm(OP::CMP4RegImm4, node, lowReg, 0x80000000, cg);
 
-        Inst_Label(TR::InstOpCode::label, node, StartLabel, cg);
-        Inst_Label(TR::InstOpCode::JE4, node, CallLabel, cg);
+        Inst_Label(OP::label, node, StartLabel, cg);
+        Inst_Label(OP::JE4, node, CallLabel, cg);
 
-        Inst_RegReg(TR::InstOpCode::MOV4RegReg, node, highReg, lowReg, cg);
-        Inst_RegImm(TR::InstOpCode::SAR4RegImm1, node, highReg, 31, cg);
+        Inst_RegReg(OP::MOV4RegReg, node, highReg, lowReg, cg);
+        Inst_RegImm(OP::SAR4RegImm1, node, highReg, 31, cg);
 
-        Inst_Label(TR::InstOpCode::label, node, reStartLabel, deps, cg);
+        Inst_Label(OP::label, node, reStartLabel, deps, cg);
 
         TR::Register *targetRegister = cg->allocateRegisterPair(lowReg, highReg);
         TR::SymbolReference *d2l = comp->getSymRefTab()->findOrCreateRuntimeHelper(TR_IA32double2LongSSE);
@@ -789,7 +788,7 @@ TR::Register *OMR::X86::TreeEvaluator::fpConvertToLong(TR::Node *node, TR::Symbo
         startLabel->setStartInternalControlFlow();
         reStartLabel->setEndInternalControlFlow();
 
-        Inst_Label(TR::InstOpCode::label, node, startLabel, cg);
+        Inst_Label(OP::label, node, startLabel, cg);
 
         // These instructions must be set appropriately prior to the creation
         // of the snippet near the end of this method. Also see warnings below.
@@ -798,29 +797,27 @@ TR::Register *OMR::X86::TreeEvaluator::fpConvertToLong(TR::Node *node, TR::Symbo
         TR::X86RegMemInstruction *loadLowInstr; // loads the low dword of the converted long
 
         TR::MemoryReference *tempMR = cg->machine()->getDummyLocalMR(TR::Float);
-        Inst_MemReg(TR::InstOpCode::MOVSSMemReg, node, tempMR, floatReg, cg);
-        Inst_Mem(TR::InstOpCode::FLDMem, node, generateX86MemoryReference(*tempMR, 0, cg), cg);
+        Inst_MemReg(OP::MOVSSMemReg, node, tempMR, floatReg, cg);
+        Inst_Mem(OP::FLDMem, node, generateX86MemoryReference(*tempMR, 0, cg), cg);
 
-        Inst(TR::InstOpCode::FLDDUP, node, cg);
+        Inst(OP::FLDDUP, node, cg);
 
         // For slow conversion only, change the rounding mode on the FPU via its control word register.
         //
         TR::MemoryReference *convertedLongMR = (cg->machine())->getDummyLocalMR(TR::Int64);
 
         if (cg->comp()->target().cpu.supportsFeature(OMR_FEATURE_X86_SSE3)) {
-            Inst_Mem(TR::InstOpCode::FLSTTPMem, node, convertedLongMR, cg);
+            Inst_Mem(OP::FLSTTPMem, node, convertedLongMR, cg);
         } else {
             int16_t fpcw = comp->getJittedMethodSymbol()->usesSinglePrecisionMode() ? SINGLE_PRECISION_ROUND_TO_ZERO
                                                                                     : DOUBLE_PRECISION_ROUND_TO_ZERO;
-            Inst_Mem(TR::InstOpCode::LDCWMem, node,
-                generateX86MemoryReference(cg->findOrCreate2ByteConstant(node, fpcw), cg), cg);
-            Inst_Mem(TR::InstOpCode::FLSTPMem, node, convertedLongMR, cg);
+            Inst_Mem(OP::LDCWMem, node, generateX86MemoryReference(cg->findOrCreate2ByteConstant(node, fpcw), cg), cg);
+            Inst_Mem(OP::FLSTPMem, node, convertedLongMR, cg);
 
             fpcw = comp->getJittedMethodSymbol()->usesSinglePrecisionMode() ? SINGLE_PRECISION_ROUND_TO_NEAREST
                                                                             : DOUBLE_PRECISION_ROUND_TO_NEAREST;
 
-            Inst_Mem(TR::InstOpCode::LDCWMem, node,
-                generateX86MemoryReference(cg->findOrCreate2ByteConstant(node, fpcw), cg), cg);
+            Inst_Mem(OP::LDCWMem, node, generateX86MemoryReference(cg->findOrCreate2ByteConstant(node, fpcw), cg), cg);
         }
 
         // WARNING:
@@ -828,18 +825,17 @@ TR::Register *OMR::X86::TreeEvaluator::fpConvertToLong(TR::Node *node, TR::Symbo
         // The following load instructions are dissected in the snippet to determine the target registers.
         // If they or their format is changed, you may need to change the snippet also.
         //
-        loadHighInstr = Inst_RegMem(TR::InstOpCode::L4RegMem, node, highReg,
-            generateX86MemoryReference(*convertedLongMR, 4, cg), cg);
+        loadHighInstr
+            = Inst_RegMem(OP::L4RegMem, node, highReg, generateX86MemoryReference(*convertedLongMR, 4, cg), cg);
 
-        loadLowInstr = Inst_RegMem(TR::InstOpCode::L4RegMem, node, lowReg,
-            generateX86MemoryReference(*convertedLongMR, 0, cg), cg);
+        loadLowInstr = Inst_RegMem(OP::L4RegMem, node, lowReg, generateX86MemoryReference(*convertedLongMR, 0, cg), cg);
 
         // Jump to the snippet if the converted value is an indefinite integer; otherwise continue.
         //
-        Inst_RegImm(TR::InstOpCode::CMP4RegImm4, node, highReg, INT_MIN, cg);
-        Inst_Label(TR::InstOpCode::JNE4, node, reStartLabel, cg);
-        Inst_RegReg(TR::InstOpCode::TEST4RegReg, node, lowReg, lowReg, cg);
-        Inst_Label(TR::InstOpCode::JE4, node, snippetLabel, cg);
+        Inst_RegImm(OP::CMP4RegImm4, node, highReg, INT_MIN, cg);
+        Inst_Label(OP::JNE4, node, reStartLabel, cg);
+        Inst_RegReg(OP::TEST4RegReg, node, lowReg, lowReg, cg);
+        Inst_Label(OP::JE4, node, snippetLabel, cg);
 
         // Create the conversion snippet.
         //
@@ -857,10 +853,10 @@ TR::Register *OMR::X86::TreeEvaluator::fpConvertToLong(TR::Node *node, TR::Symbo
         deps->addPostCondition(lowReg, TR::RealRegister::NoReg, cg);
         deps->addPostCondition(highReg, TR::RealRegister::NoReg, cg);
 
-        Inst_Label(TR::InstOpCode::label, node, reStartLabel, deps, cg);
+        Inst_Label(OP::label, node, reStartLabel, deps, cg);
 
         cg->decReferenceCount(child);
-        Inst(TR::InstOpCode::FSTPST0, node, cg);
+        Inst(OP::FSTPST0, node, cg);
 
         TR::Register *targetRegister = cg->allocateRegisterPair(lowReg, highReg);
         node->setRegister(targetRegister);
@@ -874,26 +870,26 @@ TR::Register *OMR::X86::TreeEvaluator::f2iEvaluator(TR::Node *node, TR::CodeGene
 {
     bool doubleSource;
     bool longTarget;
-    TR::InstOpCode::Mnemonic cvttOpCode;
+    OP::Mnemonic cvttOpCode;
 
     switch (node->getOpCodeValue()) {
         case TR::f2i:
-            cvttOpCode = TR::InstOpCode::CVTTSS2SIReg4Reg;
+            cvttOpCode = OP::CVTTSS2SIReg4Reg;
             doubleSource = false;
             longTarget = false;
             break;
         case TR::f2l:
-            cvttOpCode = TR::InstOpCode::CVTTSS2SIReg8Reg;
+            cvttOpCode = OP::CVTTSS2SIReg8Reg;
             doubleSource = false;
             longTarget = true;
             break;
         case TR::d2i:
-            cvttOpCode = TR::InstOpCode::CVTTSD2SIReg4Reg;
+            cvttOpCode = OP::CVTTSD2SIReg4Reg;
             doubleSource = true;
             longTarget = false;
             break;
         case TR::d2l:
-            cvttOpCode = TR::InstOpCode::CVTTSD2SIReg8Reg;
+            cvttOpCode = OP::CVTTSD2SIReg8Reg;
             doubleSource = true;
             longTarget = true;
             break;
@@ -916,19 +912,19 @@ TR::Register *OMR::X86::TreeEvaluator::f2iEvaluator(TR::Node *node, TR::CodeGene
     startLabel->setStartInternalControlFlow();
     endLabel->setEndInternalControlFlow();
 
-    Inst_Label(TR::InstOpCode::label, node, startLabel, cg);
+    Inst_Label(OP::label, node, startLabel, cg);
 
     if (longTarget) {
         TR_ASSERT_FATAL(cg->comp()->target().is64Bit(), "We should only get here on AMD64");
         // We can't compare with 0x8000000000000000.
         // Instead, rotate left 1 bit and compare with 0x0000000000000001.
-        Inst_Reg(TR::InstOpCode::ROL8Reg1, node, targetRegister, cg);
-        Inst_RegImm(TR::InstOpCode::CMP8RegImms, node, targetRegister, 1, cg);
+        Inst_Reg(OP::ROL8Reg1, node, targetRegister, cg);
+        Inst_RegImm(OP::CMP8RegImms, node, targetRegister, 1, cg);
     } else {
-        Inst_RegImm(TR::InstOpCode::CMP4RegImm4, node, targetRegister, INT_MIN, cg);
+        Inst_RegImm(OP::CMP4RegImm4, node, targetRegister, INT_MIN, cg);
     }
 
-    Inst_Label(TR::InstOpCode::JE4, node, exceptionLabel, cg);
+    Inst_Label(OP::JE4, node, exceptionLabel, cg);
 
     // TODO: (omr issue #4969): Remove once support for spills in OOL paths is added
     TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)0, (uint8_t)2, cg);
@@ -939,30 +935,30 @@ TR::Register *OMR::X86::TreeEvaluator::f2iEvaluator(TR::Node *node, TR::CodeGene
         TR_OutlinedInstructionsGenerator og(exceptionLabel, node, cg);
         // at this point, target is set to -INF and there can only be THREE possible results: -INF, +INF, NaN
         // compare source with ZERO
-        Inst_RegMem(doubleSource ? TR::InstOpCode::UCOMISDRegMem : TR::InstOpCode::UCOMISSRegMem, node, sourceRegister,
+        Inst_RegMem(doubleSource ? OP::UCOMISDRegMem : OP::UCOMISSRegMem, node, sourceRegister,
             generateX86MemoryReference(
                 doubleSource ? cg->findOrCreate8ByteConstant(node, 0) : cg->findOrCreate4ByteConstant(node, 0), cg),
             cg);
         // load max int if source is positive, note that for long case, LLONG_MAX << 1 is loaded as it will be shifted
         // right
-        Inst_RegMem(TR::InstOpCode::CMOVARegMem(longTarget), node, targetRegister,
+        Inst_RegMem(OP::CMOVARegMem(longTarget), node, targetRegister,
             generateX86MemoryReference(longTarget ? cg->findOrCreate8ByteConstant(node, LLONG_MAX << 1)
                                                   : cg->findOrCreate4ByteConstant(node, INT_MAX),
                 cg),
             cg);
         // load zero if source is NaN
-        Inst_RegMem(TR::InstOpCode::CMOVPRegMem(longTarget), node, targetRegister,
+        Inst_RegMem(OP::CMOVPRegMem(longTarget), node, targetRegister,
             generateX86MemoryReference(
                 longTarget ? cg->findOrCreate8ByteConstant(node, 0) : cg->findOrCreate4ByteConstant(node, 0), cg),
             cg);
 
-        Inst_Label(TR::InstOpCode::JMP4, node, endLabel, cg);
+        Inst_Label(OP::JMP4, node, endLabel, cg);
         og.endOutlinedInstructionSequence();
     }
 
-    Inst_Label(TR::InstOpCode::label, node, endLabel, deps, cg);
+    Inst_Label(OP::label, node, endLabel, deps, cg);
     if (longTarget) {
-        Inst_Reg(TR::InstOpCode::ROR8Reg1, node, targetRegister, cg);
+        Inst_Reg(OP::ROR8Reg1, node, targetRegister, cg);
     }
 
     node->setRegister(targetRegister);
@@ -982,7 +978,7 @@ TR::Register *OMR::X86::TreeEvaluator::f2dEvaluator(TR::Node *node, TR::CodeGene
     TR::Register *targetRegister = cg->floatClobberEvaluate(child);
 
     targetRegister->setIsSinglePrecision(false);
-    Inst_RegReg(TR::InstOpCode::CVTSS2SDRegReg, node, targetRegister, targetRegister, cg);
+    Inst_RegReg(OP::CVTSS2SDRegReg, node, targetRegister, targetRegister, cg);
 
     node->setRegister(targetRegister);
     cg->decReferenceCount(child);
@@ -1020,7 +1016,7 @@ TR::Register *OMR::X86::TreeEvaluator::d2fEvaluator(TR::Node *node, TR::CodeGene
     TR::Node *child = node->getFirstChild();
     TR::Register *targetRegister = cg->doubleClobberEvaluate(child);
     targetRegister->setIsSinglePrecision(true);
-    Inst_RegReg(TR::InstOpCode::CVTSD2SSRegReg, node, targetRegister, targetRegister, cg);
+    Inst_RegReg(OP::CVTSD2SSRegReg, node, targetRegister, targetRegister, cg);
 
     node->setRegister(targetRegister);
     cg->decReferenceCount(child);
@@ -1055,11 +1051,11 @@ TR::Register *OMR::X86::TreeEvaluator::ibits2fEvaluator(TR::Node *node, TR::Code
         // Load up the child as a float, then as an int if necessary.
         tempMR = generateX86MemoryReference(child, cg);
         target = cg->allocateSinglePrecisionRegister(TR_FPR);
-        Inst_RegMem(TR::InstOpCode::MOVSSRegMem, node, target, tempMR, cg);
+        Inst_RegMem(OP::MOVSSRegMem, node, target, tempMR, cg);
 
         if (child->getReferenceCount() > 1) {
             TR::Register *intReg = cg->allocateRegister();
-            Inst_RegReg(TR::InstOpCode::MOVDReg4Reg, node, intReg, target, cg);
+            Inst_RegReg(OP::MOVDReg4Reg, node, intReg, target, cg);
             child->setRegister(intReg);
         }
 
@@ -1067,7 +1063,7 @@ TR::Register *OMR::X86::TreeEvaluator::ibits2fEvaluator(TR::Node *node, TR::Code
     } else {
         TR::Register *intReg = cg->evaluate(child);
         target = cg->allocateSinglePrecisionRegister(TR_FPR);
-        Inst_RegReg(TR::InstOpCode::MOVDRegReg4, node, target, intReg, cg);
+        Inst_RegReg(OP::MOVDRegReg4, node, target, intReg, cg);
     }
 
     node->setRegister(target);
@@ -1088,15 +1084,15 @@ TR::Register *OMR::X86::TreeEvaluator::fbits2iEvaluator(TR::Node *node, TR::Code
         // Load up the child as an int.
         //
         tempMR = generateX86MemoryReference(child, cg);
-        Inst_RegMem(TR::InstOpCode::L4RegMem, node, target, tempMR, cg);
+        Inst_RegMem(OP::L4RegMem, node, target, tempMR, cg);
         tempMR->decNodeReferenceCounts(cg);
     } else {
         // Move the float value from a FPR or XMMR to a GPR.
         //
         TR::Register *floatReg = cg->evaluate(child);
         tempMR = cg->machine()->getDummyLocalMR(TR::Int32);
-        Inst_MemReg(TR::InstOpCode::MOVSSMemReg, node, tempMR, floatReg, cg);
-        Inst_RegMem(TR::InstOpCode::L4RegMem, node, target, generateX86MemoryReference(*tempMR, 0, cg), cg);
+        Inst_MemReg(OP::MOVSSMemReg, node, tempMR, floatReg, cg);
+        Inst_RegMem(OP::L4RegMem, node, target, generateX86MemoryReference(*tempMR, 0, cg), cg);
     }
 
     // Check for the special case where the child is a NaN,
@@ -1110,16 +1106,16 @@ TR::Register *OMR::X86::TreeEvaluator::fbits2iEvaluator(TR::Node *node, TR::Code
             TR::LabelSymbol *lab2 = TR::LabelSymbol::create(cg->trHeapMemory(), cg);
             lab0->setStartInternalControlFlow();
             lab2->setEndInternalControlFlow();
-            Inst_Label(TR::InstOpCode::label, node, lab0, cg);
-            Inst_RegImm(TR::InstOpCode::CMP4RegImm4, node, target, FLOAT_NAN_1_LOW, cg);
-            Inst_Label(TR::InstOpCode::JGE4, node, lab1, cg);
-            Inst_RegImm(TR::InstOpCode::CMP4RegImm4, node, target, FLOAT_NAN_2_LOW, cg);
-            Inst_Label(TR::InstOpCode::JB4, node, lab2, cg);
-            Inst_Label(TR::InstOpCode::label, node, lab1, cg);
-            Inst_RegImm(TR::InstOpCode::MOV4RegImm4, node, target, FLOAT_NAN, cg);
+            Inst_Label(OP::label, node, lab0, cg);
+            Inst_RegImm(OP::CMP4RegImm4, node, target, FLOAT_NAN_1_LOW, cg);
+            Inst_Label(OP::JGE4, node, lab1, cg);
+            Inst_RegImm(OP::CMP4RegImm4, node, target, FLOAT_NAN_2_LOW, cg);
+            Inst_Label(OP::JB4, node, lab2, cg);
+            Inst_Label(OP::label, node, lab1, cg);
+            Inst_RegImm(OP::MOV4RegImm4, node, target, FLOAT_NAN, cg);
             TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)0, (uint8_t)1, cg);
             deps->addPostCondition(target, TR::RealRegister::NoReg, cg);
-            Inst_Label(TR::InstOpCode::label, node, lab2, deps, cg);
+            Inst_Label(OP::label, node, lab2, deps, cg);
         } else {
             // A bunch of bookkeeping
             //
@@ -1145,23 +1141,23 @@ TR::Register *OMR::X86::TreeEvaluator::fbits2iEvaluator(TR::Node *node, TR::Code
             // Fast path: if subtracting nanDetector leaves CF=0 or OF=1, then it
             // must be a NaN.
             //
-            Inst_Label(TR::InstOpCode::label, node, startLabel, cg);
-            Inst_RegImm(TR::InstOpCode::CMP4RegImm4, node, treg, nanDetector, cg);
-            Inst_Label(TR::InstOpCode::JAE4, node, slowPathLabel, cg);
-            Inst_Label(TR::InstOpCode::JO4, node, slowPathLabel, cg);
+            Inst_Label(OP::label, node, startLabel, cg);
+            Inst_RegImm(OP::CMP4RegImm4, node, treg, nanDetector, cg);
+            Inst_Label(OP::JAE4, node, slowPathLabel, cg);
+            Inst_Label(OP::JO4, node, slowPathLabel, cg);
 
             // Slow path
             //
             {
                 TR_OutlinedInstructionsGenerator og(slowPathLabel, node, cg);
-                Inst_RegImm(TR::InstOpCode::MOV4RegImm4, node, treg, FLOAT_NAN, cg);
-                Inst_Label(TR::InstOpCode::JMP4, node, endLabel, cg);
+                Inst_RegImm(OP::MOV4RegImm4, node, treg, FLOAT_NAN, cg);
+                Inst_Label(OP::JMP4, node, endLabel, cg);
                 og.endOutlinedInstructionSequence();
             }
 
             // Merge point
             //
-            Inst_Label(TR::InstOpCode::label, node, endLabel, internalControlFlowDeps, cg);
+            Inst_Label(OP::label, node, endLabel, internalControlFlowDeps, cg);
         }
     }
 
@@ -1257,17 +1253,17 @@ TR::Register *OMR::X86::TreeEvaluator::generateBranchOrSetOnFPCompare(TR::Node *
                 deps1->setNumPostConditions(0, cg->trMemory());
                 deps->setNumPreConditions(0, cg->trMemory());
             }
-            Inst_Label(TR::InstOpCode::JNE4, node, node->getBranchDestination()->getNode()->getLabel(), deps1, cg);
-            Inst_Label(TR::InstOpCode::JPE4, node, node->getBranchDestination()->getNode()->getLabel(), deps, cg);
+            Inst_Label(OP::JNE4, node, node->getBranchDestination()->getNode()->getLabel(), deps1, cg);
+            Inst_Label(OP::JPE4, node, node->getBranchDestination()->getNode()->getLabel(), deps, cg);
         } else {
             TR::Register *tempRegister = cg->allocateRegister();
             targetRegister = cg->allocateRegister();
             cg->getLiveRegisters(TR_GPR)->setByteRegisterAssociation(tempRegister);
             cg->getLiveRegisters(TR_GPR)->setByteRegisterAssociation(targetRegister);
-            Inst_Reg(TR::InstOpCode::SETPE1Reg, node, tempRegister, cg);
-            Inst_Reg(TR::InstOpCode::SETNE1Reg, node, targetRegister, cg);
-            Inst_RegReg(TR::InstOpCode::OR1RegReg, node, targetRegister, tempRegister, cg);
-            Inst_RegReg(TR::InstOpCode::MOVZXReg4Reg1, node, targetRegister, targetRegister, cg);
+            Inst_Reg(OP::SETPE1Reg, node, tempRegister, cg);
+            Inst_Reg(OP::SETNE1Reg, node, targetRegister, cg);
+            Inst_RegReg(OP::OR1RegReg, node, targetRegister, tempRegister, cg);
+            Inst_RegReg(OP::MOVZXReg4Reg1, node, targetRegister, targetRegister, cg);
             cg->stopUsingRegister(tempRegister);
         }
     } else if (cmpOp == TR::iffcmpeq || cmpOp == TR::fcmpeq || cmpOp == TR::ifdcmpeq || cmpOp == TR::dcmpeq) {
@@ -1284,30 +1280,30 @@ TR::Register *OMR::X86::TreeEvaluator::generateBranchOrSetOnFPCompare(TR::Node *
                 deps1->setNumPostConditions(0, cg->trMemory());
                 deps->setNumPreConditions(0, cg->trMemory());
             }
-            Inst_Label(TR::InstOpCode::label, node, startLabel, cg);
-            Inst_Label(TR::InstOpCode::JPE4, node, fallThroughLabel, deps1, cg);
-            Inst_Label(TR::InstOpCode::JE4, node, node->getBranchDestination()->getNode()->getLabel(), cg);
-            Inst_Label(TR::InstOpCode::label, node, fallThroughLabel, deps, cg);
+            Inst_Label(OP::label, node, startLabel, cg);
+            Inst_Label(OP::JPE4, node, fallThroughLabel, deps1, cg);
+            Inst_Label(OP::JE4, node, node->getBranchDestination()->getNode()->getLabel(), cg);
+            Inst_Label(OP::label, node, fallThroughLabel, deps, cg);
         } else {
             TR::Register *tempRegister = cg->allocateRegister();
             targetRegister = cg->allocateRegister();
             cg->getLiveRegisters(TR_GPR)->setByteRegisterAssociation(tempRegister);
             cg->getLiveRegisters(TR_GPR)->setByteRegisterAssociation(targetRegister);
-            Inst_Reg(TR::InstOpCode::SETPO1Reg, node, tempRegister, cg);
-            Inst_Reg(TR::InstOpCode::SETE1Reg, node, targetRegister, cg);
-            Inst_RegReg(TR::InstOpCode::AND1RegReg, node, targetRegister, tempRegister, cg);
-            Inst_RegReg(TR::InstOpCode::MOVZXReg4Reg1, node, targetRegister, targetRegister, cg);
+            Inst_Reg(OP::SETPO1Reg, node, tempRegister, cg);
+            Inst_Reg(OP::SETE1Reg, node, targetRegister, cg);
+            Inst_RegReg(OP::AND1RegReg, node, targetRegister, tempRegister, cg);
+            Inst_RegReg(OP::MOVZXReg4Reg1, node, targetRegister, targetRegister, cg);
             cg->stopUsingRegister(tempRegister);
         }
     } else {
-        TR::InstOpCode::Mnemonic op = getBranchOrSetOpCodeForFPComparison(node->getOpCodeValue());
+        OP::Mnemonic op = getBranchOrSetOpCodeForFPComparison(node->getOpCodeValue());
         if (generateBranch) {
             Inst_Label(op, node, node->getBranchDestination()->getNode()->getLabel(), deps, cg);
         } else {
             targetRegister = cg->allocateRegister();
             cg->getLiveRegisters(TR_GPR)->setByteRegisterAssociation(targetRegister);
             Inst_Reg(op, node, targetRegister, cg);
-            Inst_RegReg(TR::InstOpCode::MOVZXReg4Reg1, node, targetRegister, targetRegister, cg);
+            Inst_RegReg(OP::MOVZXReg4Reg1, node, targetRegister, targetRegister, cg);
         }
     }
 
@@ -1317,8 +1313,8 @@ TR::Register *OMR::X86::TreeEvaluator::generateBranchOrSetOnFPCompare(TR::Node *
 
 // Create FP compare code for the specified comparison class.
 //
-void OMR::X86::TreeEvaluator::compareFloatOrDoubleForOrder(TR::Node *node, TR::InstOpCode::Mnemonic xmmCmpRegRegOpCode,
-    TR::InstOpCode::Mnemonic xmmCmpRegMemOpCode, TR::CodeGenerator *cg)
+void OMR::X86::TreeEvaluator::compareFloatOrDoubleForOrder(TR::Node *node, OP::Mnemonic xmmCmpRegRegOpCode,
+    OP::Mnemonic xmmCmpRegMemOpCode, TR::CodeGenerator *cg)
 {
     TR_IA32XMMCompareAnalyser temp(cg);
     temp.xmmCompareAnalyser(node, xmmCmpRegRegOpCode, xmmCmpRegMemOpCode);
@@ -1331,25 +1327,25 @@ TR::Register *OMR::X86::TreeEvaluator::generateFPCompareResult(TR::Node *node, T
 
     startLabel->setStartInternalControlFlow();
     doneLabel->setEndInternalControlFlow();
-    Inst_Label(TR::InstOpCode::label, node, startLabel, cg);
+    Inst_Label(OP::label, node, startLabel, cg);
 
     TR::Register *targetRegister = cg->allocateRegister(TR_GPR);
     cg->getLiveRegisters(TR_GPR)->setByteRegisterAssociation(targetRegister);
-    Inst_Reg(TR::InstOpCode::SETA1Reg, node, targetRegister, cg);
-    Inst_Label(TR::InstOpCode::JAE4, node, doneLabel, cg);
+    Inst_Reg(OP::SETA1Reg, node, targetRegister, cg);
+    Inst_Label(OP::JAE4, node, doneLabel, cg);
 
     if (node->getOpCodeValue() == TR::fcmpg || node->getOpCodeValue() == TR::dcmpg) {
-        Inst_Reg(TR::InstOpCode::SETPE1Reg, node, targetRegister, cg);
-        Inst_Label(TR::InstOpCode::JPE4, node, doneLabel, cg);
+        Inst_Reg(OP::SETPE1Reg, node, targetRegister, cg);
+        Inst_Label(OP::JPE4, node, doneLabel, cg);
     }
 
-    Inst_Reg(TR::InstOpCode::DEC1Reg, node, targetRegister, cg);
+    Inst_Reg(OP::DEC1Reg, node, targetRegister, cg);
 
     TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)0, (uint8_t)1, cg);
     deps->addPostCondition(targetRegister, TR::RealRegister::NoReg, cg);
-    Inst_Label(TR::InstOpCode::label, node, doneLabel, deps, cg);
+    Inst_Label(OP::label, node, doneLabel, deps, cg);
 
-    Inst_RegReg(TR::InstOpCode::MOVSXReg4Reg1, node, targetRegister, targetRegister, cg);
+    Inst_RegReg(OP::MOVSXReg4Reg1, node, targetRegister, targetRegister, cg);
 
     node->setRegister(targetRegister);
     return targetRegister;
@@ -1357,42 +1353,36 @@ TR::Register *OMR::X86::TreeEvaluator::generateFPCompareResult(TR::Node *node, T
 
 TR::Register *OMR::X86::TreeEvaluator::compareFloatAndBranchEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    TR::TreeEvaluator::compareFloatOrDoubleForOrder(node, TR::InstOpCode::UCOMISSRegReg, TR::InstOpCode::UCOMISSRegMem,
-        cg);
+    TR::TreeEvaluator::compareFloatOrDoubleForOrder(node, OP::UCOMISSRegReg, OP::UCOMISSRegMem, cg);
     return TR::TreeEvaluator::generateBranchOrSetOnFPCompare(node, true, cg);
 }
 
 TR::Register *OMR::X86::TreeEvaluator::compareDoubleAndBranchEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    TR::TreeEvaluator::compareFloatOrDoubleForOrder(node, TR::InstOpCode::UCOMISDRegReg, TR::InstOpCode::UCOMISDRegMem,
-        cg);
+    TR::TreeEvaluator::compareFloatOrDoubleForOrder(node, OP::UCOMISDRegReg, OP::UCOMISDRegMem, cg);
     return TR::TreeEvaluator::generateBranchOrSetOnFPCompare(node, true, cg);
 }
 
 TR::Register *OMR::X86::TreeEvaluator::compareFloatAndSetEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    TR::TreeEvaluator::compareFloatOrDoubleForOrder(node, TR::InstOpCode::UCOMISSRegReg, TR::InstOpCode::UCOMISSRegMem,
-        cg);
+    TR::TreeEvaluator::compareFloatOrDoubleForOrder(node, OP::UCOMISSRegReg, OP::UCOMISSRegMem, cg);
     return TR::TreeEvaluator::generateBranchOrSetOnFPCompare(node, false, cg);
 }
 
 TR::Register *OMR::X86::TreeEvaluator::compareDoubleAndSetEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    TR::TreeEvaluator::compareFloatOrDoubleForOrder(node, TR::InstOpCode::UCOMISDRegReg, TR::InstOpCode::UCOMISDRegMem,
-        cg);
+    TR::TreeEvaluator::compareFloatOrDoubleForOrder(node, OP::UCOMISDRegReg, OP::UCOMISDRegMem, cg);
     return TR::TreeEvaluator::generateBranchOrSetOnFPCompare(node, false, cg);
 }
 
 TR::Register *OMR::X86::TreeEvaluator::compareFloatEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    TR::TreeEvaluator::compareFloatOrDoubleForOrder(node, TR::InstOpCode::UCOMISSRegReg, TR::InstOpCode::UCOMISSRegMem,
-        cg);
+    TR::TreeEvaluator::compareFloatOrDoubleForOrder(node, OP::UCOMISSRegReg, OP::UCOMISSRegMem, cg);
     return TR::TreeEvaluator::generateFPCompareResult(node, cg);
 }
 
 TR::Register *OMR::X86::TreeEvaluator::compareDoubleEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    TR::TreeEvaluator::compareFloatOrDoubleForOrder(node, TR::InstOpCode::UCOMISDRegReg, TR::InstOpCode::UCOMISDRegMem,
-        cg);
+    TR::TreeEvaluator::compareFloatOrDoubleForOrder(node, OP::UCOMISDRegReg, OP::UCOMISDRegMem, cg);
     return TR::TreeEvaluator::generateFPCompareResult(node, cg);
 }
