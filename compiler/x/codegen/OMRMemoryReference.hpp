@@ -419,9 +419,13 @@ public:
 };
 }} // namespace OMR::X86
 
-///////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 // Generate Routines
-///////////////////////////////////////////////////////////
+//
+// THE USE OF THE generateX86MemoryReference() FUNCTIONS IS DEPRECATED IN FAVOUR
+// OF THE MORE CONCISE MRef_XXX() FORMS AND SHOULD NOT BE USED. THESE DEPRECATED
+// FORMS WILL BE REMOVED IN A FUTURE OMR RELEASE.
+///////////////////////////////////////////////////////////////////////////////
 
 TR::MemoryReference *generateX86MemoryReference(TR::CodeGenerator *cg);
 TR::MemoryReference *generateX86MemoryReference(intptr_t, TR::CodeGenerator *cg);
@@ -438,5 +442,20 @@ TR::MemoryReference *generateX86MemoryReference(TR::SymbolReference *, TR::CodeG
 TR::MemoryReference *generateX86MemoryReference(TR::SymbolReference *, intptr_t, TR::CodeGenerator *cg);
 TR::MemoryReference *generateX86MemoryReference(TR::X86DataSnippet *, TR::CodeGenerator *cg);
 TR::MemoryReference *generateX86MemoryReference(TR::LabelSymbol *, TR::CodeGenerator *cg);
+
+namespace TR {
+TR::MemoryReference *MRef(TR::CodeGenerator *cg);
+TR::MemoryReference *MRef_abs(intptr_t disp, TR::CodeGenerator *cg);
+TR::MemoryReference *MRef_Bdisp32(TR::Register *br, intptr_t disp, TR::CodeGenerator *cg);
+TR::MemoryReference *MRef_BIS(TR::Register *br, TR::Register *ir, uint8_t s, TR::CodeGenerator *cg);
+TR::MemoryReference *MRef_BISdisp32(TR::Register *br, TR::Register *ir, uint8_t s, intptr_t disp32,
+    TR::CodeGenerator *cg);
+TR::MemoryReference *MRef_const(TR::X86DataSnippet *cds, TR::CodeGenerator *cg);
+TR::MemoryReference *MRef_label(TR::LabelSymbol *label, TR::CodeGenerator *cg);
+TR::MemoryReference *MRef_node(TR::Node *node, TR::CodeGenerator *cg, bool canRematerializeAddressAdds = true);
+TR::MemoryReference *MRef_sym(TR::SymbolReference *sr, TR::CodeGenerator *cg);
+TR::MemoryReference *MRef_symOff(TR::SymbolReference *sr, intptr_t offset, TR::CodeGenerator *cg);
+TR::MemoryReference *MRef_MRefOff(TR::MemoryReference &mr, intptr_t offset, TR::CodeGenerator *cg);
+} // namespace TR
 
 #endif
