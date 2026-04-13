@@ -123,9 +123,9 @@ void TR_OutlinedInstructions::generateOutlinedInstructionsDispatch()
         TR_ASSERT((targetRegPair == NULL && resultRegPair == NULL) || (targetRegPair != NULL && resultRegPair != NULL),
             "OutlinedInstructions: targetReg and resultReg must be both register pairs or neither register pairs.");
         if (targetRegPair) {
-            generateRegRegInstruction(TR::InstOpCode::MOVRegReg(), _callNode, targetRegPair->getLowOrder(),
+            Inst_RegReg(TR::InstOpCode::MOVRegReg(), _callNode, targetRegPair->getLowOrder(),
                 resultRegPair->getLowOrder(), _cg);
-            generateRegRegInstruction(TR::InstOpCode::MOVRegReg(), _callNode, targetRegPair->getHighOrder(),
+            Inst_RegReg(TR::InstOpCode::MOVRegReg(), _callNode, targetRegPair->getHighOrder(),
                 resultRegPair->getHighOrder(), _cg);
         } else {
             TR::InstOpCode::Mnemonic mov = TR::InstOpCode::bad;
@@ -141,14 +141,14 @@ void TR_OutlinedInstructions::generateOutlinedInstructionsDispatch()
                     TR_ASSERT(false, "OutlinedInstructions: unsupported result register kind.");
                     break;
             }
-            generateRegRegInstruction(mov, _callNode, _targetReg, resultReg, _cg);
+            Inst_RegReg(mov, _callNode, _targetReg, resultReg, _cg);
         }
     }
 
     _cg->decReferenceCount(_callNode);
 
     if (_restartLabel)
-        generateLabelInstruction(TR::InstOpCode::JMP4, _callNode, _restartLabel, _cg);
+        Inst_Label(TR::InstOpCode::JMP4, _callNode, _restartLabel, _cg);
     else {
         // Java-specific.
         // No restart label implies we're not coming back from this call,
@@ -158,12 +158,12 @@ void TR_OutlinedInstructions::generateOutlinedInstructionsDispatch()
         //
         // When the handshake is removed, we can delete this zero.
         //
-        generateImmInstruction(TR::InstOpCode::DDImm4, _callNode, 0, _cg);
+        Inst_Imm(TR::InstOpCode::DDImm4, _callNode, 0, _cg);
     }
 
     // Dummy label to delimit the end of the helper call dispatch sequence (for exception ranges).
     //
-    generateLabelInstruction(TR::InstOpCode::label, _callNode, TR::LabelSymbol::create(_cg->trHeapMemory(), _cg), _cg);
+    Inst_Label(TR::InstOpCode::label, _callNode, TR::LabelSymbol::create(_cg->trHeapMemory(), _cg), _cg);
 
     // Switch from cold helper instruction stream.
     //
@@ -234,7 +234,7 @@ void TR_OutlinedInstructions::assignRegisters(TR_RegisterKinds kindsToBeAssigned
 
     // Ensure correct VFP state at the start of the outlined instruction sequence.
     //
-    generateVFPRestoreInstruction(cg()->getAppendInstruction(), vfpSaveInstruction, _cg);
+    Inst_VFPRestore(cg()->getAppendInstruction(), vfpSaveInstruction, _cg);
     // Link in the helper stream into the mainline code.
     //
     TR::Instruction *appendInstruction = cg()->getAppendInstruction();
@@ -266,7 +266,7 @@ void TR_OutlinedInstructions::assignRegistersOnOutlinedPath(TR_RegisterKinds kin
 
     // Ensure correct VFP state at the start of the outlined instruction sequence.
     //
-    generateVFPRestoreInstruction(cg()->getAppendInstruction(), vfpSaveInstruction, _cg);
+    Inst_VFPRestore(cg()->getAppendInstruction(), vfpSaveInstruction, _cg);
 
     // Link in the helper stream into the mainline code.
     //
@@ -349,12 +349,12 @@ TR_OutlinedInstructionsGenerator::TR_OutlinedInstructionsGenerator(TR::LabelSymb
     _oi->setCallNode(node);
     cg->getOutlinedInstructionsList().push_front(_oi);
     _oi->swapInstructionListsWithCompilation();
-    generateLabelInstruction(TR::InstOpCode::label, node, entryLabel, cg);
+    Inst_Label(TR::InstOpCode::label, node, entryLabel, cg);
 }
 
 void TR_OutlinedInstructionsGenerator::endOutlinedInstructionSequence()
 {
-    generateLabelInstruction(TR::InstOpCode::label, _oi->_callNode, generateLabelSymbol(_oi->_cg), _oi->_cg);
+    Inst_Label(TR::InstOpCode::label, _oi->_callNode, generateLabelSymbol(_oi->_cg), _oi->_cg);
     _oi->swapInstructionListsWithCompilation();
     _hasEnded = true;
 }

@@ -197,7 +197,7 @@ void TR::X86LabelInstruction::assignOutlinedInstructions(TR_RegisterKinds kindsT
         labelInstruction->getLabelSymbol());
 
     if (!oi->hasBeenRegisterAssigned())
-        oi->assignRegisters(kindsToBeAssigned, generateVFPSaveInstruction(getPrev(), cg()));
+        oi->assignRegisters(kindsToBeAssigned, Inst_VFPSave(getPrev(), cg()));
 }
 
 // Take the now-assigned register dependencies from this instruction and replicate
@@ -1557,7 +1557,7 @@ void TR::X86RegMaskRegRegInstruction::assignRegisters(TR_RegisterKinds kindsToBe
 void padUnresolvedReferenceInstruction(TR::Instruction *instr, TR::MemoryReference *mr, TR::CodeGenerator *cg)
 {
     mr->getUnresolvedDataSnippet()->setDataReferenceInstruction(instr);
-    generateBoundaryAvoidanceInstruction(TR::X86BoundaryAvoidanceInstruction::unresolvedAtomicRegions, 8, 8, instr, cg);
+    Inst_BoundaryAvoidance(TR::X86BoundaryAvoidanceInstruction::unresolvedAtomicRegions, 8, 8, instr, cg);
 }
 
 void insertUnresolvedReferenceInstructionMemoryBarrier(TR::CodeGenerator *cg, int32_t barrier, TR::Instruction *inst,
@@ -1589,14 +1589,14 @@ void insertUnresolvedReferenceInstructionMemoryBarrier(TR::CodeGenerator *cg, in
 
     if (is5ByteFence) {
         // generate LOCK OR dword ptr [esp], 0
-        padInst = generateAlignmentInstruction(inst, 8, cg);
+        padInst = Inst_Alignment(inst, 8, cg);
         TR::RealRegister *espReal = cg->machine()->getRealRegister(TR::RealRegister::esp);
         TR::MemoryReference *espMemRef = generateX86MemoryReference(espReal, 0, cg);
         fenceInst
             = new (cg->trHeapMemory()) TR::X86MemImmInstruction(padInst, fenceOp.getOpCodeValue(), espMemRef, 0, cg);
     } else {
         // generate memory fence
-        padInst = generateAlignmentInstruction(inst, 4, cg);
+        padInst = Inst_Alignment(inst, 4, cg);
         fenceInst = new (cg->trHeapMemory()) TR::Instruction(fenceOp.getOpCodeValue(), padInst, cg);
     }
 
@@ -1642,7 +1642,7 @@ void insertUnresolvedReferenceInstructionMemoryBarrier(TR::CodeGenerator *cg, in
     deps->stopAddingConditions();
 
     if (deps)
-        generateLabelInstruction(fenceInst, TR::InstOpCode::label, doneLabel, deps, cg);
+        Inst_Label(fenceInst, TR::InstOpCode::label, doneLabel, deps, cg);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

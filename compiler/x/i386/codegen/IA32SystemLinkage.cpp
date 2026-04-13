@@ -382,15 +382,15 @@ TR::Register *TR::IA32SystemLinkage::buildDirectDispatch(TR::Node *callNode, boo
     // Call-out
     int32_t stackAdjustment = cg()->getProperties().getCallerCleanup() ? 0 : -argSize;
     cg()->resetIsLeafMethod();
-    TR::X86ImmInstruction *instr = generateImmSymInstruction(TR::InstOpCode::CALLImm4, callNode,
+    TR::X86ImmInstruction *instr = Inst_ImmSym(TR::InstOpCode::CALLImm4, callNode,
         (uintptr_t)methodSymbol->getMethodAddress(), methodSymRef, cg());
     instr->setAdjustsFramePointerBy(stackAdjustment);
 
     if (cg()->getProperties().getCallerCleanup() && argSize > 0) {
         // Clean up arguments
         //
-        generateRegImmInstruction((argSize <= 127) ? TR::InstOpCode::ADD4RegImms : TR::InstOpCode::ADD4RegImm4,
-            callNode, stackPointerReg, argSize, cg());
+        Inst_RegImm((argSize <= 127) ? TR::InstOpCode::ADD4RegImms : TR::InstOpCode::ADD4RegImm4, callNode,
+            stackPointerReg, argSize, cg());
     }
 
     /**
@@ -405,7 +405,7 @@ TR::Register *TR::IA32SystemLinkage::buildDirectDispatch(TR::Node *callNode, boo
     // this label rather than on the call
     //
     TR::LabelSymbol *endSystemCallSequence = generateLabelSymbol(cg());
-    generateLabelInstruction(TR::InstOpCode::label, callNode, endSystemCallSequence, deps, cg());
+    Inst_Label(TR::InstOpCode::label, callNode, endSystemCallSequence, deps, cg());
 
     // Stop using the killed registers that are not going to persist
     //

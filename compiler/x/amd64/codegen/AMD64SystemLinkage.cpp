@@ -664,8 +664,7 @@ int32_t TR::AMD64SystemLinkage::buildArgs(TR::Node *callNode, TR::RegisterDepend
                 TR::Register *argReg = cg()->allocateRegister();
                 if (vreg->containsCollectedReference())
                     argReg->setContainsCollectedReference();
-                generateRegRegInstruction(TR::Linkage::movOpcodes(RegReg, movType(child->getDataType())), child, argReg,
-                    vreg, cg());
+                Inst_RegReg(TR::Linkage::movOpcodes(RegReg, movType(child->getDataType())), child, argReg, vreg, cg());
                 vreg = argReg;
                 copiedRegs[numCopiedRegs++] = vreg;
             }
@@ -673,7 +672,7 @@ int32_t TR::AMD64SystemLinkage::buildArgs(TR::Node *callNode, TR::RegisterDepend
             deps->addPreCondition(vreg, rregIndex, cg());
         } else {
             // Ideally, we would like to push rather than move
-            generateMemRegInstruction(TR::Linkage::movOpcodes(MemReg, fullRegisterMovType(vreg)), child,
+            Inst_MemReg(TR::Linkage::movOpcodes(MemReg, fullRegisterMovType(vreg)), child,
                 generateX86MemoryReference(espReal, offset, cg()), vreg, cg());
         }
 
@@ -728,7 +727,7 @@ TR::Register *TR::AMD64SystemLinkage::buildIndirectDispatch(TR::Node *callNode)
 
     // Dispatch
     //
-    generateRegInstruction(TR::InstOpCode::CALLReg, callNode, vftRegister, callDeps, cg());
+    Inst_Reg(TR::InstOpCode::CALLReg, callNode, vftRegister, callDeps, cg());
     cg()->resetIsLeafMethod();
 
     // Build label post-conditions
@@ -738,7 +737,7 @@ TR::Register *TR::AMD64SystemLinkage::buildIndirectDispatch(TR::Node *callNode)
     postDeps->stopAddingPostConditions();
 
     TR::LabelSymbol *postDepLabel = generateLabelSymbol(cg());
-    generateLabelInstruction(TR::InstOpCode::label, callNode, postDepLabel, postDeps, cg());
+    Inst_Label(TR::InstOpCode::label, callNode, postDepLabel, postDeps, cg());
 
     return returnReg;
 }
@@ -784,16 +783,16 @@ TR::Register *TR::AMD64SystemLinkage::buildDirectDispatch(TR::Node *callNode, bo
     TR::Instruction *instr;
     if (methodSymbol->getMethodAddress()) {
         TR_ASSERT(scratchReg, "could not find second scratch register");
-        auto LoadRegisterInstruction = generateRegImm64SymInstruction(TR::InstOpCode::MOV8RegImm64, callNode,
-            scratchReg, (uintptr_t)methodSymbol->getMethodAddress(), methodSymRef, cg());
+        auto LoadRegisterInstruction = Inst_RegImm64Sym(TR::InstOpCode::MOV8RegImm64, callNode, scratchReg,
+            (uintptr_t)methodSymbol->getMethodAddress(), methodSymRef, cg());
 
         if (comp()->getOption(TR_EmitRelocatableELFFile)) {
             LoadRegisterInstruction->setReloKind(TR_NativeMethodAbsolute);
         }
 
-        instr = generateRegInstruction(TR::InstOpCode::CALLReg, callNode, scratchReg, preDeps, cg());
+        instr = Inst_Reg(TR::InstOpCode::CALLReg, callNode, scratchReg, preDeps, cg());
     } else {
-        instr = generateImmSymInstruction(TR::InstOpCode::CALLImm4, callNode,
+        instr = Inst_ImmSym(TR::InstOpCode::CALLImm4, callNode,
             static_cast<int32_t>(reinterpret_cast<uintptr_t>(methodSymbol->getMethodAddress())), methodSymRef, preDeps,
             cg());
     }
@@ -805,7 +804,7 @@ TR::Register *TR::AMD64SystemLinkage::buildDirectDispatch(TR::Node *callNode, bo
     cg()->stopUsingRegister(scratchReg);
 
     TR::LabelSymbol *postDepLabel = generateLabelSymbol(cg());
-    generateLabelInstruction(TR::InstOpCode::label, callNode, postDepLabel, postDeps, cg());
+    Inst_Label(TR::InstOpCode::label, callNode, postDepLabel, postDeps, cg());
 
     return returnReg;
 }

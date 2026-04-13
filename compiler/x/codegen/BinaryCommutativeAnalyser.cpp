@@ -64,7 +64,7 @@ static void zeroExtendTo32BitRegister(TR::Node *node, TR::Register *reg, int32_t
     }
 
     if (op != TR::InstOpCode::bad)
-        generateRegRegInstruction(op, node, reg, reg, cg);
+        Inst_RegReg(op, node, reg, reg, cg);
 }
 
 /*
@@ -144,38 +144,38 @@ TR::Register *TR_X86BinaryCommutativeAnalyser::genericAnalyserImpl(TR::Node *roo
     }
 
     if (getOpReg1Reg2()) {
-        generateRegRegInstruction(regRegOpCode, root, firstRegister, secondRegister, _cg);
+        Inst_RegReg(regRegOpCode, root, firstRegister, secondRegister, _cg);
         targetRegister = firstRegister;
     } else if (getOpReg2Reg1()) {
-        generateRegRegInstruction(regRegOpCode, root, secondRegister, firstRegister, _cg);
+        Inst_RegReg(regRegOpCode, root, secondRegister, firstRegister, _cg);
         targetRegister = secondRegister;
         notReversedOperands();
     } else if (getCopyReg1()) {
         TR::Register *tempReg = _cg->allocateRegister();
         targetRegister = tempReg;
-        generateRegRegInstruction(copyOpCode, root, tempReg, firstRegister, _cg);
-        generateRegRegInstruction(regRegOpCode, root, tempReg, secondRegister, _cg);
+        Inst_RegReg(copyOpCode, root, tempReg, firstRegister, _cg);
+        Inst_RegReg(regRegOpCode, root, tempReg, secondRegister, _cg);
     } else if (getCopyReg2()) {
         TR::Register *tempReg = _cg->allocateRegister();
         targetRegister = tempReg;
-        generateRegRegInstruction(copyOpCode, root, tempReg, secondRegister, _cg);
-        generateRegRegInstruction(regRegOpCode, root, tempReg, firstRegister, _cg);
+        Inst_RegReg(copyOpCode, root, tempReg, secondRegister, _cg);
+        Inst_RegReg(regRegOpCode, root, tempReg, firstRegister, _cg);
         notReversedOperands();
     } else if (getOpReg1Mem2()) {
         TR::MemoryReference *tempMR = generateX86MemoryReference(secondChild, _cg);
         if (regMemOpCode == TR::InstOpCode::TEST4MemReg || regMemOpCode == TR::InstOpCode::TEST8MemReg) {
-            generateMemRegInstruction(regMemOpCode, root, tempMR, firstRegister, _cg);
+            Inst_MemReg(regMemOpCode, root, tempMR, firstRegister, _cg);
         } else {
-            generateRegMemInstruction(regMemOpCode, root, firstRegister, tempMR, _cg);
+            Inst_RegMem(regMemOpCode, root, firstRegister, tempMR, _cg);
         }
         targetRegister = firstRegister;
         tempMR->decNodeReferenceCounts(_cg);
     } else {
         TR::MemoryReference *tempMR = generateX86MemoryReference(firstChild, _cg);
         if (regMemOpCode == TR::InstOpCode::TEST4MemReg || regMemOpCode == TR::InstOpCode::TEST8MemReg) {
-            generateMemRegInstruction(regMemOpCode, root, tempMR, secondRegister, _cg);
+            Inst_MemReg(regMemOpCode, root, tempMR, secondRegister, _cg);
         } else {
-            generateRegMemInstruction(regMemOpCode, root, secondRegister, tempMR, _cg);
+            Inst_RegMem(regMemOpCode, root, secondRegister, tempMR, _cg);
         }
         targetRegister = secondRegister;
         tempMR->decNodeReferenceCounts(_cg);
@@ -342,31 +342,31 @@ void TR_X86BinaryCommutativeAnalyser::genericLongAnalyser(TR::Node *root, TR::In
             twoLow = secondRegister;
             twoHigh = 0;
         }
-        generateRegRegInstruction(lowRegRegOpCode, root, oneLow, twoLow, _cg);
+        Inst_RegReg(lowRegRegOpCode, root, oneLow, twoLow, _cg);
 
         if (firstHighZero) {
             if (secondHighZero) {
                 oneHigh = _cg->allocateRegister();
-                generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, root, oneHigh, oneHigh, _cg);
+                Inst_RegReg(TR::InstOpCode::XOR4RegReg, root, oneHigh, oneHigh, _cg);
             } else {
                 if (root->getOpCodeValue() == TR::land) {
                     oneHigh = _cg->allocateRegister();
-                    generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, root, oneHigh, oneHigh, _cg);
+                    Inst_RegReg(TR::InstOpCode::XOR4RegReg, root, oneHigh, oneHigh, _cg);
                 } else {
                     if (secondChild->getReferenceCount() == 1) {
                         oneHigh = twoHigh;
                     } else {
                         oneHigh = _cg->allocateRegister();
-                        generateRegRegInstruction(copyOpCode, root, oneHigh, twoHigh, _cg);
+                        Inst_RegReg(copyOpCode, root, oneHigh, twoHigh, _cg);
                     }
                 }
             }
         } else if (secondHighZero) {
             if (root->getOpCodeValue() == TR::land) {
-                generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, root, oneHigh, oneHigh, _cg);
+                Inst_RegReg(TR::InstOpCode::XOR4RegReg, root, oneHigh, oneHigh, _cg);
             }
         } else {
-            generateRegRegInstruction(highRegRegOpCode, root, oneHigh, twoHigh, _cg);
+            Inst_RegReg(highRegRegOpCode, root, oneHigh, twoHigh, _cg);
         }
         root->setRegister(_cg->allocateRegisterPair(oneLow, oneHigh));
     } else if (getOpReg2Reg1()) {
@@ -386,26 +386,26 @@ void TR_X86BinaryCommutativeAnalyser::genericLongAnalyser(TR::Node *root, TR::In
             twoHigh = 0;
         }
 
-        generateRegRegInstruction(lowRegRegOpCode, root, twoLow, oneLow, _cg);
+        Inst_RegReg(lowRegRegOpCode, root, twoLow, oneLow, _cg);
 
         if (firstHighZero) {
             if (secondHighZero) {
                 twoHigh = _cg->allocateRegister();
-                generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, root, twoHigh, twoHigh, _cg);
+                Inst_RegReg(TR::InstOpCode::XOR4RegReg, root, twoHigh, twoHigh, _cg);
             } else {
                 if (root->getOpCodeValue() == TR::land) {
-                    generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, root, twoHigh, twoHigh, _cg);
+                    Inst_RegReg(TR::InstOpCode::XOR4RegReg, root, twoHigh, twoHigh, _cg);
                 }
             }
         } else if (secondHighZero) {
             twoHigh = _cg->allocateRegister();
             if (root->getOpCodeValue() == TR::land) {
-                generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, root, twoHigh, twoHigh, _cg);
+                Inst_RegReg(TR::InstOpCode::XOR4RegReg, root, twoHigh, twoHigh, _cg);
             } else {
-                generateRegRegInstruction(copyOpCode, root, twoHigh, oneHigh, _cg);
+                Inst_RegReg(copyOpCode, root, twoHigh, oneHigh, _cg);
             }
         } else {
-            generateRegRegInstruction(highRegRegOpCode, root, twoHigh, oneHigh, _cg);
+            Inst_RegReg(highRegRegOpCode, root, twoHigh, oneHigh, _cg);
         }
         root->setRegister(_cg->allocateRegisterPair(twoLow, twoHigh));
         notReversedOperands();
@@ -438,7 +438,7 @@ void TR_X86BinaryCommutativeAnalyser::genericLongAnalyser(TR::Node *root, TR::In
         } else {
             temp = copyReg->getLowOrder();
         }
-        generateRegRegInstruction(copyOpCode, root, copyLow, temp, _cg);
+        Inst_RegReg(copyOpCode, root, copyLow, temp, _cg);
 
         if (sourceHighZero) {
             sourceLow = sourceReg;
@@ -446,28 +446,28 @@ void TR_X86BinaryCommutativeAnalyser::genericLongAnalyser(TR::Node *root, TR::In
             sourceLow = sourceReg->getLowOrder();
             sourceHigh = sourceReg->getHighOrder();
         }
-        generateRegRegInstruction(lowRegRegOpCode, root, copyLow, sourceLow, _cg);
+        Inst_RegReg(lowRegRegOpCode, root, copyLow, sourceLow, _cg);
 
         copyHigh = _cg->allocateRegister();
         if (copyHighZero) {
             if (sourceHighZero) {
-                generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, root, copyHigh, copyHigh, _cg);
+                Inst_RegReg(TR::InstOpCode::XOR4RegReg, root, copyHigh, copyHigh, _cg);
             } else {
                 if (root->getOpCodeValue() == TR::land) {
-                    generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, root, copyHigh, copyHigh, _cg);
+                    Inst_RegReg(TR::InstOpCode::XOR4RegReg, root, copyHigh, copyHigh, _cg);
                 } else {
-                    generateRegRegInstruction(copyOpCode, root, copyHigh, sourceHigh, _cg);
+                    Inst_RegReg(copyOpCode, root, copyHigh, sourceHigh, _cg);
                 }
             }
         } else if (sourceHighZero) {
             if (root->getOpCodeValue() == TR::land) {
-                generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, root, copyHigh, copyHigh, _cg);
+                Inst_RegReg(TR::InstOpCode::XOR4RegReg, root, copyHigh, copyHigh, _cg);
             } else {
-                generateRegRegInstruction(copyOpCode, root, copyHigh, copyReg->getHighOrder(), _cg);
+                Inst_RegReg(copyOpCode, root, copyHigh, copyReg->getHighOrder(), _cg);
             }
         } else {
-            generateRegRegInstruction(copyOpCode, root, copyHigh, copyReg->getHighOrder(), _cg);
-            generateRegRegInstruction(highRegRegOpCode, root, copyHigh, sourceHigh, _cg);
+            Inst_RegReg(copyOpCode, root, copyHigh, copyReg->getHighOrder(), _cg);
+            Inst_RegReg(highRegRegOpCode, root, copyHigh, sourceHigh, _cg);
         }
         root->setRegister(_cg->allocateRegisterPair(copyLow, copyHigh));
     } else {
@@ -504,25 +504,25 @@ void TR_X86BinaryCommutativeAnalyser::genericLongAnalyser(TR::Node *root, TR::In
         if (useMemHighOrder) {
             lowMR->getSymbolReference().addToOffset(4);
         }
-        generateRegMemInstruction(lowRegMemOpCode, root, targetLow, lowMR, _cg);
+        Inst_RegMem(lowRegMemOpCode, root, targetLow, lowMR, _cg);
 
         if (memHighZero) {
             if (targetHighZero)
                 targetHigh = _cg->allocateRegister();
             if (root->getOpCodeValue() == TR::land || targetHighZero) {
-                generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, root, targetHigh, targetHigh, _cg);
+                Inst_RegReg(TR::InstOpCode::XOR4RegReg, root, targetHigh, targetHigh, _cg);
             }
         } else if (targetHighZero) {
             targetHigh = _cg->allocateRegister();
             if (root->getOpCodeValue() == TR::land) {
-                generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, root, targetHigh, targetHigh, _cg);
+                Inst_RegReg(TR::InstOpCode::XOR4RegReg, root, targetHigh, targetHigh, _cg);
             } else {
                 highMR = generateX86MemoryReference(*lowMR, 4, _cg);
-                generateRegMemInstruction(TR::InstOpCode::L4RegMem, root, targetHigh, highMR, _cg);
+                Inst_RegMem(TR::InstOpCode::L4RegMem, root, targetHigh, highMR, _cg);
             }
         } else {
             highMR = generateX86MemoryReference(*lowMR, 4, _cg);
-            generateRegMemInstruction(highRegMemOpCode, root, targetHigh, highMR, _cg);
+            Inst_RegMem(highRegMemOpCode, root, targetHigh, highMR, _cg);
         }
         root->setRegister(_cg->allocateRegisterPair(targetLow, targetHigh));
         lowMR->decNodeReferenceCounts(_cg);
@@ -674,10 +674,10 @@ TR::Register *TR_X86BinaryCommutativeAnalyser::integerAddAnalyserImpl(TR::Node *
         TR::TreeEvaluator::setCarryBorrow(carry, false, _cg);
 
     if (getOpReg1Reg2()) {
-        generateRegRegInstruction(regRegOpCode, root, firstRegister, secondRegister, _cg);
+        Inst_RegReg(regRegOpCode, root, firstRegister, secondRegister, _cg);
         targetRegister = firstRegister;
     } else if (getOpReg2Reg1()) {
-        generateRegRegInstruction(regRegOpCode, root, secondRegister, firstRegister, _cg);
+        Inst_RegReg(regRegOpCode, root, secondRegister, firstRegister, _cg);
         targetRegister = secondRegister;
         notReversedOperands();
     } else if (getCopyRegs()) {
@@ -705,22 +705,22 @@ TR::Register *TR_X86BinaryCommutativeAnalyser::integerAddAnalyserImpl(TR::Node *
 
         // if eflags are required then we cannot use LEA as it doesn't set or use them
         if (needsEflags || (carry != 0)) {
-            generateRegRegInstruction(TR::InstOpCode::MOVRegReg(is64Bit), root, tempReg, firstRegister, _cg);
-            generateRegRegInstruction(regRegOpCode, root, tempReg, secondRegister, _cg);
+            Inst_RegReg(TR::InstOpCode::MOVRegReg(is64Bit), root, tempReg, firstRegister, _cg);
+            Inst_RegReg(regRegOpCode, root, tempReg, secondRegister, _cg);
         } else {
             TR::MemoryReference *tempMR = generateX86MemoryReference(_cg);
             tempMR->setBaseRegister(firstRegister);
             tempMR->setIndexRegister(secondRegister);
-            generateRegMemInstruction(TR::InstOpCode::LEARegMem(is64Bit), root, tempReg, tempMR, _cg);
+            Inst_RegMem(TR::InstOpCode::LEARegMem(is64Bit), root, tempReg, tempMR, _cg);
         }
     } else if (getOpReg1Mem2()) {
         TR::MemoryReference *tempMR = generateX86MemoryReference(secondChild, _cg);
-        generateRegMemInstruction(regMemOpCode, root, firstRegister, tempMR, _cg);
+        Inst_RegMem(regMemOpCode, root, firstRegister, tempMR, _cg);
         targetRegister = firstRegister;
         tempMR->decNodeReferenceCounts(_cg);
     } else {
         TR::MemoryReference *tempMR = generateX86MemoryReference(firstChild, _cg);
-        generateRegMemInstruction(regMemOpCode, root, secondRegister, tempMR, _cg);
+        Inst_RegMem(regMemOpCode, root, secondRegister, tempMR, _cg);
         targetRegister = secondRegister;
         tempMR->decNodeReferenceCounts(_cg);
         notReversedOperands();
@@ -918,28 +918,28 @@ TR::Register *TR_X86BinaryCommutativeAnalyser::longAddAnalyserImpl(TR::Node *roo
             twoHigh = 0;
         }
 
-        generateRegRegInstruction(regRegOpCode, root, oneLow, twoLow, _cg);
+        Inst_RegReg(regRegOpCode, root, oneLow, twoLow, _cg);
 
         if (firstHighZero) {
             if (secondHighZero) {
                 oneHigh = _cg->allocateRegister();
                 // xor would reset the carry we need for the subsequent adc instruction
-                generateRegImmInstruction(TR::InstOpCode::MOV4RegImm4, root, oneHigh, 0, _cg);
-                generateRegRegInstruction(TR::InstOpCode::ADC4RegReg, root, oneHigh, oneHigh, _cg);
+                Inst_RegImm(TR::InstOpCode::MOV4RegImm4, root, oneHigh, 0, _cg);
+                Inst_RegReg(TR::InstOpCode::ADC4RegReg, root, oneHigh, oneHigh, _cg);
             } else {
                 if (getOpReg2Reg1() == false) {
                     oneHigh = _cg->allocateRegister();
-                    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, oneHigh, twoHigh, _cg);
-                    generateRegImmInstruction(TR::InstOpCode::ADC4RegImms, root, oneHigh, 0, _cg);
+                    Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, oneHigh, twoHigh, _cg);
+                    Inst_RegImm(TR::InstOpCode::ADC4RegImms, root, oneHigh, 0, _cg);
                 } else {
-                    generateRegImmInstruction(TR::InstOpCode::ADC4RegImms, root, twoHigh, 0, _cg);
+                    Inst_RegImm(TR::InstOpCode::ADC4RegImms, root, twoHigh, 0, _cg);
                     oneHigh = twoHigh;
                 }
             }
         } else if (secondHighZero) {
-            generateRegImmInstruction(TR::InstOpCode::ADC4RegImms, root, oneHigh, 0, _cg);
+            Inst_RegImm(TR::InstOpCode::ADC4RegImms, root, oneHigh, 0, _cg);
         } else {
-            generateRegRegInstruction(TR::InstOpCode::ADC4RegReg, root, oneHigh, twoHigh, _cg);
+            Inst_RegReg(TR::InstOpCode::ADC4RegReg, root, oneHigh, twoHigh, _cg);
         }
 
         TR::Register *target = _cg->allocateRegisterPair(oneLow, oneHigh);
@@ -961,22 +961,22 @@ TR::Register *TR_X86BinaryCommutativeAnalyser::longAddAnalyserImpl(TR::Node *roo
             twoHigh = 0;
         }
 
-        generateRegRegInstruction(regRegOpCode, root, twoLow, oneLow, _cg);
+        Inst_RegReg(regRegOpCode, root, twoLow, oneLow, _cg);
         if (firstHighZero) {
             if (secondHighZero) {
                 twoHigh = _cg->allocateRegister();
                 // xor would reset the carry we need for the subsequent adc instruction
-                generateRegImmInstruction(TR::InstOpCode::MOV4RegImm4, root, twoHigh, 0, _cg);
-                generateRegRegInstruction(TR::InstOpCode::ADC4RegReg, root, twoHigh, twoHigh, _cg);
+                Inst_RegImm(TR::InstOpCode::MOV4RegImm4, root, twoHigh, 0, _cg);
+                Inst_RegReg(TR::InstOpCode::ADC4RegReg, root, twoHigh, twoHigh, _cg);
             } else {
-                generateRegImmInstruction(TR::InstOpCode::ADC4RegImms, root, twoHigh, 0, _cg);
+                Inst_RegImm(TR::InstOpCode::ADC4RegImms, root, twoHigh, 0, _cg);
             }
         } else if (secondHighZero) {
             twoHigh = _cg->allocateRegister();
-            generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, twoHigh, oneHigh, _cg);
-            generateRegImmInstruction(TR::InstOpCode::ADC4RegImms, root, twoHigh, 0, _cg);
+            Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, twoHigh, oneHigh, _cg);
+            Inst_RegImm(TR::InstOpCode::ADC4RegImms, root, twoHigh, 0, _cg);
         } else {
-            generateRegRegInstruction(TR::InstOpCode::ADC4RegReg, root, twoHigh, oneHigh, _cg);
+            Inst_RegReg(TR::InstOpCode::ADC4RegReg, root, twoHigh, oneHigh, _cg);
         }
         targetRegister = _cg->allocateRegisterPair(twoLow, twoHigh);
         notReversedOperands();
@@ -990,24 +990,24 @@ TR::Register *TR_X86BinaryCommutativeAnalyser::longAddAnalyserImpl(TR::Node *roo
         } else {
             temp = firstRegister->getLowOrder();
         }
-        generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, oneLow, temp, _cg);
+        Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, oneLow, temp, _cg);
         if (secondHighZero) {
             twoLow = secondRegister;
         } else {
             twoLow = secondRegister->getLowOrder();
             twoHigh = secondRegister->getHighOrder();
         }
-        generateRegRegInstruction(regRegOpCode, root, oneLow, twoLow, _cg);
+        Inst_RegReg(regRegOpCode, root, oneLow, twoLow, _cg);
         if (firstHighZero) {
             // xor would reset the carry we need for the subsequent adc instruction
-            generateRegImmInstruction(TR::InstOpCode::MOV4RegImm4, root, oneHigh, 0, _cg);
+            Inst_RegImm(TR::InstOpCode::MOV4RegImm4, root, oneHigh, 0, _cg);
         } else {
-            generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, oneHigh, firstRegister->getHighOrder(), _cg);
+            Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, oneHigh, firstRegister->getHighOrder(), _cg);
         }
         if (secondHighZero) {
-            generateRegImmInstruction(TR::InstOpCode::ADC4RegImms, root, oneHigh, 0, _cg);
+            Inst_RegImm(TR::InstOpCode::ADC4RegImms, root, oneHigh, 0, _cg);
         } else {
-            generateRegRegInstruction(TR::InstOpCode::ADC4RegReg, root, oneHigh, twoHigh, _cg);
+            Inst_RegReg(TR::InstOpCode::ADC4RegReg, root, oneHigh, twoHigh, _cg);
         }
         targetRegister = _cg->allocateRegisterPair(oneLow, oneHigh);
     } else {
@@ -1039,32 +1039,32 @@ TR::Register *TR_X86BinaryCommutativeAnalyser::longAddAnalyserImpl(TR::Node *roo
         if (targetHighZero) {
             targetLow = targetReg;
             targetHigh = _cg->allocateRegister();
-            generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, root, targetHigh, targetHigh, _cg);
+            Inst_RegReg(TR::InstOpCode::XOR4RegReg, root, targetHigh, targetHigh, _cg);
         } else {
             targetLow = targetReg->getLowOrder();
             targetHigh = targetReg->getHighOrder();
         }
         if (memOp == TR::bu2l) {
             TR::Register *tempReg = _cg->allocateRegister();
-            generateRegMemInstruction(TR::InstOpCode::MOVZXReg4Mem1, root, tempReg, lowMR, _cg);
-            generateRegRegInstruction(regRegOpCode, root, targetLow, tempReg, _cg);
+            Inst_RegMem(TR::InstOpCode::MOVZXReg4Mem1, root, tempReg, lowMR, _cg);
+            Inst_RegReg(regRegOpCode, root, targetLow, tempReg, _cg);
             _cg->stopUsingRegister(tempReg);
         } else if (memOp == TR::su2l) {
             TR::Register *tempReg = _cg->allocateRegister();
-            generateRegMemInstruction(TR::InstOpCode::MOVZXReg4Mem2, root, tempReg, lowMR, _cg);
-            generateRegRegInstruction(regRegOpCode, root, targetLow, tempReg, _cg);
+            Inst_RegMem(TR::InstOpCode::MOVZXReg4Mem2, root, tempReg, lowMR, _cg);
+            Inst_RegReg(regRegOpCode, root, targetLow, tempReg, _cg);
             _cg->stopUsingRegister(tempReg);
         } else {
             if (useMemHighOrder) {
                 lowMR->getSymbolReference().addToOffset(4);
             }
-            generateRegMemInstruction(regMemOpCode, root, targetLow, lowMR, _cg);
+            Inst_RegMem(regMemOpCode, root, targetLow, lowMR, _cg);
         }
         if (memHighZero) {
-            generateRegImmInstruction(TR::InstOpCode::ADC4RegImms, root, targetHigh, 0, _cg);
+            Inst_RegImm(TR::InstOpCode::ADC4RegImms, root, targetHigh, 0, _cg);
         } else {
             highMR = generateX86MemoryReference(*lowMR, 4, _cg);
-            generateRegMemInstruction(TR::InstOpCode::ADC4RegMem, root, targetHigh, highMR, _cg);
+            Inst_RegMem(TR::InstOpCode::ADC4RegMem, root, targetHigh, highMR, _cg);
         }
         targetRegister = _cg->allocateRegisterPair(targetLow, targetHigh);
         lowMR->decNodeReferenceCounts(_cg);
@@ -1187,11 +1187,11 @@ void TR_X86BinaryCommutativeAnalyser::longDualMultiplyAnalyser(TR::Node *root)
             r5 = _cg->allocateRegister();
             oneLowMR = generateX86MemoryReference(oneChild, _cg);
             TR::MemoryReference *oneHighMR = generateX86MemoryReference(*oneLowMR, 4, _cg);
-            generateRegMemInstruction(TR::InstOpCode::L4RegMem, root, r1, oneLowMR, _cg);
-            generateRegMemInstruction(TR::InstOpCode::L4RegMem, root, r5, oneHighMR, _cg);
+            Inst_RegMem(TR::InstOpCode::L4RegMem, root, r1, oneLowMR, _cg);
+            Inst_RegMem(TR::InstOpCode::L4RegMem, root, r5, oneHighMR, _cg);
         } else {
             r5 = one->getHighOrder();
-            generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, r1, one->getLowOrder(), _cg);
+            Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, r1, one->getLowOrder(), _cg);
         }
     } else {
         r1 = one->getLowOrder();
@@ -1201,8 +1201,8 @@ void TR_X86BinaryCommutativeAnalyser::longDualMultiplyAnalyser(TR::Node *root)
     if (copyTwo) {
         r4 = _cg->allocateRegister();
         r3 = _cg->allocateRegister();
-        generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, r4, two->getLowOrder(), _cg);
-        generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, r3, two->getHighOrder(), _cg);
+        Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, r4, two->getLowOrder(), _cg);
+        Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, r3, two->getHighOrder(), _cg);
     } else {
         r4 = two->getLowOrder();
         r3 = two->getHighOrder();
@@ -1232,38 +1232,38 @@ void TR_X86BinaryCommutativeAnalyser::longDualMultiplyAnalyser(TR::Node *root)
         depsMul[i]->addPostCondition(edx, TR::RealRegister::edx, _cg);
     }
 
-    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, eax, r1, _cg); //   1  MOV   EAX,  R1     // EAX = al
-    generateRegRegInstruction(TR::InstOpCode::MUL4AccReg, root, eax, r4, depsMul[0],
+    Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, eax, r1, _cg); //   1  MOV   EAX,  R1     // EAX = al
+    Inst_RegReg(TR::InstOpCode::MUL4AccReg, root, eax, r4, depsMul[0],
         _cg); //   2  MUL    R4          // EDX:EAX = al * bl
-    generateRegRegInstruction(TR::InstOpCode::XCHG4RegReg, root, r1, eax,
+    Inst_RegReg(TR::InstOpCode::XCHG4RegReg, root, r1, eax,
         _cg); //   3  XCHG   R1, EAX     // R1 = (al * bl)l; EAX = al
-    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, r2, edx,
+    Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, r2, edx,
         _cg); //   4  MOV    R2, EDX     // R2 = (al * bl)h
-    generateRegRegInstruction(TR::InstOpCode::MUL4AccReg, root, eax, r3, depsMul[1],
+    Inst_RegReg(TR::InstOpCode::MUL4AccReg, root, eax, r3, depsMul[1],
         _cg); //   5  MUL    R3          // EDX:EAX = al * bh
-    generateRegRegInstruction(TR::InstOpCode::XCHG4RegReg, root, r3, edx,
+    Inst_RegReg(TR::InstOpCode::XCHG4RegReg, root, r3, edx,
         _cg); //   6  XCHG   R3, EDX     // R3 = (al * bh)h; EDX = bh
-    generateRegRegInstruction(TR::InstOpCode::ADD4RegReg, root, r2, eax,
+    Inst_RegReg(TR::InstOpCode::ADD4RegReg, root, r2, eax,
         _cg); //   7  ADD    R2, EAX     // R2 = (al * bl)h + (al * bh)l
-    generateRegImmInstruction(TR::InstOpCode::ADC4RegImms, root, r3, 0,
+    Inst_RegImm(TR::InstOpCode::ADC4RegImms, root, r3, 0,
         _cg); //   8  ADC    R3, 0       // R3 = (al * bh)h + [carry]
-    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, eax, r5, _cg); //   9  MOV   EAX, R5      // EAX = ah
-    generateRegRegInstruction(TR::InstOpCode::MUL4AccReg, root, eax, edx, depsMul[2],
+    Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, eax, r5, _cg); //   9  MOV   EAX, R5      // EAX = ah
+    Inst_RegReg(TR::InstOpCode::MUL4AccReg, root, eax, edx, depsMul[2],
         _cg); //  10  MUL   EDX          // EDX:EAX = ah * bh
-    generateRegRegInstruction(TR::InstOpCode::XCHG4RegReg, root, r4, edx,
+    Inst_RegReg(TR::InstOpCode::XCHG4RegReg, root, r4, edx,
         _cg); //  11  XCHG   R4, EDX     // R4 = (ah * bh)h; EDX = bl
-    generateRegRegInstruction(TR::InstOpCode::ADD4RegReg, root, r3, eax,
+    Inst_RegReg(TR::InstOpCode::ADD4RegReg, root, r3, eax,
         _cg); //  12  ADD    R3, EAX     // R3 = (al * bh)l + (ah * bh)l
-    generateRegImmInstruction(TR::InstOpCode::ADC4RegImms, root, r4, 0,
+    Inst_RegImm(TR::InstOpCode::ADC4RegImms, root, r4, 0,
         _cg); //  13  ADC    R4, 0       // R4 = (ah * bh)h + [carry]
-    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, eax, r5, _cg); //  14  MOV   EAX, R5      // EAX = ah
-    generateRegRegInstruction(TR::InstOpCode::MUL4AccReg, root, eax, edx, depsMul[3],
+    Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, eax, r5, _cg); //  14  MOV   EAX, R5      // EAX = ah
+    Inst_RegReg(TR::InstOpCode::MUL4AccReg, root, eax, edx, depsMul[3],
         _cg); //  15  MUL   EDX          // EDX:EAX = ah * bl
-    generateRegRegInstruction(TR::InstOpCode::ADD4RegReg, root, r2, eax,
+    Inst_RegReg(TR::InstOpCode::ADD4RegReg, root, r2, eax,
         _cg); //  16  ADD    R2, EAX     // R2 = (al * bl)h + (al * bh)l              + (ah * bl)l
-    generateRegRegInstruction(TR::InstOpCode::ADC4RegReg, root, r3, edx,
+    Inst_RegReg(TR::InstOpCode::ADC4RegReg, root, r3, edx,
         _cg); //  17  ADC    R3, EDX     // R3 =              (al * bh)l + (ah * bh)l + (ah * bl)h + [carry]
-    generateRegImmInstruction(TR::InstOpCode::ADC4RegImms, root, r4, 0,
+    Inst_RegImm(TR::InstOpCode::ADC4RegImms, root, r4, 0,
         _cg); //  18  ADC    R4, 0       // R4 =                           (ah * bh)h              + [carry]
 
     if (memOne) {
@@ -1423,8 +1423,7 @@ void TR_X86BinaryCommutativeAnalyser::longMultiplyAnalyser(TR::Node *root)
             twoLow = secondRegister->getLowOrder();
             if (getOpReg2Reg1() == false) {
                 twoHigh = _cg->allocateRegister();
-                generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, twoHigh, secondRegister->getHighOrder(),
-                    _cg);
+                Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, twoHigh, secondRegister->getHighOrder(), _cg);
             } else {
                 twoHigh = secondRegister->getHighOrder();
             }
@@ -1434,20 +1433,20 @@ void TR_X86BinaryCommutativeAnalyser::longMultiplyAnalyser(TR::Node *root)
         }
 
         if (!secondHighZero) {
-            generateRegRegInstruction(TR::InstOpCode::IMUL4RegReg, root, twoHigh, oneLow, _cg);
+            Inst_RegReg(TR::InstOpCode::IMUL4RegReg, root, twoHigh, oneLow, _cg);
             intermediateResultReg = twoHigh;
         }
         if (!firstHighZero) {
-            generateRegRegInstruction(TR::InstOpCode::IMUL4RegReg, root, oneHigh, twoLow, _cg);
+            Inst_RegReg(TR::InstOpCode::IMUL4RegReg, root, oneHigh, twoLow, _cg);
             intermediateResultReg = oneHigh;
         }
         if (!firstHighZero) {
             if (!secondHighZero) {
-                generateRegRegInstruction(TR::InstOpCode::ADD4RegReg, root, twoHigh, oneHigh, _cg);
+                Inst_RegReg(TR::InstOpCode::ADD4RegReg, root, twoHigh, oneHigh, _cg);
                 intermediateResultReg = twoHigh;
             } else {
                 intermediateResultReg = _cg->allocateRegister();
-                generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, intermediateResultReg, oneHigh, _cg);
+                Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, intermediateResultReg, oneHigh, _cg);
             }
         }
 
@@ -1459,10 +1458,10 @@ void TR_X86BinaryCommutativeAnalyser::longMultiplyAnalyser(TR::Node *root)
         deps->addPreCondition(twoLow, TR::RealRegister::NoReg, _cg);
         deps->addPostCondition(twoLow, TR::RealRegister::NoReg, _cg);
 
-        generateRegRegInstruction(TR::InstOpCode::MUL4AccReg, root, oneLow, twoLow, deps, _cg);
+        Inst_RegReg(TR::InstOpCode::MUL4AccReg, root, oneLow, twoLow, deps, _cg);
 
         if (intermediateResultReg) {
-            generateRegRegInstruction(TR::InstOpCode::ADD4RegReg, root, oneHigh, intermediateResultReg, _cg);
+            Inst_RegReg(TR::InstOpCode::ADD4RegReg, root, oneHigh, intermediateResultReg, _cg);
         }
 
         if (!secondHighZero) {
@@ -1490,27 +1489,27 @@ void TR_X86BinaryCommutativeAnalyser::longMultiplyAnalyser(TR::Node *root)
         if (!firstHighZero) {
             oneLow = firstRegister->getLowOrder();
             oneHigh = _cg->allocateRegister();
-            generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, oneHigh, firstRegister->getHighOrder(), _cg);
+            Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, oneHigh, firstRegister->getHighOrder(), _cg);
         } else {
             oneLow = firstRegister;
             oneHigh = 0;
         }
 
         if (!firstHighZero) {
-            generateRegRegInstruction(TR::InstOpCode::IMUL4RegReg, root, oneHigh, twoLow, _cg);
+            Inst_RegReg(TR::InstOpCode::IMUL4RegReg, root, oneHigh, twoLow, _cg);
             intermediateResultReg = oneHigh;
         }
         if (!secondHighZero) {
-            generateRegRegInstruction(TR::InstOpCode::IMUL4RegReg, root, twoHigh, oneLow, _cg);
+            Inst_RegReg(TR::InstOpCode::IMUL4RegReg, root, twoHigh, oneLow, _cg);
             intermediateResultReg = twoHigh;
         }
         if (!secondHighZero) {
             if (!firstHighZero) {
-                generateRegRegInstruction(TR::InstOpCode::ADD4RegReg, root, oneHigh, twoHigh, _cg);
+                Inst_RegReg(TR::InstOpCode::ADD4RegReg, root, oneHigh, twoHigh, _cg);
                 intermediateResultReg = oneHigh;
             } else {
                 intermediateResultReg = _cg->allocateRegister();
-                generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, intermediateResultReg, twoHigh, _cg);
+                Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, intermediateResultReg, twoHigh, _cg);
             }
         }
 
@@ -1522,10 +1521,10 @@ void TR_X86BinaryCommutativeAnalyser::longMultiplyAnalyser(TR::Node *root)
         deps->addPreCondition(oneLow, TR::RealRegister::NoReg, _cg);
         deps->addPostCondition(oneLow, TR::RealRegister::NoReg, _cg);
 
-        generateRegRegInstruction(TR::InstOpCode::MUL4AccReg, root, twoLow, oneLow, deps, _cg);
+        Inst_RegReg(TR::InstOpCode::MUL4AccReg, root, twoLow, oneLow, deps, _cg);
 
         if (intermediateResultReg) {
-            generateRegRegInstruction(TR::InstOpCode::ADD4RegReg, root, twoHigh, intermediateResultReg, _cg);
+            Inst_RegReg(TR::InstOpCode::ADD4RegReg, root, twoHigh, intermediateResultReg, _cg);
         }
 
         if (!firstHighZero) {
@@ -1555,14 +1554,13 @@ void TR_X86BinaryCommutativeAnalyser::longMultiplyAnalyser(TR::Node *root)
         if (firstHighZero) {
             // no need to copy oneHigh since it is zero
             oneLow = _cg->allocateRegister();
-            generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, oneLow, firstRegister, _cg);
+            Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, oneLow, firstRegister, _cg);
             if (secondHighZero) {
                 twoHigh = 0;
                 twoLow = secondRegister;
             } else {
                 twoHigh = _cg->allocateRegister();
-                generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, twoHigh, secondRegister->getHighOrder(),
-                    _cg);
+                Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, twoHigh, secondRegister->getHighOrder(), _cg);
                 twoLow = secondRegister->getLowOrder();
             }
 
@@ -1571,19 +1569,18 @@ void TR_X86BinaryCommutativeAnalyser::longMultiplyAnalyser(TR::Node *root)
             otherHigh = twoHigh;
             otherLow = twoLow;
         } else {
-            generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, oneHigh, firstRegister->getHighOrder(), _cg);
+            Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, oneHigh, firstRegister->getHighOrder(), _cg);
 
             twoHigh = _cg->allocateRegister();
             if (secondHighZero) {
                 // no need to copy twoHigh since it is zero
                 oneLow = firstRegister->getLowOrder();
                 twoLow = _cg->allocateRegister();
-                generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, twoLow, secondRegister, _cg);
+                Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, twoLow, secondRegister, _cg);
             } else {
-                generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, twoHigh, secondRegister->getHighOrder(),
-                    _cg);
+                Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, twoHigh, secondRegister->getHighOrder(), _cg);
                 oneLow = _cg->allocateRegister();
-                generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, oneLow, firstRegister->getLowOrder(), _cg);
+                Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, oneLow, firstRegister->getLowOrder(), _cg);
                 twoLow = secondRegister->getLowOrder();
             }
 
@@ -1595,24 +1592,24 @@ void TR_X86BinaryCommutativeAnalyser::longMultiplyAnalyser(TR::Node *root)
         resultReg = _cg->allocateRegisterPair(resultLow, resultHigh);
 
         if (!firstHighZero) {
-            generateRegRegInstruction(TR::InstOpCode::IMUL4RegReg, root, oneHigh, twoLow, _cg);
+            Inst_RegReg(TR::InstOpCode::IMUL4RegReg, root, oneHigh, twoLow, _cg);
             intermediateResultReg = oneHigh;
         }
         if (!secondHighZero) {
-            generateRegRegInstruction(TR::InstOpCode::IMUL4RegReg, root, twoHigh, oneLow, _cg);
+            Inst_RegReg(TR::InstOpCode::IMUL4RegReg, root, twoHigh, oneLow, _cg);
             intermediateResultReg = twoHigh;
         }
         if (!firstHighZero && !secondHighZero)
-            generateRegRegInstruction(TR::InstOpCode::ADD4RegReg, root, twoHigh, oneHigh, _cg);
+            Inst_RegReg(TR::InstOpCode::ADD4RegReg, root, twoHigh, oneHigh, _cg);
 
         TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)2, 2, _cg);
         deps->addPreCondition(resultHigh, TR::RealRegister::edx, _cg);
         deps->addPostCondition(resultHigh, TR::RealRegister::edx, _cg);
         deps->addPreCondition(resultLow, TR::RealRegister::eax, _cg);
         deps->addPostCondition(resultLow, TR::RealRegister::eax, _cg);
-        generateRegRegInstruction(TR::InstOpCode::MUL4AccReg, root, resultLow, otherLow, deps, _cg);
+        Inst_RegReg(TR::InstOpCode::MUL4AccReg, root, resultLow, otherLow, deps, _cg);
         if (intermediateResultReg)
-            generateRegRegInstruction(TR::InstOpCode::ADD4RegReg, root, resultHigh, intermediateResultReg, _cg);
+            Inst_RegReg(TR::InstOpCode::ADD4RegReg, root, resultHigh, intermediateResultReg, _cg);
 
         // stop using the registers that we allocated
         //
@@ -1651,25 +1648,25 @@ void TR_X86BinaryCommutativeAnalyser::longMultiplyAnalyser(TR::Node *root)
         }
         if (!secondHighZero) {
             oneLowCopy = _cg->allocateRegister();
-            generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, oneLowCopy, oneLow, _cg);
+            Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, oneLowCopy, oneLow, _cg);
             intermediateResultReg = oneLowCopy;
-            generateRegMemInstruction(TR::InstOpCode::IMUL4RegMem, root, oneLowCopy, highMR, _cg);
+            Inst_RegMem(TR::InstOpCode::IMUL4RegMem, root, oneLowCopy, highMR, _cg);
         }
 
         TR::Register *oneHighCopy = 0;
         if (!firstHighZero) {
             if (secondHighZero) {
                 oneHighCopy = _cg->allocateRegister();
-                generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, oneHighCopy, oneHigh, _cg);
+                Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, oneHighCopy, oneHigh, _cg);
             } else
                 oneHighCopy = oneHigh;
 
-            generateRegMemInstruction(TR::InstOpCode::IMUL4RegMem, root, oneHighCopy, lowMR, _cg);
+            Inst_RegMem(TR::InstOpCode::IMUL4RegMem, root, oneHighCopy, lowMR, _cg);
             intermediateResultReg = oneHighCopy;
         }
 
         if (!firstHighZero && !secondHighZero) {
-            generateRegRegInstruction(TR::InstOpCode::ADD4RegReg, root, oneLowCopy, oneHigh, _cg);
+            Inst_RegReg(TR::InstOpCode::ADD4RegReg, root, oneLowCopy, oneHigh, _cg);
             intermediateResultReg = oneLowCopy;
         }
 
@@ -1680,9 +1677,9 @@ void TR_X86BinaryCommutativeAnalyser::longMultiplyAnalyser(TR::Node *root)
         deps->addPreCondition(oneHigh, TR::RealRegister::edx, _cg);
         deps->addPostCondition(oneHigh, TR::RealRegister::edx, _cg);
         resultReg = _cg->allocateRegisterPair(oneLow, oneHigh);
-        generateRegMemInstruction(TR::InstOpCode::MUL4AccMem, root, oneLow, lowMR2, deps, _cg);
+        Inst_RegMem(TR::InstOpCode::MUL4AccMem, root, oneLow, lowMR2, deps, _cg);
         if (intermediateResultReg) {
-            generateRegRegInstruction(TR::InstOpCode::ADD4RegReg, root, oneHigh, intermediateResultReg, _cg);
+            Inst_RegReg(TR::InstOpCode::ADD4RegReg, root, oneHigh, intermediateResultReg, _cg);
         }
 
         if (oneLowCopy) {
@@ -1707,16 +1704,16 @@ void TR_X86BinaryCommutativeAnalyser::longMultiplyAnalyser(TR::Node *root)
         if (useFirstHighOrder) {
             lowMR = highMR;
         }
-        generateRegMemInstruction(TR::InstOpCode::L4RegMem, root, oneLow, lowMR, _cg);
+        Inst_RegMem(TR::InstOpCode::L4RegMem, root, oneLow, lowMR, _cg);
         if (!firstHighZero) {
             oneHigh = _cg->allocateRegister();
-            generateRegMemInstruction(TR::InstOpCode::L4RegMem, root, oneHigh, highMR, _cg);
+            Inst_RegMem(TR::InstOpCode::L4RegMem, root, oneHigh, highMR, _cg);
         }
 
         if (!secondHighZero) {
             twoHigh = secondRegister->getHighOrder();
             twoLow = secondRegister->getLowOrder();
-            generateRegRegInstruction(TR::InstOpCode::IMUL4RegReg, root, twoHigh, oneLow, _cg);
+            Inst_RegReg(TR::InstOpCode::IMUL4RegReg, root, twoHigh, oneLow, _cg);
             intermediateResultReg = twoHigh;
         } else {
             twoLow = secondRegister;
@@ -1724,16 +1721,16 @@ void TR_X86BinaryCommutativeAnalyser::longMultiplyAnalyser(TR::Node *root)
         }
 
         if (!firstHighZero) {
-            generateRegRegInstruction(TR::InstOpCode::IMUL4RegReg, root, oneHigh, twoLow, _cg);
+            Inst_RegReg(TR::InstOpCode::IMUL4RegReg, root, oneHigh, twoLow, _cg);
             intermediateResultReg = oneHigh;
         }
 
         if (!firstHighZero) {
             if (!secondHighZero) {
-                generateRegRegInstruction(TR::InstOpCode::ADD4RegReg, root, twoHigh, oneHigh, _cg);
+                Inst_RegReg(TR::InstOpCode::ADD4RegReg, root, twoHigh, oneHigh, _cg);
             } else {
                 twoHigh = _cg->allocateRegister();
-                generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, root, twoHigh, oneHigh, _cg);
+                Inst_RegReg(TR::InstOpCode::MOV4RegReg, root, twoHigh, oneHigh, _cg);
             }
             intermediateResultReg = twoHigh;
         }
@@ -1747,9 +1744,9 @@ void TR_X86BinaryCommutativeAnalyser::longMultiplyAnalyser(TR::Node *root)
         deps->addPreCondition(oneHigh, TR::RealRegister::edx, _cg);
         deps->addPostCondition(oneHigh, TR::RealRegister::edx, _cg);
         resultReg = _cg->allocateRegisterPair(oneLow, oneHigh);
-        generateRegRegInstruction(TR::InstOpCode::MUL4AccReg, root, oneLow, twoLow, deps, _cg);
+        Inst_RegReg(TR::InstOpCode::MUL4AccReg, root, oneLow, twoLow, deps, _cg);
         if (intermediateResultReg) {
-            generateRegRegInstruction(TR::InstOpCode::ADD4RegReg, root, oneHigh, intermediateResultReg, _cg);
+            Inst_RegReg(TR::InstOpCode::ADD4RegReg, root, oneHigh, intermediateResultReg, _cg);
         }
 
         if (!firstHighZero && secondHighZero) {

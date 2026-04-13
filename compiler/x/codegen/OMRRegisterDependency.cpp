@@ -174,7 +174,7 @@ OMR::X86::RegisterDependencyConditions::RegisterDependencyConditions(TR::Node *n
                     }
                 }
 
-                generateRegRegInstruction(placeToAdd, TR::InstOpCode::MOVRegReg(), copyReg, globalReg, cg);
+                Inst_RegReg(placeToAdd, TR::InstOpCode::MOVRegReg(), copyReg, globalReg, cg);
 
                 if (highGlobalReg) {
                     generateRegcopyDebugCounter(cg, "gpr-pair");
@@ -191,7 +191,7 @@ OMR::X86::RegisterDependencyConditions::RegisterDependencyConditions(TR::Node *n
                         highCopyReg->setPinningArrayPointer(highGlobalReg->getPinningArrayPointer());
                     }
 
-                    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, highCopyReg, highGlobalReg, cg);
+                    Inst_RegReg(TR::InstOpCode::MOV4RegReg, node, highCopyReg, highGlobalReg, cg);
                 } else {
                     generateRegcopyDebugCounter(cg, "gpr");
                     highCopyReg = NULL;
@@ -200,10 +200,10 @@ OMR::X86::RegisterDependencyConditions::RegisterDependencyConditions(TR::Node *n
                 generateRegcopyDebugCounter(cg, "fpr");
                 if (globalReg->isSinglePrecision()) {
                     copyReg = cg->allocateSinglePrecisionRegister(TR_FPR);
-                    generateRegRegInstruction(TR::InstOpCode::MOVAPSRegReg, node, copyReg, child->getRegister(), cg);
+                    Inst_RegReg(TR::InstOpCode::MOVAPSRegReg, node, copyReg, child->getRegister(), cg);
                 } else {
                     copyReg = cg->allocateRegister(TR_FPR);
-                    generateRegRegInstruction(TR::InstOpCode::MOVAPDRegReg, node, copyReg, child->getRegister(), cg);
+                    Inst_RegReg(TR::InstOpCode::MOVAPDRegReg, node, copyReg, child->getRegister(), cg);
                 }
             } else if (globalReg->getKind() == TR_VRF) {
                 generateRegcopyDebugCounter(cg, "vrf");
@@ -212,14 +212,14 @@ OMR::X86::RegisterDependencyConditions::RegisterDependencyConditions(TR::Node *n
                                                                                      : TR::InstOpCode::MOVDQURegReg;
                 op = cg->comp()->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512F) ? TR::InstOpCode::VMOVDQUZmmZmm
                                                                                        : op;
-                generateRegRegInstruction(op, node, copyReg, child->getRegister(), cg);
+                Inst_RegReg(op, node, copyReg, child->getRegister(), cg);
             } else if (globalReg->getKind() == TR_VMR) {
                 generateRegcopyDebugCounter(cg, "vmr");
                 copyReg = cg->allocateRegister(TR_VMR);
                 TR::InstOpCode::Mnemonic op = cg->comp()->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512BW)
                     ? TR::InstOpCode::KMOVQMaskMask
                     : TR::InstOpCode::KMOVWMaskMask;
-                generateRegRegInstruction(op, node, copyReg, child->getRegister(), cg);
+                Inst_RegReg(op, node, copyReg, child->getRegister(), cg);
             }
 
             globalReg = copyReg;

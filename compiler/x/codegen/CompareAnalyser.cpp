@@ -104,11 +104,11 @@ void TR_X86CompareAnalyser::integerCompareAnalyser(TR::Node *root, TR::Node *fir
     }
 
     if (getCmpReg1Reg2()) {
-        generateRegRegInstruction(regRegOpCode, root, firstRegister, secondRegister, cg());
+        Inst_RegReg(regRegOpCode, root, firstRegister, secondRegister, cg());
     } else if (getCmpReg1Mem2()) {
         TR::MemoryReference *tempMR = generateX86MemoryReference(secondChild, cg());
 
-        TR::X86RegMemInstruction *inst = generateRegMemInstruction(regMemOpCode, root, firstRegister, tempMR, cg());
+        TR::X86RegMemInstruction *inst = Inst_RegMem(regMemOpCode, root, firstRegister, tempMR, cg());
 
         if (!cg()->getImplicitExceptionPoint())
             cg()->setImplicitExceptionPoint(inst);
@@ -117,7 +117,7 @@ void TR_X86CompareAnalyser::integerCompareAnalyser(TR::Node *root, TR::Node *fir
     {
         TR::MemoryReference *tempMR = generateX86MemoryReference(firstChild, cg());
 
-        TR::X86MemRegInstruction *inst = generateMemRegInstruction(memRegOpCode, root, tempMR, secondRegister, cg());
+        TR::X86MemRegInstruction *inst = Inst_MemReg(memRegOpCode, root, tempMR, secondRegister, cg());
         if (!cg()->getImplicitExceptionPoint())
             cg()->setImplicitExceptionPoint(inst);
         tempMR->decNodeReferenceCounts(cg());
@@ -273,7 +273,7 @@ void TR_X86CompareAnalyser::longOrderedCompareAndBranchAnalyser(TR::Node *root,
                 delayedFirst = cg()->allocateRegister();
                 if (!firstIU2L) {
                     highFirstMR = generateX86MemoryReference(*lowFirstMR, 4, cg());
-                    generateRegMemInstruction(TR::InstOpCode::L4RegMem, firstChild, delayedFirst, highFirstMR, cg());
+                    Inst_RegMem(TR::InstOpCode::L4RegMem, firstChild, delayedFirst, highFirstMR, cg());
                 }
             } else if (firstIU2L) {
                 firstRegister = optimizeIU2L(firstChild, firstOp, cg());
@@ -289,7 +289,7 @@ void TR_X86CompareAnalyser::longOrderedCompareAndBranchAnalyser(TR::Node *root,
                 delayedSecond = cg()->allocateRegister();
                 if (!secondIU2L) {
                     highSecondMR = generateX86MemoryReference(*lowSecondMR, 4, cg());
-                    generateRegMemInstruction(TR::InstOpCode::L4RegMem, secondChild, delayedSecond, highSecondMR, cg());
+                    Inst_RegMem(TR::InstOpCode::L4RegMem, secondChild, delayedSecond, highSecondMR, cg());
                 }
             } else if (secondIU2L) {
                 secondRegister = optimizeIU2L(secondChild, secondOp, cg());
@@ -306,7 +306,7 @@ void TR_X86CompareAnalyser::longOrderedCompareAndBranchAnalyser(TR::Node *root,
                 delayedSecond = cg()->allocateRegister();
                 if (!secondIU2L) {
                     highSecondMR = generateX86MemoryReference(*lowSecondMR, 4, cg());
-                    generateRegMemInstruction(TR::InstOpCode::L4RegMem, secondChild, delayedSecond, highSecondMR, cg());
+                    Inst_RegMem(TR::InstOpCode::L4RegMem, secondChild, delayedSecond, highSecondMR, cg());
                 }
             } else {
                 secondRegister = cg()->evaluate(secondChild);
@@ -320,7 +320,7 @@ void TR_X86CompareAnalyser::longOrderedCompareAndBranchAnalyser(TR::Node *root,
                 delayedFirst = cg()->allocateRegister();
                 if (!firstIU2L) {
                     highFirstMR = generateX86MemoryReference(*lowFirstMR, 4, cg());
-                    generateRegMemInstruction(TR::InstOpCode::L4RegMem, firstChild, delayedFirst, highFirstMR, cg());
+                    Inst_RegMem(TR::InstOpCode::L4RegMem, firstChild, delayedFirst, highFirstMR, cg());
                 }
             } else {
                 firstRegister = cg()->evaluate(firstChild);
@@ -378,7 +378,7 @@ void TR_X86CompareAnalyser::longOrderedCompareAndBranchAnalyser(TR::Node *root,
 
     startLabel->setStartInternalControlFlow();
     doneLabel->setEndInternalControlFlow();
-    generateLabelInstruction(TR::InstOpCode::label, root, startLabel, cg());
+    Inst_Label(TR::InstOpCode::label, root, startLabel, cg());
 
     if (getCmpReg1Reg2()) {
         TR_ASSERT(delayedFirst == NULL && delayedSecond == NULL, "Bad combination in long ordered compare analyser\n");
@@ -405,26 +405,26 @@ void TR_X86CompareAnalyser::longOrderedCompareAndBranchAnalyser(TR::Node *root,
         if (firstHighZero) {
             if (secondHighZero == false) // if both are ui2l, then we just need an unsigned low order compare
             {
-                generateRegImmInstruction(TR::InstOpCode::CMP4RegImms, root, secondRegister->getHighOrder(), 0, cg());
+                Inst_RegImm(TR::InstOpCode::CMP4RegImms, root, secondRegister->getHighOrder(), 0, cg());
                 highBranchOp = highReversedBranchOpCode;
             }
         } else if (secondHighZero) {
-            generateRegImmInstruction(TR::InstOpCode::CMP4RegImms, root, firstRegister->getHighOrder(), 0, cg());
+            Inst_RegImm(TR::InstOpCode::CMP4RegImms, root, firstRegister->getHighOrder(), 0, cg());
         } else {
-            generateRegRegInstruction(TR::InstOpCode::CMP4RegReg, root, firstRegister->getHighOrder(),
-                secondRegister->getHighOrder(), cg());
+            Inst_RegReg(TR::InstOpCode::CMP4RegReg, root, firstRegister->getHighOrder(), secondRegister->getHighOrder(),
+                cg());
         }
 
         if (firstHighZero == false || secondHighZero == false) {
             if (hasGlobalDeps == false) {
-                generateLabelInstruction(highBranchOp, root, destinationLabel, cg());
-                generateLabelInstruction(TR::InstOpCode::JNE4, root, doneLabel, cg());
+                Inst_Label(highBranchOp, root, destinationLabel, cg());
+                Inst_Label(TR::InstOpCode::JNE4, root, doneLabel, cg());
             } else {
-                generateLabelInstruction(highBranchOp, root, destinationLabel, deps, cg());
-                generateLabelInstruction(TR::InstOpCode::JNE4, root, doneLabel, deps, cg());
+                Inst_Label(highBranchOp, root, destinationLabel, deps, cg());
+                Inst_Label(TR::InstOpCode::JNE4, root, doneLabel, deps, cg());
             }
         }
-        generateRegRegInstruction(TR::InstOpCode::CMP4RegReg, root, firstLow, secondLow, cg());
+        Inst_RegReg(TR::InstOpCode::CMP4RegReg, root, firstLow, secondLow, cg());
     } else if (getCmpReg1Mem2()) {
         TR::Register *firstLow;
         if (delayedFirst) {
@@ -455,7 +455,7 @@ void TR_X86CompareAnalyser::longOrderedCompareAndBranchAnalyser(TR::Node *root,
         if (firstHighZero) {
             if (secondIU2L == false) // if both are ui2l, then we just need an unsigned low order compare
             {
-                generateMemImmInstruction(TR::InstOpCode::CMP4MemImms, root, highMR, 0, cg());
+                Inst_MemImm(TR::InstOpCode::CMP4MemImms, root, highMR, 0, cg());
                 highBranchOp = highReversedBranchOpCode;
             }
         } else if (secondIU2L) {
@@ -465,7 +465,7 @@ void TR_X86CompareAnalyser::longOrderedCompareAndBranchAnalyser(TR::Node *root,
             } else {
                 temp = firstRegister->getHighOrder();
             }
-            generateRegImmInstruction(TR::InstOpCode::CMP4RegImms, root, temp, 0, cg());
+            Inst_RegImm(TR::InstOpCode::CMP4RegImms, root, temp, 0, cg());
         } else {
             TR::Register *temp;
             if (delayedFirst) {
@@ -473,24 +473,24 @@ void TR_X86CompareAnalyser::longOrderedCompareAndBranchAnalyser(TR::Node *root,
             } else {
                 temp = firstRegister->getHighOrder();
             }
-            generateRegMemInstruction(TR::InstOpCode::CMP4RegMem, root, temp, highMR, cg());
+            Inst_RegMem(TR::InstOpCode::CMP4RegMem, root, temp, highMR, cg());
         }
 
         if (firstHighZero == false || secondHighZero == false) {
             if (hasGlobalDeps == false) {
-                generateLabelInstruction(highBranchOp, root, destinationLabel, cg());
-                generateLabelInstruction(TR::InstOpCode::JNE4, root, doneLabel, cg());
+                Inst_Label(highBranchOp, root, destinationLabel, cg());
+                Inst_Label(TR::InstOpCode::JNE4, root, doneLabel, cg());
             } else {
-                generateLabelInstruction(highBranchOp, root, destinationLabel, deps, cg());
-                generateLabelInstruction(TR::InstOpCode::JNE4, root, doneLabel, deps, cg());
+                Inst_Label(highBranchOp, root, destinationLabel, deps, cg());
+                Inst_Label(TR::InstOpCode::JNE4, root, doneLabel, deps, cg());
             }
         }
 
         if (delayedFirst) {
-            generateRegMemInstruction(TR::InstOpCode::L4RegMem, firstChild, delayedFirst, lowFirstMR, cg());
+            Inst_RegMem(TR::InstOpCode::L4RegMem, firstChild, delayedFirst, lowFirstMR, cg());
             firstLow = delayedFirst;
         }
-        generateRegMemInstruction(TR::InstOpCode::CMP4RegMem, root, firstLow, lowMR, cg());
+        Inst_RegMem(TR::InstOpCode::CMP4RegMem, root, firstLow, lowMR, cg());
     } else // Must be CmpMem1Reg2
     {
         TR::Register *secondLow;
@@ -522,11 +522,11 @@ void TR_X86CompareAnalyser::longOrderedCompareAndBranchAnalyser(TR::Node *root,
         if (firstIU2L) {
             if (secondHighZero == false) // if both are ui2l, then we just need an unsigned low order compare
             {
-                generateRegImmInstruction(TR::InstOpCode::CMP4RegImms, root, secondRegister->getHighOrder(), 0, cg());
+                Inst_RegImm(TR::InstOpCode::CMP4RegImms, root, secondRegister->getHighOrder(), 0, cg());
                 highBranchOp = highReversedBranchOpCode;
             }
         } else if (secondHighZero) {
-            generateMemImmInstruction(TR::InstOpCode::CMP4MemImms, root, highMR, 0, cg());
+            Inst_MemImm(TR::InstOpCode::CMP4MemImms, root, highMR, 0, cg());
         } else {
             TR::Register *temp;
             if (delayedSecond) {
@@ -534,33 +534,33 @@ void TR_X86CompareAnalyser::longOrderedCompareAndBranchAnalyser(TR::Node *root,
             } else {
                 temp = secondRegister->getHighOrder();
             }
-            generateMemRegInstruction(TR::InstOpCode::CMP4MemReg, root, highMR, temp, cg());
+            Inst_MemReg(TR::InstOpCode::CMP4MemReg, root, highMR, temp, cg());
         }
 
         if (firstHighZero == false || secondHighZero == false) {
             if (hasGlobalDeps == false) {
-                generateLabelInstruction(highBranchOp, root, destinationLabel, cg());
-                generateLabelInstruction(TR::InstOpCode::JNE4, root, doneLabel, cg());
+                Inst_Label(highBranchOp, root, destinationLabel, cg());
+                Inst_Label(TR::InstOpCode::JNE4, root, doneLabel, cg());
             } else {
-                generateLabelInstruction(highBranchOp, root, destinationLabel, deps, cg());
-                generateLabelInstruction(TR::InstOpCode::JNE4, root, doneLabel, deps, cg());
+                Inst_Label(highBranchOp, root, destinationLabel, deps, cg());
+                Inst_Label(TR::InstOpCode::JNE4, root, doneLabel, deps, cg());
             }
         }
 
         if (delayedSecond) {
-            generateRegMemInstruction(TR::InstOpCode::L4RegMem, secondChild, delayedSecond, lowSecondMR, cg());
+            Inst_RegMem(TR::InstOpCode::L4RegMem, secondChild, delayedSecond, lowSecondMR, cg());
             secondLow = delayedSecond;
         }
-        generateMemRegInstruction(TR::InstOpCode::CMP4MemReg, root, lowMR, secondLow, cg());
+        Inst_MemReg(TR::InstOpCode::CMP4MemReg, root, lowMR, secondLow, cg());
     }
 
-    generateLabelInstruction(lowBranchOpCode, root, destinationLabel, deps, cg());
+    Inst_Label(lowBranchOpCode, root, destinationLabel, deps, cg());
 
     if (lowMR != NULL)
         lowMR->decNodeReferenceCounts(cg());
 
     deps->stopAddingConditions();
-    generateLabelInstruction(TR::InstOpCode::label, root, doneLabel, deps, cg());
+    Inst_Label(TR::InstOpCode::label, root, doneLabel, deps, cg());
 
     if (delayedFirst) {
         cg()->stopUsingRegister(delayedFirst);
@@ -645,11 +645,11 @@ void TR_X86CompareAnalyser::longEqualityCompareAndBranchAnalyser(TR::Node *root,
         deps = generateRegisterDependencyConditions((uint8_t)0, (uint8_t)numAdditionalRegDeps, cg());
     }
 
-    generateLabelInstruction(TR::InstOpCode::label, root, startLabel, cg());
+    Inst_Label(TR::InstOpCode::label, root, startLabel, cg());
 
     if (getCmpReg1Reg2()) {
-        generateRegRegInstruction(TR::InstOpCode::CMP4RegReg, root, firstRegister->getLowOrder(),
-            secondRegister->getLowOrder(), cg());
+        Inst_RegReg(TR::InstOpCode::CMP4RegReg, root, firstRegister->getLowOrder(), secondRegister->getLowOrder(),
+            cg());
         if (deps != NULL) {
             deps->addPostCondition(firstRegister->getHighOrder(), TR::RealRegister::NoReg, cg());
             deps->addPostCondition(firstRegister->getLowOrder(), TR::RealRegister::NoReg, cg());
@@ -658,12 +658,12 @@ void TR_X86CompareAnalyser::longEqualityCompareAndBranchAnalyser(TR::Node *root,
             deps->stopAddingConditions();
         }
         if (hasGlobalDeps == false) {
-            generateLabelInstruction(TR::InstOpCode::JNE4, root, firstBranchLabel, cg());
+            Inst_Label(TR::InstOpCode::JNE4, root, firstBranchLabel, cg());
         } else {
-            generateLabelInstruction(TR::InstOpCode::JNE4, root, firstBranchLabel, deps, cg());
+            Inst_Label(TR::InstOpCode::JNE4, root, firstBranchLabel, deps, cg());
         }
-        generateRegRegInstruction(TR::InstOpCode::CMP4RegReg, root, firstRegister->getHighOrder(),
-            secondRegister->getHighOrder(), cg());
+        Inst_RegReg(TR::InstOpCode::CMP4RegReg, root, firstRegister->getHighOrder(), secondRegister->getHighOrder(),
+            cg());
     } else if (getCmpReg1Mem2()) {
         if (deps != NULL) {
             deps->addPostCondition(firstRegister->getHighOrder(), TR::RealRegister::NoReg, cg());
@@ -678,13 +678,13 @@ void TR_X86CompareAnalyser::longEqualityCompareAndBranchAnalyser(TR::Node *root,
             deps->stopAddingConditions();
         }
 
-        generateRegMemInstruction(TR::InstOpCode::CMP4RegMem, root, firstRegister->getLowOrder(), lowMR, cg());
+        Inst_RegMem(TR::InstOpCode::CMP4RegMem, root, firstRegister->getLowOrder(), lowMR, cg());
         if (hasGlobalDeps == false) {
-            generateLabelInstruction(TR::InstOpCode::JNE4, root, firstBranchLabel, cg());
+            Inst_Label(TR::InstOpCode::JNE4, root, firstBranchLabel, cg());
         } else {
-            generateLabelInstruction(TR::InstOpCode::JNE4, root, firstBranchLabel, deps, cg());
+            Inst_Label(TR::InstOpCode::JNE4, root, firstBranchLabel, deps, cg());
         }
-        generateRegMemInstruction(TR::InstOpCode::CMP4RegMem, root, firstRegister->getHighOrder(), highMR, cg());
+        Inst_RegMem(TR::InstOpCode::CMP4RegMem, root, firstRegister->getHighOrder(), highMR, cg());
     } else // Must be CmpMem1Reg2
     {
         if (deps != NULL) {
@@ -700,25 +700,25 @@ void TR_X86CompareAnalyser::longEqualityCompareAndBranchAnalyser(TR::Node *root,
             deps->stopAddingConditions();
         }
 
-        generateMemRegInstruction(TR::InstOpCode::CMP4MemReg, root, lowMR, secondRegister->getLowOrder(), cg());
+        Inst_MemReg(TR::InstOpCode::CMP4MemReg, root, lowMR, secondRegister->getLowOrder(), cg());
         if (hasGlobalDeps == false) {
-            generateLabelInstruction(TR::InstOpCode::JNE4, root, firstBranchLabel, cg());
+            Inst_Label(TR::InstOpCode::JNE4, root, firstBranchLabel, cg());
         } else {
-            generateLabelInstruction(TR::InstOpCode::JNE4, root, firstBranchLabel, deps, cg());
+            Inst_Label(TR::InstOpCode::JNE4, root, firstBranchLabel, deps, cg());
         }
-        generateMemRegInstruction(TR::InstOpCode::CMP4MemReg, root, highMR, secondRegister->getHighOrder(), cg());
+        Inst_MemReg(TR::InstOpCode::CMP4MemReg, root, highMR, secondRegister->getHighOrder(), cg());
     }
 
-    generateLabelInstruction(secondBranchOp, root, secondBranchLabel, deps, cg());
+    Inst_Label(secondBranchOp, root, secondBranchLabel, deps, cg());
 
     // Set up the label for the local false branch target with the appropriate
     // register dependencies and emit the label
     //
     if (deps != NULL && createdFirstLabel != false) {
-        generateLabelInstruction(TR::InstOpCode::label, root, firstBranchLabel, deps, cg());
+        Inst_Label(TR::InstOpCode::label, root, firstBranchLabel, deps, cg());
     }
 
-    generateLabelInstruction(TR::InstOpCode::label, root, endLabel, deps, cg());
+    Inst_Label(TR::InstOpCode::label, root, endLabel, deps, cg());
 
     if (lowMR != NULL)
         lowMR->decNodeReferenceCounts(cg());
@@ -762,32 +762,32 @@ TR::Register *TR_X86CompareAnalyser::longEqualityBooleanAnalyser(TR::Node *root,
     }
 
     if (getCmpReg1Reg2()) {
-        generateRegRegInstruction(TR::InstOpCode::CMP4RegReg, root, firstRegister->getLowOrder(),
-            secondRegister->getLowOrder(), cg());
-        generateRegInstruction(setOpCode, root, lowRegister, cg());
-        generateRegRegInstruction(TR::InstOpCode::CMP4RegReg, root, firstRegister->getHighOrder(),
-            secondRegister->getHighOrder(), cg());
+        Inst_RegReg(TR::InstOpCode::CMP4RegReg, root, firstRegister->getLowOrder(), secondRegister->getLowOrder(),
+            cg());
+        Inst_Reg(setOpCode, root, lowRegister, cg());
+        Inst_RegReg(TR::InstOpCode::CMP4RegReg, root, firstRegister->getHighOrder(), secondRegister->getHighOrder(),
+            cg());
     } else if (getCmpReg1Mem2()) {
         TR::MemoryReference *lowMR = generateX86MemoryReference(secondChild, cg());
         TR::MemoryReference *highMR = generateX86MemoryReference(*lowMR, 4, cg());
-        generateRegMemInstruction(TR::InstOpCode::CMP4RegMem, root, firstRegister->getLowOrder(), lowMR, cg());
-        generateRegInstruction(setOpCode, root, lowRegister, cg());
-        generateRegMemInstruction(TR::InstOpCode::CMP4RegMem, root, firstRegister->getHighOrder(), highMR, cg());
+        Inst_RegMem(TR::InstOpCode::CMP4RegMem, root, firstRegister->getLowOrder(), lowMR, cg());
+        Inst_Reg(setOpCode, root, lowRegister, cg());
+        Inst_RegMem(TR::InstOpCode::CMP4RegMem, root, firstRegister->getHighOrder(), highMR, cg());
         lowMR->decNodeReferenceCounts(cg());
     } else // Must be CmpMem1Reg2
     {
         TR::MemoryReference *lowMR = generateX86MemoryReference(firstChild, cg());
         TR::MemoryReference *highMR = generateX86MemoryReference(*lowMR, 4, cg());
-        generateMemRegInstruction(TR::InstOpCode::CMP4MemReg, root, lowMR, secondRegister->getLowOrder(), cg());
-        generateRegInstruction(setOpCode, root, lowRegister, cg());
-        generateMemRegInstruction(TR::InstOpCode::CMP4MemReg, root, highMR, secondRegister->getHighOrder(), cg());
+        Inst_MemReg(TR::InstOpCode::CMP4MemReg, root, lowMR, secondRegister->getLowOrder(), cg());
+        Inst_Reg(setOpCode, root, lowRegister, cg());
+        Inst_MemReg(TR::InstOpCode::CMP4MemReg, root, highMR, secondRegister->getHighOrder(), cg());
         lowMR->decNodeReferenceCounts(cg());
     }
 
-    generateRegInstruction(setOpCode, root, highRegister, cg());
-    generateRegRegInstruction(combineOpCode, root, highRegister, lowRegister, cg());
+    Inst_Reg(setOpCode, root, highRegister, cg());
+    Inst_RegReg(combineOpCode, root, highRegister, lowRegister, cg());
 
-    generateRegRegInstruction(TR::InstOpCode::MOVZXReg4Reg1, root, highRegister, highRegister, cg());
+    Inst_RegReg(TR::InstOpCode::MOVZXReg4Reg1, root, highRegister, highRegister, cg());
 
     cg()->stopUsingRegister(lowRegister);
 
@@ -838,15 +838,15 @@ TR::Register *TR_X86CompareAnalyser::longOrderedBooleanAnalyser(TR::Node *root, 
 
     startLabel->setStartInternalControlFlow();
     doneLabel->setEndInternalControlFlow();
-    generateLabelInstruction(TR::InstOpCode::label, root, startLabel, cg());
+    Inst_Label(TR::InstOpCode::label, root, startLabel, cg());
 
     if (getCmpReg1Reg2()) {
-        generateRegRegInstruction(TR::InstOpCode::CMP4RegReg, root, firstRegister->getHighOrder(),
-            secondRegister->getHighOrder(), cg());
-        generateRegInstruction(highSetOpCode, root, setRegister, cg());
-        generateLabelInstruction(TR::InstOpCode::JNE4, root, doneLabel, cg());
-        generateRegRegInstruction(TR::InstOpCode::CMP4RegReg, root, firstRegister->getLowOrder(),
-            secondRegister->getLowOrder(), cg());
+        Inst_RegReg(TR::InstOpCode::CMP4RegReg, root, firstRegister->getHighOrder(), secondRegister->getHighOrder(),
+            cg());
+        Inst_Reg(highSetOpCode, root, setRegister, cg());
+        Inst_Label(TR::InstOpCode::JNE4, root, doneLabel, cg());
+        Inst_RegReg(TR::InstOpCode::CMP4RegReg, root, firstRegister->getLowOrder(), secondRegister->getLowOrder(),
+            cg());
         deps->addPostCondition(firstRegister->getHighOrder(), TR::RealRegister::NoReg, cg());
         deps->addPostCondition(firstRegister->getLowOrder(), TR::RealRegister::NoReg, cg());
         deps->addPostCondition(secondRegister->getHighOrder(), TR::RealRegister::NoReg, cg());
@@ -854,25 +854,25 @@ TR::Register *TR_X86CompareAnalyser::longOrderedBooleanAnalyser(TR::Node *root, 
     } else if (getCmpReg1Mem2()) {
         lowMR = generateX86MemoryReference(secondChild, cg());
         highMR = generateX86MemoryReference(*lowMR, 4, cg());
-        generateRegMemInstruction(TR::InstOpCode::CMP4RegMem, root, firstRegister->getHighOrder(), highMR, cg());
-        generateRegInstruction(highSetOpCode, root, setRegister, cg());
-        generateLabelInstruction(TR::InstOpCode::JNE4, root, doneLabel, cg());
-        generateRegMemInstruction(TR::InstOpCode::CMP4RegMem, root, firstRegister->getLowOrder(), lowMR, cg());
+        Inst_RegMem(TR::InstOpCode::CMP4RegMem, root, firstRegister->getHighOrder(), highMR, cg());
+        Inst_Reg(highSetOpCode, root, setRegister, cg());
+        Inst_Label(TR::InstOpCode::JNE4, root, doneLabel, cg());
+        Inst_RegMem(TR::InstOpCode::CMP4RegMem, root, firstRegister->getLowOrder(), lowMR, cg());
         deps->addPostCondition(firstRegister->getHighOrder(), TR::RealRegister::NoReg, cg());
         deps->addPostCondition(firstRegister->getLowOrder(), TR::RealRegister::NoReg, cg());
     } else // Must be CmpMem1Reg2
     {
         lowMR = generateX86MemoryReference(firstChild, cg());
         highMR = generateX86MemoryReference(*lowMR, 4, cg());
-        generateMemRegInstruction(TR::InstOpCode::CMP4MemReg, root, highMR, secondRegister->getHighOrder(), cg());
-        generateRegInstruction(highSetOpCode, root, setRegister, cg());
-        generateLabelInstruction(TR::InstOpCode::JNE4, root, doneLabel, cg());
-        generateMemRegInstruction(TR::InstOpCode::CMP4MemReg, root, lowMR, secondRegister->getLowOrder(), cg());
+        Inst_MemReg(TR::InstOpCode::CMP4MemReg, root, highMR, secondRegister->getHighOrder(), cg());
+        Inst_Reg(highSetOpCode, root, setRegister, cg());
+        Inst_Label(TR::InstOpCode::JNE4, root, doneLabel, cg());
+        Inst_MemReg(TR::InstOpCode::CMP4MemReg, root, lowMR, secondRegister->getLowOrder(), cg());
         deps->addPostCondition(secondRegister->getHighOrder(), TR::RealRegister::NoReg, cg());
         deps->addPostCondition(secondRegister->getLowOrder(), TR::RealRegister::NoReg, cg());
     }
 
-    generateRegInstruction(lowSetOpCode, root, setRegister, cg());
+    Inst_Reg(lowSetOpCode, root, setRegister, cg());
     if (lowMR != NULL) {
         // Add register dependencies from the memory reference
         //
@@ -886,9 +886,9 @@ TR::Register *TR_X86CompareAnalyser::longOrderedBooleanAnalyser(TR::Node *root, 
         lowMR->decNodeReferenceCounts(cg());
     }
     deps->stopAddingConditions();
-    generateLabelInstruction(TR::InstOpCode::label, root, doneLabel, deps, cg());
+    Inst_Label(TR::InstOpCode::label, root, doneLabel, deps, cg());
 
-    generateRegRegInstruction(TR::InstOpCode::MOVZXReg4Reg1, root, setRegister, setRegister, cg());
+    Inst_RegReg(TR::InstOpCode::MOVZXReg4Reg1, root, setRegister, setRegister, cg());
 
     root->setRegister(setRegister);
     cg()->decReferenceCount(firstChild);
@@ -936,15 +936,15 @@ TR::Register *TR_X86CompareAnalyser::longCMPAnalyser(TR::Node *root)
 
     startLabel->setStartInternalControlFlow();
     doneLabel->setEndInternalControlFlow();
-    generateLabelInstruction(TR::InstOpCode::label, root, startLabel, cg());
+    Inst_Label(TR::InstOpCode::label, root, startLabel, cg());
 
     if (getCmpReg1Reg2()) {
-        generateRegRegInstruction(TR::InstOpCode::CMP4RegReg, root, firstRegister->getHighOrder(),
-            secondRegister->getHighOrder(), cg());
-        generateRegInstruction(TR::InstOpCode::SETNE1Reg, root, setRegister, cg());
-        generateLabelInstruction(TR::InstOpCode::JNE4, root, highDoneLabel, cg());
-        generateRegRegInstruction(TR::InstOpCode::CMP4RegReg, root, firstRegister->getLowOrder(),
-            secondRegister->getLowOrder(), cg());
+        Inst_RegReg(TR::InstOpCode::CMP4RegReg, root, firstRegister->getHighOrder(), secondRegister->getHighOrder(),
+            cg());
+        Inst_Reg(TR::InstOpCode::SETNE1Reg, root, setRegister, cg());
+        Inst_Label(TR::InstOpCode::JNE4, root, highDoneLabel, cg());
+        Inst_RegReg(TR::InstOpCode::CMP4RegReg, root, firstRegister->getLowOrder(), secondRegister->getLowOrder(),
+            cg());
         deps->addPostCondition(firstRegister->getHighOrder(), TR::RealRegister::NoReg, cg());
         deps->addPostCondition(firstRegister->getLowOrder(), TR::RealRegister::NoReg, cg());
         deps->addPostCondition(secondRegister->getHighOrder(), TR::RealRegister::NoReg, cg());
@@ -953,31 +953,31 @@ TR::Register *TR_X86CompareAnalyser::longCMPAnalyser(TR::Node *root)
     } else if (getCmpReg1Mem2()) {
         lowMR = generateX86MemoryReference(secondChild, cg());
         highMR = generateX86MemoryReference(*lowMR, 4, cg());
-        generateRegMemInstruction(TR::InstOpCode::CMP4RegMem, root, firstRegister->getHighOrder(), highMR, cg());
-        generateRegInstruction(TR::InstOpCode::SETNE1Reg, root, setRegister, cg());
-        generateLabelInstruction(TR::InstOpCode::JNE4, root, highDoneLabel, cg());
-        generateRegMemInstruction(TR::InstOpCode::CMP4RegMem, root, firstRegister->getLowOrder(), lowMR, cg());
+        Inst_RegMem(TR::InstOpCode::CMP4RegMem, root, firstRegister->getHighOrder(), highMR, cg());
+        Inst_Reg(TR::InstOpCode::SETNE1Reg, root, setRegister, cg());
+        Inst_Label(TR::InstOpCode::JNE4, root, highDoneLabel, cg());
+        Inst_RegMem(TR::InstOpCode::CMP4RegMem, root, firstRegister->getLowOrder(), lowMR, cg());
         deps->addPostCondition(firstRegister->getHighOrder(), TR::RealRegister::NoReg, cg());
         deps->addPostCondition(firstRegister->getLowOrder(), TR::RealRegister::NoReg, cg());
     } else // Must be CmpMem1Reg2
     {
         lowMR = generateX86MemoryReference(firstChild, cg());
         highMR = generateX86MemoryReference(*lowMR, 4, cg());
-        generateMemRegInstruction(TR::InstOpCode::CMP4MemReg, root, highMR, secondRegister->getHighOrder(), cg());
-        generateRegInstruction(TR::InstOpCode::SETNE1Reg, root, setRegister, cg());
-        generateLabelInstruction(TR::InstOpCode::JNE4, root, highDoneLabel, cg());
-        generateMemRegInstruction(TR::InstOpCode::CMP4MemReg, root, lowMR, secondRegister->getLowOrder(), cg());
+        Inst_MemReg(TR::InstOpCode::CMP4MemReg, root, highMR, secondRegister->getHighOrder(), cg());
+        Inst_Reg(TR::InstOpCode::SETNE1Reg, root, setRegister, cg());
+        Inst_Label(TR::InstOpCode::JNE4, root, highDoneLabel, cg());
+        Inst_MemReg(TR::InstOpCode::CMP4MemReg, root, lowMR, secondRegister->getLowOrder(), cg());
         deps->addPostCondition(secondRegister->getHighOrder(), TR::RealRegister::NoReg, cg());
         deps->addPostCondition(secondRegister->getLowOrder(), TR::RealRegister::NoReg, cg());
     }
 
-    generateRegInstruction(TR::InstOpCode::SETNE1Reg, root, setRegister, cg());
-    generateLabelInstruction(TR::InstOpCode::JAE4, root, doneLabel, cg());
-    generateRegInstruction(TR::InstOpCode::NEG1Reg, root, setRegister, cg());
-    generateLabelInstruction(TR::InstOpCode::JMP4, root, doneLabel, cg());
-    generateLabelInstruction(TR::InstOpCode::label, root, highDoneLabel, cg());
-    generateLabelInstruction(TR::InstOpCode::JGE4, root, doneLabel, cg());
-    generateRegInstruction(TR::InstOpCode::NEG1Reg, root, setRegister, cg());
+    Inst_Reg(TR::InstOpCode::SETNE1Reg, root, setRegister, cg());
+    Inst_Label(TR::InstOpCode::JAE4, root, doneLabel, cg());
+    Inst_Reg(TR::InstOpCode::NEG1Reg, root, setRegister, cg());
+    Inst_Label(TR::InstOpCode::JMP4, root, doneLabel, cg());
+    Inst_Label(TR::InstOpCode::label, root, highDoneLabel, cg());
+    Inst_Label(TR::InstOpCode::JGE4, root, doneLabel, cg());
+    Inst_Reg(TR::InstOpCode::NEG1Reg, root, setRegister, cg());
 
     deps->addPostCondition(setRegister, TR::RealRegister::ByteReg, cg());
     if (lowMR != NULL) {
@@ -993,9 +993,9 @@ TR::Register *TR_X86CompareAnalyser::longCMPAnalyser(TR::Node *root)
         lowMR->decNodeReferenceCounts(cg());
     }
     deps->stopAddingConditions();
-    generateLabelInstruction(TR::InstOpCode::label, root, doneLabel, deps, cg());
+    Inst_Label(TR::InstOpCode::label, root, doneLabel, deps, cg());
 
-    generateRegRegInstruction(TR::InstOpCode::MOVSXReg4Reg1, root, setRegister, setRegister, cg());
+    Inst_RegReg(TR::InstOpCode::MOVSXReg4Reg1, root, setRegister, setRegister, cg());
 
     cg()->decReferenceCount(firstChild);
     cg()->decReferenceCount(secondChild);

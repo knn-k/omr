@@ -74,11 +74,11 @@ TR::Instruction *OMR::X86::AMD64::JitCodeRXObjectFormat::emitFunctionCall(TR::Fu
         TR::X86ImmSymInstruction *callImmSymInstr = NULL;
 
         if (data.prevInstr) {
-            callImmSymInstr = generateImmSymInstruction(data.prevInstr, TR::InstOpCode::CALLImm4, 0, data.methodSymRef,
-                data.regDeps, data.cg);
+            callImmSymInstr
+                = Inst_ImmSym(data.prevInstr, TR::InstOpCode::CALLImm4, 0, data.methodSymRef, data.regDeps, data.cg);
         } else {
-            callImmSymInstr = generateImmSymInstruction(TR::InstOpCode::CALLImm4, data.callNode, 0, data.methodSymRef,
-                data.regDeps, data.cg);
+            callImmSymInstr
+                = Inst_ImmSym(TR::InstOpCode::CALLImm4, data.callNode, 0, data.methodSymRef, data.regDeps, data.cg);
         }
 
         if (data.adjustsFramePointerBy != 0) {
@@ -108,9 +108,9 @@ TR::Instruction *OMR::X86::AMD64::JitCodeRXObjectFormat::emitFunctionCall(TR::Fu
     TR::MemoryReference *callMR = new (comp->trHeapMemory()) TR::MemoryReference(functionDataSymRef, data.cg, true);
 
     if (data.prevInstr) {
-        callInstr = generateCallMemInstruction(data.prevInstr, TR::InstOpCode::CALLMem, callMR, data.regDeps, data.cg);
+        callInstr = Inst_CallMem(data.prevInstr, TR::InstOpCode::CALLMem, callMR, data.regDeps, data.cg);
     } else {
-        callInstr = generateCallMemInstruction(TR::InstOpCode::CALLMem, data.callNode, callMR, data.regDeps, data.cg);
+        callInstr = Inst_CallMem(TR::InstOpCode::CALLMem, data.callNode, callMR, data.regDeps, data.cg);
     }
 
     if (data.adjustsFramePointerBy != 0) {

@@ -334,17 +334,17 @@ TR::Register *TR_IA32XMMCompareAnalyser::xmmCompareAnalyser(TR::Node *root, TR::
     //
     if (getCmpReg1Mem2() || reverseMemOp) {
         TR::MemoryReference *tempMR = generateX86MemoryReference(secondChild, _cg);
-        generateRegMemInstruction(cmpRegMemOpCode, root, firstRegister, tempMR, _cg);
+        Inst_RegMem(cmpRegMemOpCode, root, firstRegister, tempMR, _cg);
         tempMR->decNodeReferenceCounts(_cg);
     } else if (getCmpReg2Mem1()) {
         TR::MemoryReference *tempMR = generateX86MemoryReference(firstChild, _cg);
-        generateRegMemInstruction(cmpRegMemOpCode, root, secondRegister, tempMR, _cg);
+        Inst_RegMem(cmpRegMemOpCode, root, secondRegister, tempMR, _cg);
         notReversedOperands();
         tempMR->decNodeReferenceCounts(_cg);
     } else if (getCmpReg1Reg2() || reverseCmpOp) {
-        generateRegRegInstruction(cmpRegRegOpCode, root, firstRegister, secondRegister, _cg);
+        Inst_RegReg(cmpRegRegOpCode, root, firstRegister, secondRegister, _cg);
     } else if (getCmpReg2Reg1()) {
-        generateRegRegInstruction(cmpRegRegOpCode, root, secondRegister, firstRegister, _cg);
+        Inst_RegReg(cmpRegRegOpCode, root, secondRegister, firstRegister, _cg);
         notReversedOperands();
     }
 

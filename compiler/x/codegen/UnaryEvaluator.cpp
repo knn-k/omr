@@ -67,9 +67,9 @@ TR::Register *OMR::X86::TreeEvaluator::floatingPointAbsHelper(TR::Node *node, TR
         TR_ASSERT_FATAL(ternEncoding != OMR::X86::Bad, "vabs: No encoding method for vpternlog opcode");
 
         // Predicate 0xff sets each bit to 1
-        generateRegRegImmInstruction(ternOpcode.getMnemonic(), node, resultReg, resultReg, 0xff, cg, ternEncoding);
-        generateRegRegImmInstruction(shrOpcode.getMnemonic(), node, resultReg, resultReg, 0x1, cg, shrEncoding);
-        generateRegRegRegInstruction(andOpcode.getMnemonic(), node, resultReg, resultReg, valueReg, cg, andEncoding);
+        Inst_RegRegImm(ternOpcode.getMnemonic(), node, resultReg, resultReg, 0xff, cg, ternEncoding);
+        Inst_RegRegImm(shrOpcode.getMnemonic(), node, resultReg, resultReg, 0x1, cg, shrEncoding);
+        Inst_RegRegReg(andOpcode.getMnemonic(), node, resultReg, resultReg, valueReg, cg, andEncoding);
     } else {
         TR::InstOpCode xorOpcode = TR::InstOpCode::PXORRegReg;
         OMR::X86::Encoding xorEncoding = xorOpcode.getSIMDEncoding(&cg->comp()->target().cpu, vl);
@@ -78,20 +78,19 @@ TR::Register *OMR::X86::TreeEvaluator::floatingPointAbsHelper(TR::Node *node, TR
 
         // Since we are comparing resultReg with itself to check for equality,
         // resultReg cannot be NaN. We must XOR resultReg with itself to prevent this.
-        generateRegRegInstruction(xorOpcode.getMnemonic(), node, resultReg, resultReg, cg, xorEncoding);
+        Inst_RegReg(xorOpcode.getMnemonic(), node, resultReg, resultReg, cg, xorEncoding);
 
         if (cg->comp()->target().cpu.supportsAVX()) {
             // First, put 1's into result reg with cmpps using predicate (VCMPEQ_UQPS -> 0x8)
             // logical right shift by 1 to remove sign but from mask
             // and the mask with input vector to clear the sign bit
-            generateRegRegImmInstruction(cmpOpcode.getMnemonic(), node, resultReg, resultReg, 0x8, cg, cmpEncoding);
-            generateRegRegImmInstruction(shrOpcode.getMnemonic(), node, resultReg, resultReg, 0x1, cg, shrEncoding);
-            generateRegRegRegInstruction(andOpcode.getMnemonic(), node, resultReg, resultReg, valueReg, cg,
-                andEncoding);
+            Inst_RegRegImm(cmpOpcode.getMnemonic(), node, resultReg, resultReg, 0x8, cg, cmpEncoding);
+            Inst_RegRegImm(shrOpcode.getMnemonic(), node, resultReg, resultReg, 0x1, cg, shrEncoding);
+            Inst_RegRegReg(andOpcode.getMnemonic(), node, resultReg, resultReg, valueReg, cg, andEncoding);
         } else {
-            generateRegRegImmInstruction(cmpOpcode.getMnemonic(), node, resultReg, resultReg, 0x8, cg, cmpEncoding);
-            generateRegImmInstruction(shrOpcode.getMnemonic(), node, resultReg, 0x1, cg, shrEncoding);
-            generateRegRegInstruction(andOpcode.getMnemonic(), node, resultReg, valueReg, cg, andEncoding);
+            Inst_RegRegImm(cmpOpcode.getMnemonic(), node, resultReg, resultReg, 0x8, cg, cmpEncoding);
+            Inst_RegImm(shrOpcode.getMnemonic(), node, resultReg, 0x1, cg, shrEncoding);
+            Inst_RegReg(andOpcode.getMnemonic(), node, resultReg, valueReg, cg, andEncoding);
         }
     }
 
@@ -131,7 +130,7 @@ TR::Register *OMR::X86::TreeEvaluator::unaryVectorArithmeticEvaluator(TR::Node *
         && valueNode->getReferenceCount() == 1 && regMemOpcode.getMnemonic() != TR::InstOpCode::bad) {
         if (simdEncoding != OMR::X86::Encoding::Bad) {
             TR::MemoryReference *mr = generateX86MemoryReference(valueNode, cg);
-            generateRegMemInstruction(regMemOpcode.getMnemonic(), node, resultReg, mr, cg, simdEncoding);
+            Inst_RegMem(regMemOpcode.getMnemonic(), node, resultReg, mr, cg, simdEncoding);
             mr->decNodeReferenceCounts(cg);
             return resultReg;
         }
@@ -149,7 +148,7 @@ TR::Register *OMR::X86::TreeEvaluator::unaryVectorArithmeticEvaluator(TR::Node *
         TR::TreeEvaluator::unaryVectorMaskHelper(regRegOpcode, simdEncoding, node, resultReg, valueReg, maskReg, cg);
         cg->decReferenceCount(maskNode);
     } else {
-        generateRegRegInstruction(regRegOpcode.getMnemonic(), node, resultReg, valueReg, cg, simdEncoding);
+        Inst_RegReg(regRegOpcode.getMnemonic(), node, resultReg, valueReg, cg, simdEncoding);
     }
 
     cg->decReferenceCount(valueNode);
@@ -190,7 +189,7 @@ TR::Register *OMR::X86::TreeEvaluator::negEvaluatorHelper(TR::Node *node, TR::In
         = TR::TreeEvaluator::intOrLongClobberEvaluate(firstChild, TR::TreeEvaluator::getNodeIs64Bit(node, cg), cg);
     node->setRegister(targetRegister);
     cg->decReferenceCount(firstChild);
-    generateRegInstruction(negInstr, node, targetRegister, cg);
+    Inst_Reg(negInstr, node, targetRegister, cg);
     return targetRegister;
 }
 
@@ -207,9 +206,9 @@ TR::Register *OMR::X86::TreeEvaluator::integerAbsEvaluator(TR::Node *node, TR::C
     auto result = cg->allocateRegister(value->getKind());
 
     auto is64Bit = TR::TreeEvaluator::getNodeIs64Bit(node, cg);
-    generateRegRegInstruction(TR::InstOpCode::MOVRegReg(is64Bit), node, result, value, cg);
-    generateRegInstruction(TR::InstOpCode::NEGReg(is64Bit), node, result, cg);
-    generateRegRegInstruction(TR::InstOpCode::CMOVSRegReg(is64Bit), node, result, value, cg);
+    Inst_RegReg(TR::InstOpCode::MOVRegReg(is64Bit), node, result, value, cg);
+    Inst_Reg(TR::InstOpCode::NEGReg(is64Bit), node, result, cg);
+    Inst_RegReg(TR::InstOpCode::CMOVSRegReg(is64Bit), node, result, value, cg);
 
     node->setRegister(result);
     cg->decReferenceCount(child);
@@ -227,7 +226,7 @@ TR::Register *OMR::X86::TreeEvaluator::vnegEvaluator(TR::Node *node, TR::CodeGen
     TR::InstOpCode opcode = TR::InstOpCode::PXORRegReg;
     OMR::X86::Encoding pxorEncoding = opcode.getSIMDEncoding(&cg->comp()->target().cpu, type.getVectorLength());
 
-    generateRegRegInstruction(TR::InstOpCode::PXORRegReg, node, resultReg, resultReg, cg, pxorEncoding);
+    Inst_RegReg(TR::InstOpCode::PXORRegReg, node, resultReg, resultReg, cg, pxorEncoding);
     TR::InstOpCode subOpcode;
 
     switch (type.getVectorElementType()) {
@@ -260,12 +259,12 @@ TR::Register *OMR::X86::TreeEvaluator::vnegEvaluator(TR::Node *node, TR::CodeGen
         TR::Node *maskNode = node->getChild(1);
         TR::Register *maskReg = cg->evaluate(maskNode);
         TR::Register *tmpReg = cg->allocateRegister(TR_VRF);
-        generateRegRegInstruction(subOpcode.getMnemonic(), node, tmpReg, valueReg, cg, subEncoding);
+        Inst_RegReg(subOpcode.getMnemonic(), node, tmpReg, valueReg, cg, subEncoding);
         TR::TreeEvaluator::vectorMergeMaskHelper(node, resultReg, tmpReg, maskReg, cg);
         cg->stopUsingRegister(tmpReg);
         cg->decReferenceCount(maskNode);
     } else {
-        generateRegRegInstruction(subOpcode.getMnemonic(), node, resultReg, valueReg, cg, subEncoding);
+        Inst_RegReg(subOpcode.getMnemonic(), node, resultReg, valueReg, cg, subEncoding);
     }
 
     node->setRegister(resultReg);
@@ -331,7 +330,7 @@ TR::Register *OMR::X86::TreeEvaluator::a2lEvaluator(TR::Node *node, TR::CodeGene
             copyReg->setContainsInternalPointer();
         }
 
-        generateRegRegInstruction(TR::InstOpCode::MOVRegReg(), node, copyReg, srcReg, cg);
+        Inst_RegReg(TR::InstOpCode::MOVRegReg(), node, copyReg, srcReg, cg);
         srcReg = copyReg;
     }
 
@@ -451,7 +450,7 @@ TR::Register *OMR::X86::TreeEvaluator::ipopcntEvaluator(TR::Node *node, TR::Code
     TR::Node *child = node->getFirstChild();
     TR::Register *inputReg = cg->intClobberEvaluate(child);
 
-    generateRegRegInstruction(TR::InstOpCode::POPCNT4RegReg, node, inputReg, inputReg, cg);
+    Inst_RegReg(TR::InstOpCode::POPCNT4RegReg, node, inputReg, inputReg, cg);
 
     node->setRegister(inputReg);
     cg->decReferenceCount(child);

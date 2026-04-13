@@ -631,7 +631,7 @@ void OMR::X86::CodeGenerator::beginInstructionSelection()
     if (methodSymbol->getLinkageConvention() == TR_Private && !_returnTypeInfoInstruction) {
         // linkageInfo word
         if (getAppendInstruction())
-            _returnTypeInfoInstruction = generateImmInstruction(TR::InstOpCode::DDImm4, startNode, 0, self());
+            _returnTypeInfoInstruction = Inst_Imm(TR::InstOpCode::DDImm4, startNode, 0, self());
         else
             _returnTypeInfoInstruction = new (self()->trHeapMemory())
                 TR::X86ImmInstruction((TR::Instruction *)NULL, TR::InstOpCode::DDImm4, 0, self());
@@ -640,21 +640,21 @@ void OMR::X86::CodeGenerator::beginInstructionSelection()
     if (methodSymbol->getLinkageConvention() == TR_System && !_returnTypeInfoInstruction) {
         // linkageInfo word
         if (getAppendInstruction())
-            _returnTypeInfoInstruction = generateImmInstruction(TR::InstOpCode::DDImm4, startNode, 0, self());
+            _returnTypeInfoInstruction = Inst_Imm(TR::InstOpCode::DDImm4, startNode, 0, self());
         else
             _returnTypeInfoInstruction = new (self()->trHeapMemory())
                 TR::X86ImmInstruction((TR::Instruction *)NULL, TR::InstOpCode::DDImm4, 0, self());
     }
 
     if (getAppendInstruction())
-        generateInstruction(TR::InstOpCode::proc, startNode, self());
+        Inst(TR::InstOpCode::proc, startNode, self());
     else
         new (self()->trHeapMemory()) TR::Instruction(TR::InstOpCode::proc, (TR::Instruction *)NULL, self());
 
     // Set the default FPCW to single precision mode if we are allowed to.
     //
     if (self()->enableSinglePrecisionMethods() && comp->getJittedMethodSymbol()->usesSinglePrecisionMode()) {
-        generateMemInstruction(TR::InstOpCode::LDCWMem, startNode,
+        Inst_Mem(TR::InstOpCode::LDCWMem, startNode,
             generateX86MemoryReference(self()->findOrCreate2ByteConstant(startNode, SINGLE_PRECISION_ROUND_TO_NEAREST),
                 self()),
             self());
@@ -676,7 +676,7 @@ void OMR::X86::CodeGenerator::endInstructionSelection()
     if (self()->enableSinglePrecisionMethods() && comp->getJittedMethodSymbol()->usesSinglePrecisionMode()) {
         TR_ASSERT(self()->getLastCatchAppendInstruction(),
             "endInstructionSelection() ==> Could not find the dummy finally block!\n");
-        generateMemInstruction(self()->getLastCatchAppendInstruction(), TR::InstOpCode::LDCWMem,
+        Inst_Mem(self()->getLastCatchAppendInstruction(), TR::InstOpCode::LDCWMem,
             generateX86MemoryReference(
                 self()->findOrCreate2ByteConstant(self()->getLastCatchAppendInstruction()->getNode(),
                     DOUBLE_PRECISION_ROUND_TO_NEAREST),
@@ -1474,8 +1474,8 @@ void OMR::X86::CodeGenerator::performNonLinearRegisterAssignmentAtBranch(TR::X86
     TR::RegisterDependencyConditions *deps = branchRAState->createDependenciesFromRegisterState(oi);
 
     if (deps) {
-        TR::Instruction *ins = generateLabelInstruction(oi->getFirstInstruction(), TR::InstOpCode::label,
-            generateLabelSymbol(self()), deps, self());
+        TR::Instruction *ins
+            = Inst_Label(oi->getFirstInstruction(), TR::InstOpCode::label, generateLabelSymbol(self()), deps, self());
 
         if (comp->getOption(TR_TraceNonLinearRegisterAssigner)) {
             comp->log()->printf("creating TR::InstOpCode::label instruction %p for dependencies\n", ins);
@@ -1495,8 +1495,7 @@ void OMR::X86::CodeGenerator::performNonLinearRegisterAssignmentAtBranch(TR::X86
     // Do the register assignment.
     //
     TR_ASSERT(!oi->hasBeenRegisterAssigned(), "outlined instructions should not have been register assigned already");
-    oi->assignRegistersOnOutlinedPath(kindsToBeAssigned,
-        generateVFPSaveInstruction(branchInstruction->getPrev(), self()));
+    oi->assignRegistersOnOutlinedPath(kindsToBeAssigned, Inst_VFPSave(branchInstruction->getPrev(), self()));
 
     // Restore the register use counts on the registers used in the mainline path
     // to accurately reflect their state.
@@ -1635,8 +1634,7 @@ TR::Instruction *OMR::X86::CodeGenerator::generateInterpreterEntryInstruction(TR
                 atomicRegions = samplingAtomicRegions;
             }
 
-            TR::Instruction *pcai
-                = generatePatchableCodeAlignmentInstruction(atomicRegions, procEntryInstruction, self());
+            TR::Instruction *pcai = Inst_PatchableCodeAlignment(atomicRegions, procEntryInstruction, self());
             if (interpreterEntryInstruction == procEntryInstruction) {
                 // Interpreter prologue contains no instructions other than this
                 // nop, so the nop becomes the interpreter entry instruction
@@ -1915,7 +1913,7 @@ void OMR::X86::CodeGenerator::doBinaryEncoding()
     // Establish the VFP ground state.
     // This instruction actually ends up immediately AFTER the prologue.
     //
-    _vfpResetInstruction = generateVFPSaveInstruction(prologueCursor, self());
+    _vfpResetInstruction = Inst_VFPSave(prologueCursor, self());
 
     getLinkage()->createPrologue(prologueCursor); // The linkage prologue
 
@@ -2226,7 +2224,7 @@ TR::Register *OMR::X86::CodeGenerator::gprClobberEvaluate(TR::Node *node, TR::In
         }
 
         TR::Register *targetRegister = self()->allocateRegister();
-        generateRegRegInstruction(movRegRegOpCode, node, targetRegister, sourceRegister, self());
+        Inst_RegReg(movRegRegOpCode, node, targetRegister, sourceRegister, self());
 
         if (sourceRegister->containsCollectedReference()) {
             logprintf(trace, log, "Setting containsCollectedReference on register %s\n",
@@ -2270,7 +2268,7 @@ TR::Register *OMR::X86::CodeGenerator::floatClobberEvaluate(TR::Node *node)
         TR::Register *temp = self()->evaluate(node);
         TR::Register *targetRegister = self()->allocateSinglePrecisionRegister(temp->getKind());
 
-        generateRegRegInstruction(TR::InstOpCode::MOVAPSRegReg, node, targetRegister, temp, self());
+        Inst_RegReg(TR::InstOpCode::MOVAPSRegReg, node, targetRegister, temp, self());
 
         return targetRegister;
     } else {
@@ -2284,7 +2282,7 @@ TR::Register *OMR::X86::CodeGenerator::doubleClobberEvaluate(TR::Node *node)
         TR::Register *temp = self()->evaluate(node);
         TR::Register *targetRegister = self()->allocateRegister(temp->getKind());
 
-        generateRegRegInstruction(TR::InstOpCode::MOVAPDRegReg, node, targetRegister, temp, self());
+        Inst_RegReg(TR::InstOpCode::MOVAPDRegReg, node, targetRegister, temp, self());
 
         return targetRegister;
     } else {
@@ -3049,10 +3047,10 @@ TR::Instruction *OMR::X86::CodeGenerator::generateDebugCounterBump(TR::Instructi
     TR::DebugCounterBase *counter, int32_t delta, TR::RegisterDependencyConditions *cond)
 {
     if (delta == 1)
-        return generateMemInstruction(cursor, TR::InstOpCode::INC4Mem,
+        return Inst_Mem(cursor, TR::InstOpCode::INC4Mem,
             generateX86MemoryReference(counter->getBumpCountSymRef(comp()), self()), self());
     else
-        return generateMemImmInstruction(cursor,
+        return Inst_MemImm(cursor,
             (-128 <= delta && delta <= 127) ? TR::InstOpCode::ADD4MemImms : TR::InstOpCode::ADD4MemImm4,
             generateX86MemoryReference(counter->getBumpCountSymRef(comp()), self()), delta, self());
 }
@@ -3061,7 +3059,7 @@ TR::Instruction *OMR::X86::CodeGenerator::generateDebugCounterBump(TR::Instructi
     TR::DebugCounterBase *counter, TR::Register *deltaReg, TR::RegisterDependencyConditions *cond)
 {
     if (deltaReg)
-        return generateMemRegInstruction(cursor, TR::InstOpCode::ADD4MemReg,
+        return Inst_MemReg(cursor, TR::InstOpCode::ADD4MemReg,
             generateX86MemoryReference(counter->getBumpCountSymRef(comp()), self()), deltaReg, self());
     else
         return cursor;

@@ -45,7 +45,7 @@ static TR::MemoryReference *ConvertToPatchableMemoryReference(TR::MemoryReferenc
         // Hence, the unresolved memory reference must be evaluated into a register first.
         //
         TR::Register *tempReg = cg->allocateRegister();
-        generateRegMemInstruction(TR::InstOpCode::LEARegMem(), node, tempReg, mr, cg);
+        Inst_RegMem(TR::InstOpCode::LEARegMem(), node, tempReg, mr, cg);
         mr = generateX86MemoryReference(tempReg, 0, cg);
         cg->stopUsingRegister(tempReg);
     }
@@ -81,7 +81,7 @@ TR::Register *OMR::X86::TreeEvaluator::maskLoadEvaluator(TR::Node *node, TR::Cod
             ? TR::InstOpCode::KMOVQMaskMem
             : TR::InstOpCode::KMOVWMaskMem;
 
-        TR::Instruction *instr = generateRegMemInstruction(opcode, node, resultReg, tempMR, cg);
+        TR::Instruction *instr = Inst_RegMem(opcode, node, resultReg, tempMR, cg);
 
         if (node->getOpCode().isIndirect())
             cg->setImplicitExceptionPoint(instr);
@@ -106,7 +106,7 @@ TR::Register *OMR::X86::TreeEvaluator::maskStoreEvaluator(TR::Node *node, TR::Co
             ? TR::InstOpCode::KMOVQMemMask
             : TR::InstOpCode::KMOVWMemMask;
 
-        TR::Instruction *instr = generateMemRegInstruction(opcode, node, tempMR, resultReg, cg);
+        TR::Instruction *instr = Inst_MemReg(opcode, node, tempMR, resultReg, cg);
 
         if (node->getOpCode().isIndirect())
             cg->setImplicitExceptionPoint(instr);
@@ -162,17 +162,16 @@ TR::Register *OMR::X86::TreeEvaluator::SIMDloadEvaluator(TR::Node *node, TR::Cod
     TR::Instruction *instr = NULL;
 
     if (maskReg && maskReg->getKind() == TR_VMR) {
-        instr
-            = generateRegMaskMemInstruction(opCode.getMnemonic(), node, resultReg, maskReg, tempMR, cg, encoding, true);
+        instr = Inst_RegMaskMem(opCode.getMnemonic(), node, resultReg, maskReg, tempMR, cg, encoding, true);
     } else {
-        instr = generateRegMemInstruction(opCode.getMnemonic(), node, resultReg, tempMR, cg, encoding);
+        instr = Inst_RegMem(opCode.getMnemonic(), node, resultReg, tempMR, cg, encoding);
 
         if (maskReg) {
             TR::InstOpCode andOpcode = TR::InstOpCode::PANDRegReg;
             OMR::X86::Encoding andEncoding
                 = andOpcode.getSIMDEncoding(&comp->target().cpu, node->getDataType().getVectorLength());
             TR_ASSERT_FATAL(andEncoding != OMR::X86::Bad, "No supported encoding method for 'and' opcode");
-            generateRegRegInstruction(andOpcode.getMnemonic(), node, resultReg, maskReg, cg, andEncoding);
+            Inst_RegReg(andOpcode.getMnemonic(), node, resultReg, maskReg, cg, andEncoding);
         }
     }
 
@@ -217,7 +216,7 @@ TR::Register *OMR::X86::TreeEvaluator::SIMDstoreEvaluator(TR::Node *node, TR::Co
             break;
     }
 
-    TR::Instruction *instr = generateMemRegInstruction(opCode, node, tempMR, valueReg, cg, encoding);
+    TR::Instruction *instr = Inst_MemReg(opCode, node, tempMR, valueReg, cg, encoding);
 
     cg->decReferenceCount(valueNode);
     tempMR->decNodeReferenceCounts(cg);
@@ -235,10 +234,10 @@ TR::Register *OMR::X86::TreeEvaluator::broadcastHelper(TR::Node *node, TR::Regis
         // Expand byte & word to 32-bits and update `et` to represent the resulting type
         switch (et) {
             case TR::Int8:
-                generateRegRegInstruction(TR::InstOpCode::PUNPCKLBWRegReg, node, vectorReg, vectorReg, cg);
+                Inst_RegReg(TR::InstOpCode::PUNPCKLBWRegReg, node, vectorReg, vectorReg, cg);
                 // fallthrough
             case TR::Int16:
-                generateRegRegImmInstruction(TR::InstOpCode::PSHUFLWRegRegImm1, node, vectorReg, vectorReg, 0x0, cg);
+                Inst_RegRegImm(TR::InstOpCode::PSHUFLWRegRegImm1, node, vectorReg, vectorReg, 0x0, cg);
                 et = TR::Int32;
                 break;
             default:
@@ -252,16 +251,16 @@ TR::Register *OMR::X86::TreeEvaluator::broadcastHelper(TR::Node *node, TR::Regis
                 case TR::Int8:
                     TR_ASSERT_FATAL(cg->comp()->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX2),
                         "8-bit to 128-bit vsplats requires AVX2");
-                    generateRegRegInstruction(TR::InstOpCode::VPBROADCASTBRegReg, node, vectorReg, vectorReg, cg);
+                    Inst_RegReg(TR::InstOpCode::VPBROADCASTBRegReg, node, vectorReg, vectorReg, cg);
                     break;
                 case TR::Int16:
                     TR_ASSERT_FATAL(cg->comp()->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX2),
                         "16-bit to 128-bit vsplats requires AVX2");
-                    generateRegRegInstruction(TR::InstOpCode::VPBROADCASTWRegReg, node, vectorReg, vectorReg, cg);
+                    Inst_RegReg(TR::InstOpCode::VPBROADCASTWRegReg, node, vectorReg, vectorReg, cg);
                     break;
                 default:
-                    generateRegRegImmInstruction(TR::InstOpCode::PSHUFDRegRegImm1, node, vectorReg, vectorReg,
-                        broadcast64 ? 0x44 : 0, cg);
+                    Inst_RegRegImm(TR::InstOpCode::PSHUFDRegRegImm1, node, vectorReg, vectorReg, broadcast64 ? 0x44 : 0,
+                        cg);
                     break;
             }
             break;
@@ -270,7 +269,7 @@ TR::Register *OMR::X86::TreeEvaluator::broadcastHelper(TR::Node *node, TR::Regis
                 "256-bit vsplats requires AVX2");
             TR::InstOpCode opcode
                 = broadcast64 ? TR::InstOpCode::VBROADCASTSDYmmYmm : TR::InstOpCode::VBROADCASTSSRegReg;
-            generateRegRegInstruction(opcode.getMnemonic(), node, vectorReg, vectorReg, cg,
+            Inst_RegReg(opcode.getMnemonic(), node, vectorReg, vectorReg, cg,
                 opcode.getSIMDEncoding(&cg->comp()->target().cpu, TR::VectorLength256));
             break;
         }
@@ -279,7 +278,7 @@ TR::Register *OMR::X86::TreeEvaluator::broadcastHelper(TR::Node *node, TR::Regis
                 "512-bit vsplats requires AVX-512");
             TR::InstOpCode opcode
                 = broadcast64 ? TR::InstOpCode::VBROADCASTSDZmmXmm : TR::InstOpCode::VBROADCASTSSRegReg;
-            generateRegRegInstruction(opcode.getMnemonic(), node, vectorReg, vectorReg, cg, OMR::X86::EVEX_L512);
+            Inst_RegReg(opcode.getMnemonic(), node, vectorReg, vectorReg, cg, OMR::X86::EVEX_L512);
             break;
         }
         default:
@@ -304,24 +303,23 @@ TR::Register *OMR::X86::TreeEvaluator::SIMDsplatsEvaluator(TR::Node *node, TR::C
         case TR::Int8:
         case TR::Int16:
         case TR::Int32:
-            generateRegRegInstruction(TR::InstOpCode::MOVDRegReg4, node, resultReg, childReg, cg);
+            Inst_RegReg(TR::InstOpCode::MOVDRegReg4, node, resultReg, childReg, cg);
             break;
         case TR::Int64:
             if (comp->target().is32Bit()) {
                 TR::Register *tempVectorReg = cg->allocateRegister(TR_VRF);
-                generateRegRegInstruction(TR::InstOpCode::MOVDRegReg4, node, tempVectorReg, childReg->getHighOrder(),
-                    cg);
-                generateRegImmInstruction(TR::InstOpCode::PSLLQRegImm1, node, tempVectorReg, 0x20, cg);
-                generateRegRegInstruction(TR::InstOpCode::MOVDRegReg4, node, resultReg, childReg->getLowOrder(), cg);
-                generateRegRegInstruction(TR::InstOpCode::PORRegReg, node, resultReg, tempVectorReg, cg);
+                Inst_RegReg(TR::InstOpCode::MOVDRegReg4, node, tempVectorReg, childReg->getHighOrder(), cg);
+                Inst_RegImm(TR::InstOpCode::PSLLQRegImm1, node, tempVectorReg, 0x20, cg);
+                Inst_RegReg(TR::InstOpCode::MOVDRegReg4, node, resultReg, childReg->getLowOrder(), cg);
+                Inst_RegReg(TR::InstOpCode::PORRegReg, node, resultReg, tempVectorReg, cg);
                 cg->stopUsingRegister(tempVectorReg);
             } else {
-                generateRegRegInstruction(TR::InstOpCode::MOVQRegReg8, node, resultReg, childReg, cg);
+                Inst_RegReg(TR::InstOpCode::MOVQRegReg8, node, resultReg, childReg, cg);
             }
             break;
         case TR::Float:
         case TR::Double:
-            generateRegRegInstruction(TR::InstOpCode::MOVSDRegReg, node, resultReg, childReg, cg);
+            Inst_RegReg(TR::InstOpCode::MOVSDRegReg, node, resultReg, childReg, cg);
             break;
         default:
             logprintf(comp->getOption(TR_TraceCG), comp->log(), "Unsupported data type, Node = %p\n", node);
@@ -418,14 +416,13 @@ TR::Register *OMR::X86::TreeEvaluator::SIMDvgetelemEvaluator(TR::Node *node, TR:
              * as a result, a mov instruction is good enough and splatting the value is unnecessary
              */
             if (3 == elem) {
-                generateRegRegInstruction(TR::InstOpCode::MOVDQURegReg, node, dstReg, srcVectorReg, cg);
+                Inst_RegReg(TR::InstOpCode::MOVDQURegReg, node, dstReg, srcVectorReg, cg);
             } else {
-                generateRegRegImmInstruction(TR::InstOpCode::PSHUFDRegRegImm1, node, dstReg, srcVectorReg, shufconst,
-                    cg);
+                Inst_RegRegImm(TR::InstOpCode::PSHUFDRegRegImm1, node, dstReg, srcVectorReg, shufconst, cg);
             }
 
             if (TR::Int32 == firstChild->getDataType().getVectorElementType()) {
-                generateRegRegInstruction(TR::InstOpCode::MOVDReg4Reg, node, resReg, dstReg, cg);
+                Inst_RegReg(TR::InstOpCode::MOVDReg4Reg, node, resReg, dstReg, cg);
                 cg->stopUsingRegister(dstReg);
             }
         } else // 2 == elementCount
@@ -449,20 +446,20 @@ TR::Register *OMR::X86::TreeEvaluator::SIMDvgetelemEvaluator(TR::Node *node, TR:
              * as a result, a mov instruction is good enough and splatting the value is unnecessary
              */
             if (1 == elem) {
-                generateRegRegInstruction(TR::InstOpCode::MOVDQURegReg, node, dstReg, srcVectorReg, cg);
+                Inst_RegReg(TR::InstOpCode::MOVDQURegReg, node, dstReg, srcVectorReg, cg);
             } else // 0 == elem
             {
-                generateRegRegImmInstruction(TR::InstOpCode::PSHUFDRegRegImm1, node, dstReg, srcVectorReg, 0x0e, cg);
+                Inst_RegRegImm(TR::InstOpCode::PSHUFDRegRegImm1, node, dstReg, srcVectorReg, 0x0e, cg);
             }
 
             if (TR::Int64 == firstChild->getDataType().getVectorElementType()) {
                 if (cg->comp()->target().is32Bit()) {
-                    generateRegRegInstruction(TR::InstOpCode::MOVDReg4Reg, node, lowResReg, dstReg, cg);
-                    generateRegRegImmInstruction(TR::InstOpCode::PSHUFDRegRegImm1, node, dstReg, srcVectorReg,
+                    Inst_RegReg(TR::InstOpCode::MOVDReg4Reg, node, lowResReg, dstReg, cg);
+                    Inst_RegRegImm(TR::InstOpCode::PSHUFDRegRegImm1, node, dstReg, srcVectorReg,
                         (0 == elem) ? 0x03 : 0x01, cg);
-                    generateRegRegInstruction(TR::InstOpCode::MOVDReg4Reg, node, highResReg, dstReg, cg);
+                    Inst_RegReg(TR::InstOpCode::MOVDReg4Reg, node, highResReg, dstReg, cg);
                 } else {
-                    generateRegRegInstruction(TR::InstOpCode::MOVQReg8Reg, node, resReg, dstReg, cg);
+                    Inst_RegReg(TR::InstOpCode::MOVQReg8Reg, node, resReg, dstReg, cg);
                 }
                 cg->stopUsingRegister(dstReg);
             }

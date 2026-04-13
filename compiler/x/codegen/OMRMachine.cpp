@@ -708,21 +708,21 @@ done:
             }
 
             if (info->getDataType() == TR_RematerializableFloat) {
-                instr = generateRegMemInstruction(currentInstruction, TR::InstOpCode::MOVSSRegMem, best, tempMR, cg());
+                instr = Inst_RegMem(currentInstruction, TR::InstOpCode::MOVSSRegMem, best, tempMR, cg());
             } else {
                 instr = TR::TreeEvaluator::insertLoadMemory(0, best, tempMR, info->getDataType(), cg(),
                     currentInstruction);
             }
         } else if (info->isRematerializableFromAddress()) {
             TR::MemoryReference *tempMR = generateX86MemoryReference(info->getSymbolReference(), cg());
-            instr = generateRegMemInstruction(currentInstruction, TR::InstOpCode::LEARegMem(), best, tempMR, cg());
+            instr = Inst_RegMem(currentInstruction, TR::InstOpCode::LEARegMem(), best, tempMR, cg());
         } else {
             if (info->getDataType() == TR_RematerializableFloat) {
                 TR::MemoryReference *tempMR
                     = generateX86MemoryReference(cg()->findOrCreate4ByteConstant(currentInstruction->getNode(),
                                                      static_cast<int32_t>(info->getConstant())),
                         cg());
-                instr = generateRegMemInstruction(currentInstruction, TR::InstOpCode::MOVSSRegMem, best, tempMR, cg());
+                instr = Inst_RegMem(currentInstruction, TR::InstOpCode::MOVSSRegMem, best, tempMR, cg());
             } else {
                 instr = TR::TreeEvaluator::insertLoadConstant(0, best, info->getConstant(), info->getDataType(), cg(),
                     currentInstruction);

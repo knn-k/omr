@@ -73,11 +73,11 @@ TR::Instruction *OMR::X86::AMD64::JitCodeRWXObjectFormat::emitFunctionCall(TR::F
         const TR::InstOpCode::Mnemonic op = data.useCall ? TR::InstOpCode::CALLImm4 : TR::InstOpCode::JMP4;
 
         if (data.prevInstr) {
-            callImmSym = generateImmSymInstruction(data.prevInstr, op, static_cast<int32_t>(targetAddress),
-                methodSymRef, data.regDeps, data.cg);
-        } else {
-            callImmSym = generateImmSymInstruction(op, data.callNode, static_cast<int32_t>(targetAddress), methodSymRef,
+            callImmSym = Inst_ImmSym(data.prevInstr, op, static_cast<int32_t>(targetAddress), methodSymRef,
                 data.regDeps, data.cg);
+        } else {
+            callImmSym = Inst_ImmSym(op, data.callNode, static_cast<int32_t>(targetAddress), methodSymRef, data.regDeps,
+                data.cg);
         }
 
         if (data.adjustsFramePointerBy != 0) {
@@ -101,11 +101,11 @@ TR::Instruction *OMR::X86::AMD64::JitCodeRWXObjectFormat::emitFunctionCall(TR::F
              * will be properly relocated by the binary encoding of the instruction.
              */
             if (data.prevInstr) {
-                callInstr = generateImmSymInstruction(data.prevInstr, TR::InstOpCode::CALLImm4, 0, data.methodSymRef,
-                    data.regDeps, data.cg);
+                callInstr = Inst_ImmSym(data.prevInstr, TR::InstOpCode::CALLImm4, 0, data.methodSymRef, data.regDeps,
+                    data.cg);
             } else {
-                callInstr = generateImmSymInstruction(TR::InstOpCode::CALLImm4, data.callNode, 0, data.methodSymRef,
-                    data.regDeps, data.cg);
+                callInstr
+                    = Inst_ImmSym(TR::InstOpCode::CALLImm4, data.callNode, 0, data.methodSymRef, data.regDeps, data.cg);
             }
         } else {
             /**
@@ -117,11 +117,11 @@ TR::Instruction *OMR::X86::AMD64::JitCodeRWXObjectFormat::emitFunctionCall(TR::F
                 TR::AMD64RegImm64SymInstruction *loadInstr;
 
                 if (data.prevInstr) {
-                    loadInstr = generateRegImm64SymInstruction(data.prevInstr, TR::InstOpCode::MOV8RegImm64,
-                        data.scratchReg, targetAddress, data.methodSymRef, data.cg);
+                    loadInstr = Inst_RegImm64Sym(data.prevInstr, TR::InstOpCode::MOV8RegImm64, data.scratchReg,
+                        targetAddress, data.methodSymRef, data.cg);
                 } else {
-                    loadInstr = generateRegImm64SymInstruction(TR::InstOpCode::MOV8RegImm64, data.callNode,
-                        data.scratchReg, targetAddress, data.methodSymRef, data.cg);
+                    loadInstr = Inst_RegImm64Sym(TR::InstOpCode::MOV8RegImm64, data.callNode, data.scratchReg,
+                        targetAddress, data.methodSymRef, data.cg);
                 }
 
                 if (data.reloKind != TR_NoRelocation) {
@@ -133,11 +133,11 @@ TR::Instruction *OMR::X86::AMD64::JitCodeRWXObjectFormat::emitFunctionCall(TR::F
                 TR::AMD64RegImm64Instruction *loadInstr;
 
                 if (data.prevInstr) {
-                    loadInstr = generateRegImm64Instruction(data.prevInstr, TR::InstOpCode::MOV8RegImm64,
-                        data.scratchReg, targetAddress, data.cg, data.reloKind);
+                    loadInstr = Inst_RegImm64(data.prevInstr, TR::InstOpCode::MOV8RegImm64, data.scratchReg,
+                        targetAddress, data.cg, data.reloKind);
                 } else {
-                    loadInstr = generateRegImm64Instruction(TR::InstOpCode::MOV8RegImm64, data.callNode,
-                        data.scratchReg, targetAddress, data.cg, data.reloKind);
+                    loadInstr = Inst_RegImm64(TR::InstOpCode::MOV8RegImm64, data.callNode, data.scratchReg,
+                        targetAddress, data.cg, data.reloKind);
                 }
 
                 data.out_materializeTargetAddressInstr = loadInstr;
@@ -150,10 +150,10 @@ TR::Instruction *OMR::X86::AMD64::JitCodeRWXObjectFormat::emitFunctionCall(TR::F
                  * the provided \c prevInstr, so the call or branch instruction must be inserted
                  * after the materialization instruction.
                  */
-                callInstr = generateRegInstruction(data.out_materializeTargetAddressInstr, op, data.scratchReg,
-                    data.regDeps, data.cg);
+                callInstr
+                    = Inst_Reg(data.out_materializeTargetAddressInstr, op, data.scratchReg, data.regDeps, data.cg);
             } else {
-                callInstr = generateRegInstruction(op, data.callNode, data.scratchReg, data.regDeps, data.cg);
+                callInstr = Inst_Reg(op, data.callNode, data.scratchReg, data.regDeps, data.cg);
             }
         }
     }
