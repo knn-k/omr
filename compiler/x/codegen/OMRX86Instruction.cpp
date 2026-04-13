@@ -2929,6 +2929,34 @@ void TR::AMD64RegImm64SymInstruction::autoSetReloKind()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// TR::X86VFPCallCleanupInstruction
+////////////////////////////////////////////////////////////////////////////////
+
+void TR::X86VFPCallCleanupInstruction::assignRegisters(TR_RegisterKinds kindsToBeAssigned)
+{
+    OMR::X86::Instruction::assignRegisters(kindsToBeAssigned);
+}
+
+#ifdef J9_PROJECT_SPECIFIC
+////////////////////////////////////////////////////////////////////////////////
+// TR::X86VirtualGuardNOPInstruction:: member functions
+////////////////////////////////////////////////////////////////////////////////
+///
+bool TR::X86VirtualGuardNOPInstruction::usesRegister(TR::Register *reg)
+{
+    if (_nopSize > 0 && cg()->machine()->getRealRegister(_register) == reg)
+        return true;
+    if (getDependencyConditions())
+        return getDependencyConditions()->usesRegister(reg);
+    return false;
+}
+
+bool TR::X86VirtualGuardNOPInstruction::defsRegister(TR::Register *reg) { return usesRegister(reg); }
+
+bool TR::X86VirtualGuardNOPInstruction::refsRegister(TR::Register *reg) { return usesRegister(reg); }
+#endif
+
+////////////////////////////////////////////////////////////////////////////////
 // Generate methods
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -3161,11 +3189,6 @@ TR::X86LabelInstruction *generateLabelInstruction(TR::InstOpCode::Mnemonic opCod
     return instr;
 }
 
-static TR_AtomicRegion longBranchAtomicRegions[] = {
-    { 0x0, 6 }, // The entire long branch instruction; TODO: JMP instructions are only 5 bytes
-    {   0, 0 }
-};
-
 TR::X86LabelInstruction *generateJumpInstruction(TR::InstOpCode::Mnemonic opCode, TR::Node *jumpNode,
     TR::CodeGenerator *cg, bool evaluateGlRegDeps)
 {
@@ -3221,19 +3244,6 @@ TR::X86VirtualGuardNOPInstruction *generateVirtualGuardNOPInstruction(TR::Instru
     return new (cg->trHeapMemory())
         TR::X86VirtualGuardNOPInstruction(i, TR::InstOpCode::vgnop, node, site, deps, cg, label);
 }
-
-bool TR::X86VirtualGuardNOPInstruction::usesRegister(TR::Register *reg)
-{
-    if (_nopSize > 0 && cg()->machine()->getRealRegister(_register) == reg)
-        return true;
-    if (getDependencyConditions())
-        return getDependencyConditions()->usesRegister(reg);
-    return false;
-}
-
-bool TR::X86VirtualGuardNOPInstruction::defsRegister(TR::Register *reg) { return usesRegister(reg); }
-
-bool TR::X86VirtualGuardNOPInstruction::refsRegister(TR::Register *reg) { return usesRegister(reg); }
 #endif
 
 TR::X86RegImmInstruction *generateRegImmInstruction(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *treg,
@@ -3555,11 +3565,6 @@ TR::X86ImmSymInstruction *generateHelperCallInstruction(TR::Node *node, TR_Runti
         cg);
 }
 
-void TR::X86VFPCallCleanupInstruction::assignRegisters(TR_RegisterKinds kindsToBeAssigned)
-{
-    OMR::X86::Instruction::assignRegisters(kindsToBeAssigned);
-}
-
 TR::X86VFPSaveInstruction *generateVFPSaveInstruction(TR::Instruction *precedingInstruction, TR::CodeGenerator *cg)
 {
     return new (cg->trHeapMemory()) TR::X86VFPSaveInstruction(precedingInstruction, cg);
@@ -3718,3 +3723,836 @@ TR::AMD64Imm64SymInstruction *generateImm64SymInstruction(TR::Instruction *prece
 {
     return new (cg->trHeapMemory()) TR::AMD64Imm64SymInstruction(precedingInstruction, op, imm, sr, cond, cg);
 }
+
+namespace OMR { namespace X86 {
+
+// X86Instruction
+//
+TR::Instruction *Inst(TR::Instruction *prev, TR::InstOpCode::Mnemonic op, TR::CodeGenerator *cg,
+    OMR::X86::Encoding encoding)
+{
+    return new (cg->trHeapMemory()) TR::Instruction(op, prev, cg, encoding);
+}
+
+TR::Instruction *Inst(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::CodeGenerator *cg, OMR::X86::Encoding encoding)
+{
+    return new (cg->trHeapMemory()) TR::Instruction(node, op, cg, encoding);
+}
+
+TR::Instruction *Inst(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::RegisterDependencyConditions *cond,
+    TR::CodeGenerator *cg, OMR::X86::Encoding encoding)
+{
+    return new (cg->trHeapMemory()) TR::Instruction(cond, node, op, cg, encoding);
+}
+
+// X86AlignmentInstruction
+//
+TR::X86AlignmentInstruction *Inst_Alignment(TR::Node *node, uint8_t boundary, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86AlignmentInstruction(node, boundary, cg);
+}
+
+TR::X86AlignmentInstruction *Inst_Alignment(TR::Node *node, uint8_t boundary, uint8_t margin, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86AlignmentInstruction(node, boundary, margin, cg);
+}
+
+TR::X86AlignmentInstruction *Inst_Alignment(TR::Instruction *precedingInstruction, uint8_t boundary,
+    TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86AlignmentInstruction(precedingInstruction, boundary, cg);
+}
+
+TR::X86AlignmentInstruction *Inst_Alignment(TR::Instruction *precedingInstruction, uint8_t boundary, uint8_t margin,
+    TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86AlignmentInstruction(precedingInstruction, boundary, margin, cg);
+}
+
+// X86BoundaryAvoidanceInstruction
+//
+TR::X86BoundaryAvoidanceInstruction *Inst_BoundaryAvoidance(const TR_AtomicRegion *atomicRegions,
+    uint8_t boundarySpacing, uint8_t maxPadding, TR::Instruction *targetCode, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory())
+        TR::X86BoundaryAvoidanceInstruction(atomicRegions, boundarySpacing, maxPadding, targetCode, cg);
+}
+
+// X86CallMemInstruction
+//
+TR::X86CallMemInstruction *Inst_CallMem(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::MemoryReference *mr,
+    TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86CallMemInstruction(op, node, mr, cond, cg);
+}
+
+TR::X86CallMemInstruction *Inst_CallMem(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::MemoryReference *mr,
+    TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86CallMemInstruction(op, node, mr, cg);
+}
+
+TR::X86CallMemInstruction *Inst_CallMem(TR::Instruction *prevInstr, TR::InstOpCode::Mnemonic op,
+    TR::MemoryReference *mr, TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86CallMemInstruction(prevInstr, op, mr, cond, cg);
+}
+
+// X86ConditionalJump
+//
+TR::X86LabelInstruction *Inst_ConditionalJump(TR::InstOpCode::Mnemonic opCode, TR::Node *ifNode, TR::CodeGenerator *cg)
+{
+    TR::X86LabelInstruction *inst;
+    TR::LabelSymbol *destinationLabel = ifNode->getBranchDestination()->getNode()->getLabel();
+
+    if (ifNode->getNumChildren() == 3) {
+        TR::Node *glRegDep = ifNode->getChild(2);
+        inst = Inst_Label(opCode, ifNode, destinationLabel, glRegDep, true, cg);
+    } else {
+        inst = Inst_Label(opCode, ifNode, destinationLabel, cg);
+    }
+
+    return inst;
+}
+
+// X86FenceInstruction
+//
+TR::X86FenceInstruction *Inst_Fence(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Node *fenceNode,
+    TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86FenceInstruction(op, node, fenceNode, cg);
+}
+
+// X86ImmInstruction
+//
+TR::X86ImmInstruction *Inst_Imm(TR::InstOpCode::Mnemonic op, TR::Node *node, int32_t imm,
+    TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86ImmInstruction(op, node, imm, cond, cg);
+}
+
+TR::X86ImmInstruction *Inst_Imm(TR::InstOpCode::Mnemonic op, TR::Node *node, int32_t imm, TR::CodeGenerator *cg,
+    int32_t reloKind)
+{
+    return new (cg->trHeapMemory()) TR::X86ImmInstruction(op, node, imm, cg, reloKind);
+}
+
+TR::X86ImmInstruction *Inst_Imm(TR::Instruction *prev, TR::InstOpCode::Mnemonic op, int32_t imm,
+    TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86ImmInstruction(prev, op, imm, cond, cg);
+}
+
+TR::X86ImmInstruction *Inst_Imm(TR::Instruction *prev, TR::InstOpCode::Mnemonic op, int32_t imm, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86ImmInstruction(prev, op, imm, cg);
+}
+
+// X86HelperCallInstruction
+//
+TR::X86ImmSymInstruction *Inst_HelperCall(TR::Instruction *cursor, TR_RuntimeHelper index, TR::CodeGenerator *cg)
+{
+    TR::SymbolReference *helperSymRef = cg->symRefTab()->findOrCreateRuntimeHelper(index);
+    cg->resetIsLeafMethod();
+    return new (cg->trHeapMemory()) TR::X86ImmSymInstruction(cursor, TR::InstOpCode::CALLImm4,
+        static_cast<int32_t>(reinterpret_cast<intptr_t>(helperSymRef->getMethodAddress())), helperSymRef, cg);
+}
+
+TR::X86ImmSymInstruction *Inst_HelperCall(TR::Node *node, TR_RuntimeHelper index,
+    TR::RegisterDependencyConditions *dependencies, TR::CodeGenerator *cg)
+{
+    TR::SymbolReference *helperSymRef = cg->symRefTab()->findOrCreateRuntimeHelper(index);
+    cg->resetIsLeafMethod();
+    return Inst_ImmSym(TR::InstOpCode::CALLImm4, node,
+        static_cast<int32_t>(reinterpret_cast<intptr_t>(helperSymRef->getMethodAddress())), helperSymRef, dependencies,
+        cg);
+}
+
+// AMD64Imm64Instruction
+//
+TR::AMD64Imm64Instruction *Inst_Imm64(TR::InstOpCode::Mnemonic op, TR::Node *node, uint64_t imm, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::AMD64Imm64Instruction(op, node, imm, cg);
+}
+
+TR::AMD64Imm64Instruction *Inst_Imm64(TR::Instruction *precedingInstruction, TR::InstOpCode::Mnemonic op, uint64_t imm,
+    TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::AMD64Imm64Instruction(precedingInstruction, op, imm, cg);
+}
+
+TR::AMD64Imm64Instruction *Inst_Imm64(TR::InstOpCode::Mnemonic op, TR::Node *node, uint64_t imm,
+    TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::AMD64Imm64Instruction(op, node, imm, cond, cg);
+}
+
+TR::AMD64Imm64Instruction *Inst_Imm64(TR::Instruction *precedingInstruction, TR::InstOpCode::Mnemonic op, uint64_t imm,
+    TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::AMD64Imm64Instruction(precedingInstruction, op, imm, cond, cg);
+}
+
+// AMD64Imm64SymInstruction
+//
+TR::AMD64Imm64SymInstruction *Inst_Imm64Sym(TR::InstOpCode::Mnemonic op, TR::Node *node, uint64_t imm,
+    TR::SymbolReference *sr, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::AMD64Imm64SymInstruction(op, node, imm, sr, cg);
+}
+
+TR::AMD64Imm64SymInstruction *Inst_Imm64Sym(TR::Instruction *precedingInstruction, TR::InstOpCode::Mnemonic op,
+    uint64_t imm, TR::SymbolReference *sr, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::AMD64Imm64SymInstruction(precedingInstruction, op, imm, sr, cg);
+}
+
+TR::AMD64Imm64SymInstruction *Inst_Imm64Sym(TR::InstOpCode::Mnemonic op, TR::Node *node, uint64_t imm,
+    TR::SymbolReference *sr, TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::AMD64Imm64SymInstruction(op, node, imm, sr, cond, cg);
+}
+
+TR::AMD64Imm64SymInstruction *Inst_Imm64Sym(TR::Instruction *precedingInstruction, TR::InstOpCode::Mnemonic op,
+    uint64_t imm, TR::SymbolReference *sr, TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::AMD64Imm64SymInstruction(precedingInstruction, op, imm, sr, cond, cg);
+}
+
+// X86ImmSnippetInstruction
+//
+TR::X86ImmSnippetInstruction *Inst_ImmSnippet(TR::InstOpCode::Mnemonic op, TR::Node *node, int32_t imm,
+    TR::UnresolvedDataSnippet *snippet, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86ImmSnippetInstruction(op, node, imm, snippet, cg);
+}
+
+// X86ImmSymInstruction
+//
+TR::X86ImmSymInstruction *Inst_ImmSym(TR::InstOpCode::Mnemonic op, TR::Node *node, int32_t imm, TR::SymbolReference *sr,
+    TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86ImmSymInstruction(op, node, imm, sr, cg);
+}
+
+TR::X86ImmSymInstruction *Inst_ImmSym(TR::InstOpCode::Mnemonic op, TR::Node *node, int32_t imm, TR::SymbolReference *sr,
+    TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86ImmSymInstruction(op, node, imm, sr, cond, cg);
+}
+
+TR::X86ImmSymInstruction *Inst_ImmSym(TR::Instruction *prev, TR::InstOpCode::Mnemonic op, int32_t imm,
+    TR::SymbolReference *sr, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86ImmSymInstruction(prev, op, imm, sr, cg);
+}
+
+TR::X86ImmSymInstruction *Inst_ImmSym(TR::Instruction *prev, TR::InstOpCode::Mnemonic op, int32_t imm,
+    TR::SymbolReference *sr, TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86ImmSymInstruction(prev, op, imm, sr, cond, cg);
+}
+
+// X86JumpInstruction
+//
+TR::X86LabelInstruction *Inst_Jump(TR::InstOpCode::Mnemonic opCode, TR::Node *jumpNode, TR::CodeGenerator *cg,
+    bool evaluateGlRegDeps)
+{
+    TR::LabelSymbol *destinationLabel = jumpNode->getBranchDestination()->getNode()->getLabel();
+    TR::X86LabelInstruction *inst;
+
+    (jumpNode->getNumChildren() > 0)
+        ? inst = Inst_Label(opCode, jumpNode, destinationLabel, jumpNode->getFirstChild(), evaluateGlRegDeps, cg)
+        : inst = Inst_Label(opCode, jumpNode, destinationLabel, cg);
+
+    return inst;
+}
+
+// X86LabelInstruction
+//
+TR::X86LabelInstruction *Inst_Label(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::LabelSymbol *sym,
+    TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86LabelInstruction(op, node, sym, cg);
+}
+
+TR::X86LabelInstruction *Inst_Label(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::LabelSymbol *sym,
+    TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86LabelInstruction(op, node, sym, cond, cg);
+}
+
+TR::X86LabelInstruction *Inst_Label(TR::Instruction *prev, TR::InstOpCode::Mnemonic op, TR::LabelSymbol *sym,
+    TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86LabelInstruction(prev, op, sym, cg);
+}
+
+TR::X86LabelInstruction *Inst_Label(TR::Instruction *prev, TR::InstOpCode::Mnemonic op, TR::LabelSymbol *sym,
+    TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86LabelInstruction(prev, op, sym, cond, cg);
+}
+
+TR::X86LabelInstruction *Inst_Label(TR::InstOpCode::Mnemonic opCode, TR::Node *node, TR::LabelSymbol *label,
+    TR::Node *glRegDep, bool evaluateGlRegDeps, TR::CodeGenerator *cg)
+{
+    if (evaluateGlRegDeps) {
+        cg->evaluate(glRegDep);
+    }
+
+    TR::X86LabelInstruction *instr
+        = Inst_Label(opCode, node, label, generateRegisterDependencyConditions(glRegDep, cg, 0), cg);
+
+    return instr;
+}
+
+// X86LongLabelInstruction
+//
+TR::X86LabelInstruction *Inst_LongLabel(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::LabelSymbol *sym,
+    TR::CodeGenerator *cg)
+{
+    TR::X86LabelInstruction *toReturn = new (cg->trHeapMemory()) TR::X86LabelInstruction(op, node, sym, cg);
+    toReturn->prohibitShortening();
+    return toReturn;
+}
+
+TR::X86LabelInstruction *Inst_LongLabel(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::LabelSymbol *sym,
+    TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
+{
+    TR::X86LabelInstruction *toReturn = new (cg->trHeapMemory()) TR::X86LabelInstruction(op, node, sym, cond, cg);
+    toReturn->prohibitShortening();
+    return toReturn;
+}
+
+// X86MemInstruction
+//
+TR::X86MemInstruction *Inst_Mem(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::MemoryReference *mr,
+    TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86MemInstruction(op, node, mr, cg);
+}
+
+TR::X86MemInstruction *Inst_Mem(TR::Instruction *precedingInstruction, TR::InstOpCode::Mnemonic op,
+    TR::MemoryReference *mr, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86MemInstruction(precedingInstruction, op, mr, cg);
+}
+
+TR::X86MemInstruction *Inst_Mem(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::MemoryReference *mr,
+    TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86MemInstruction(op, node, mr, cond, cg);
+}
+
+// X86MemImmInstruction
+//
+TR::X86MemImmInstruction *Inst_MemImm(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::MemoryReference *mr, int32_t imm,
+    TR::CodeGenerator *cg, int32_t reloKind)
+{
+    return new (cg->trHeapMemory()) TR::X86MemImmInstruction(op, node, mr, imm, cg, reloKind);
+}
+
+TR::X86MemImmInstruction *Inst_MemImm(TR::Instruction *precedingInstruction, TR::InstOpCode::Mnemonic op,
+    TR::MemoryReference *mr, int32_t imm, TR::CodeGenerator *cg, int32_t reloKind)
+{
+    return new (cg->trHeapMemory()) TR::X86MemImmInstruction(precedingInstruction, op, mr, imm, cg, reloKind);
+}
+
+// X86MemImmSymInstruction
+//
+TR::X86MemImmSymInstruction *Inst_MemImmSym(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::MemoryReference *mr,
+    int32_t imm, TR::SymbolReference *sr, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86MemImmSymInstruction(op, node, mr, imm, sr, cg);
+}
+
+// X86MemMaskInstruction
+//
+TR::X86MemMaskRegInstruction *Inst_MemMaskReg(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::MemoryReference *mr,
+    TR::Register *mreg, TR::Register *sreg, TR::CodeGenerator *cg, OMR::X86::Encoding encoding, bool zeroMask)
+{
+    return new (cg->trHeapMemory()) TR::X86MemMaskRegInstruction(op, node, mr, mreg, sreg, cg, encoding, zeroMask);
+}
+
+TR::X86MemMaskRegInstruction *Inst_MemMaskReg(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::MemoryReference *mr,
+    TR::Register *mreg, TR::Register *sreg, TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg,
+    OMR::X86::Encoding encoding, bool zeroMask)
+{
+    return new (cg->trHeapMemory())
+        TR::X86MemMaskRegInstruction(op, node, mr, mreg, sreg, cond, cg, encoding, zeroMask);
+}
+
+// X86MemRegInstruction
+//
+TR::X86MemRegInstruction *Inst_MemReg(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::MemoryReference *mr,
+    TR::Register *sreg, TR::CodeGenerator *cg, OMR::X86::Encoding encoding)
+{
+    return new (cg->trHeapMemory()) TR::X86MemRegInstruction(op, node, mr, sreg, cg, encoding);
+}
+
+TR::X86MemRegInstruction *Inst_MemReg(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::MemoryReference *mr,
+    TR::Register *sreg, TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg, OMR::X86::Encoding encoding)
+{
+    return new (cg->trHeapMemory()) TR::X86MemRegInstruction(op, node, mr, sreg, cond, cg, encoding);
+}
+
+TR::X86MemRegInstruction *Inst_MemReg(TR::Instruction *precedingInstruction, TR::InstOpCode::Mnemonic op,
+    TR::MemoryReference *mr, TR::Register *sreg, TR::CodeGenerator *cg, OMR::X86::Encoding encoding)
+{
+    return new (cg->trHeapMemory()) TR::X86MemRegInstruction(precedingInstruction, op, mr, sreg, cg, encoding);
+}
+
+// X86MemTableInstruction
+//
+TR::X86MemTableInstruction *Inst_MemTable(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::MemoryReference *mr,
+    ncount_t numEntries, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86MemTableInstruction(op, node, mr, numEntries, cg);
+}
+
+TR::X86MemTableInstruction *Inst_MemTable(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::MemoryReference *mr,
+    ncount_t numEntries, TR::RegisterDependencyConditions *deps, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86MemTableInstruction(op, node, mr, numEntries, deps, cg);
+}
+
+// X86PaddingInstruction
+//
+TR::X86PaddingInstruction *Inst_Padding(uint8_t length, TR::Node *node, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86PaddingInstruction(length, node, cg);
+}
+
+TR::X86PaddingInstruction *Inst_Padding(TR::Instruction *precedingInstruction, uint8_t length, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86PaddingInstruction(precedingInstruction, length, cg);
+}
+
+// X86PaddingSnippetInstruction
+//
+TR::X86PaddingSnippetInstruction *Inst_PaddingSnippet(uint8_t length, TR::Node *node, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86PaddingSnippetInstruction(length, node, cg);
+}
+
+// X86PatchableCodeAlignmentInstruction
+//
+TR::X86PatchableCodeAlignmentInstruction *Inst_PatchableCodeAlignment(const TR_AtomicRegion *atomicRegions,
+    TR::Instruction *patchableCode, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86PatchableCodeAlignmentInstruction(atomicRegions, patchableCode, cg);
+}
+
+TR::X86PatchableCodeAlignmentInstruction *Inst_PatchableCodeAlignment(TR::Instruction *prev,
+    const TR_AtomicRegion *atomicRegions, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86PatchableCodeAlignmentInstruction(prev, atomicRegions, cg);
+}
+
+// X86PatchableCodeAlignmentWithProtectiveNop
+//
+TR::X86PatchableCodeAlignmentInstruction *Inst_PatchableCodeAlignmentWithProtectiveNop(
+    const TR_AtomicRegion *atomicRegions, TR::Instruction *patchableCode, int32_t sizeOfProtectiveNop,
+    TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory())
+        TR::X86PatchableCodeAlignmentInstruction(atomicRegions, patchableCode, sizeOfProtectiveNop, cg);
+}
+
+// X86RegInstruction
+//
+TR::X86RegInstruction *Inst_Reg(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *treg, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86RegInstruction(op, node, treg, cg);
+}
+
+TR::X86RegInstruction *Inst_Reg(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *treg,
+    TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86RegInstruction(op, node, treg, cond, cg);
+}
+
+TR::X86RegInstruction *Inst_Reg(TR::Instruction *prev, TR::InstOpCode::Mnemonic op, TR::Register *reg1,
+    TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86RegInstruction(reg1, op, prev, cg);
+}
+
+TR::X86RegInstruction *Inst_Reg(TR::Instruction *prev, TR::InstOpCode::Mnemonic op, TR::Register *reg1,
+    TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86RegInstruction(cond, reg1, op, prev, cg);
+}
+
+// X86RegImmInstruction
+//
+TR::X86RegImmInstruction *Inst_RegImm(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *treg, int32_t imm,
+    TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86RegImmInstruction(op, node, treg, imm, cond, cg);
+}
+
+TR::X86RegImmInstruction *Inst_RegImm(TR::Instruction *instr, TR::InstOpCode::Mnemonic op, TR::Register *treg,
+    int32_t imm, TR::CodeGenerator *cg, int32_t reloKind)
+{
+    return new (cg->trHeapMemory()) TR::X86RegImmInstruction(instr, op, treg, imm, cg, reloKind);
+}
+
+TR::X86RegImmInstruction *Inst_RegImm(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *treg, int32_t imm,
+    TR::CodeGenerator *cg, int32_t reloKind)
+{
+    return new (cg->trHeapMemory()) TR::X86RegImmInstruction(op, node, treg, imm, cg, reloKind);
+}
+
+TR::X86RegImmInstruction *Inst_RegImm(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *treg, int32_t imm,
+    TR::CodeGenerator *cg, int32_t reloKind, OMR::X86::Encoding encoding)
+{
+    return new (cg->trHeapMemory()) TR::X86RegImmInstruction(op, node, treg, imm, cg, encoding, reloKind);
+}
+
+// X86RegImmSymInstruction
+//
+TR::X86RegImmSymInstruction *Inst_RegImmSym(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *treg,
+    int32_t imm, TR::SymbolReference *sr, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86RegImmSymInstruction(op, node, treg, imm, sr, cg);
+}
+
+// AMD64RegImm64Instruction
+//
+TR::AMD64RegImm64Instruction *Inst_RegImm64(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *treg,
+    uint64_t imm, TR::CodeGenerator *cg, int32_t reloKind)
+{
+    return new (cg->trHeapMemory()) TR::AMD64RegImm64Instruction(op, node, treg, imm, cg, reloKind);
+}
+
+TR::AMD64RegImm64Instruction *Inst_RegImm64(TR::Instruction *precedingInstruction, TR::InstOpCode::Mnemonic op,
+    TR::Register *treg, uint64_t imm, TR::CodeGenerator *cg, int32_t reloKind)
+{
+    return new (cg->trHeapMemory()) TR::AMD64RegImm64Instruction(precedingInstruction, op, treg, imm, cg, reloKind);
+}
+
+TR::AMD64RegImm64Instruction *Inst_RegImm64(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *treg,
+    uint64_t imm, TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg, int32_t reloKind)
+{
+    return new (cg->trHeapMemory()) TR::AMD64RegImm64Instruction(op, node, treg, imm, cond, cg, reloKind);
+}
+
+TR::AMD64RegImm64Instruction *Inst_RegImm64(TR::Instruction *precedingInstruction, TR::InstOpCode::Mnemonic op,
+    TR::Register *treg, uint64_t imm, TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg, int32_t reloKind)
+{
+    return new (cg->trHeapMemory())
+        TR::AMD64RegImm64Instruction(precedingInstruction, op, treg, imm, cond, cg, reloKind);
+}
+
+// AMD64RegImm64SymInstruction
+//
+TR::AMD64RegImm64SymInstruction *Inst_RegImm64Sym(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *reg,
+    uint64_t imm, TR::SymbolReference *sr, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::AMD64RegImm64SymInstruction(op, node, reg, imm, sr, cg);
+}
+
+TR::AMD64RegImm64SymInstruction *Inst_RegImm64Sym(TR::Instruction *precedingInstruction, TR::InstOpCode::Mnemonic op,
+    TR::Register *reg, uint64_t imm, TR::SymbolReference *sr, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::AMD64RegImm64SymInstruction(precedingInstruction, op, reg, imm, sr, cg);
+}
+
+// X86RegMaskMemInstruction
+//
+TR::X86RegMaskMemInstruction *Inst_RegMaskMem(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *reg1,
+    TR::Register *mreg, TR::MemoryReference *mr, TR::CodeGenerator *cg, OMR::X86::Encoding encoding, bool zeroMask)
+{
+    TR_ASSERT_FATAL(encoding != OMR::X86::Bad && encoding >= OMR::X86::Encoding::EVEX_L128,
+        "Must use EVEX encoding for AVX-512 instructions");
+    TR_ASSERT_FATAL(mreg->getKind() == TR_VMR, "Mask register must be a VMR");
+
+    return new (cg->trHeapMemory()) TR::X86RegMaskMemInstruction(op, node, reg1, mreg, mr, cg, encoding, zeroMask);
+}
+
+TR::X86RegMaskMemInstruction *Inst_RegMaskMem(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *reg1,
+    TR::Register *mreg, TR::MemoryReference *mr, TR::RegisterDependencyConditions *deps, TR::CodeGenerator *cg,
+    OMR::X86::Encoding encoding, bool zeroMask)
+{
+    TR_ASSERT_FATAL(encoding != OMR::X86::Bad && encoding >= OMR::X86::Encoding::EVEX_L128,
+        "Must use EVEX encoding for AVX-512 instructions");
+    TR_ASSERT_FATAL(mreg->getKind() == TR_VMR, "Mask register must be a VMR");
+
+    return new (cg->trHeapMemory())
+        TR::X86RegMaskMemInstruction(op, node, reg1, mreg, mr, deps, cg, encoding, zeroMask);
+}
+
+// X86RegMaskRegInstruction
+//
+TR::X86RegMaskRegInstruction *Inst_RegMaskReg(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *reg1,
+    TR::Register *mreg, TR::Register *reg2, TR::CodeGenerator *cg, OMR::X86::Encoding encoding, bool zeroMask)
+{
+    TR_ASSERT_FATAL(encoding != OMR::X86::Bad && encoding >= OMR::X86::Encoding::EVEX_L128,
+        "Must use EVEX encoding for AVX-512 instructions");
+    TR_ASSERT_FATAL(mreg->getKind() == TR_VMR, "Mask register must be a VMR");
+
+    return new (cg->trHeapMemory()) TR::X86RegMaskRegInstruction(reg1, mreg, reg2, node, op, cg, encoding, zeroMask);
+}
+
+TR::X86RegMaskRegInstruction *Inst_RegMaskReg(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *reg1,
+    TR::Register *mreg, TR::Register *reg2, TR::RegisterDependencyConditions *deps, TR::CodeGenerator *cg,
+    OMR::X86::Encoding encoding, bool zeroMask)
+{
+    TR_ASSERT_FATAL(encoding != OMR::X86::Bad && encoding >= OMR::X86::Encoding::EVEX_L128,
+        "Must use EVEX encoding for AVX-512 instructions");
+    TR_ASSERT_FATAL(mreg->getKind() == TR_VMR, "Mask register must be a VMR");
+
+    return new (cg->trHeapMemory())
+        TR::X86RegMaskRegInstruction(reg1, mreg, reg2, node, op, deps, cg, encoding, zeroMask);
+}
+
+// X86RegMaskRegRegInstruction
+//
+TR::X86RegMaskRegRegInstruction *Inst_RegMaskRegReg(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *reg1,
+    TR::Register *mreg, TR::Register *reg2, TR::Register *reg3, TR::CodeGenerator *cg, OMR::X86::Encoding encoding,
+    bool zeroMask)
+{
+    TR_ASSERT_FATAL(encoding != OMR::X86::Bad && encoding >= OMR::X86::Encoding::EVEX_L128,
+        "Must use EVEX encoding for AVX-512 instructions");
+    TR_ASSERT_FATAL(mreg->getKind() == TR_VMR, "Mask register must be a VMR");
+
+    return new (cg->trHeapMemory())
+        TR::X86RegMaskRegRegInstruction(reg1, mreg, reg2, reg3, node, op, cg, encoding, zeroMask);
+}
+
+TR::X86RegMaskRegRegInstruction *Inst_RegMaskRegReg(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *reg1,
+    TR::Register *mreg, TR::Register *reg2, TR::Register *reg3, TR::RegisterDependencyConditions *deps,
+    TR::CodeGenerator *cg, OMR::X86::Encoding encoding, bool zeroMask)
+{
+    TR_ASSERT_FATAL(encoding != OMR::X86::Bad && encoding >= OMR::X86::Encoding::EVEX_L128,
+        "Must use EVEX encoding for AVX-512 instructions");
+    TR_ASSERT_FATAL(mreg->getKind() == TR_VMR, "Mask register must be a VMR");
+
+    return new (cg->trHeapMemory())
+        TR::X86RegMaskRegRegInstruction(reg1, mreg, reg2, reg3, node, op, deps, cg, encoding, zeroMask);
+}
+
+// X86RegMaskRegRegImmInstruction
+//
+TR::X86RegMaskRegRegImmInstruction *Inst_RegMaskRegRegImm(TR::InstOpCode::Mnemonic op, TR::Node *node,
+    TR::Register *reg1, TR::Register *mreg, TR::Register *reg2, TR::Register *reg3, int32_t imm, TR::CodeGenerator *cg,
+    OMR::X86::Encoding encoding, bool zeroMask)
+{
+    TR_ASSERT_FATAL(encoding != OMR::X86::Bad && encoding >= OMR::X86::Encoding::EVEX_L128,
+        "Must use EVEX encoding for AVX-512 instructions");
+    TR_ASSERT_FATAL(mreg->getKind() == TR_VMR, "Mask register must be a VMR");
+
+    return new (cg->trHeapMemory())
+        TR::X86RegMaskRegRegImmInstruction(reg1, mreg, reg2, reg3, imm, node, op, cg, encoding, zeroMask);
+}
+
+TR::X86RegMaskRegRegImmInstruction *Inst_RegMaskRegRegImm(TR::InstOpCode::Mnemonic op, TR::Node *node,
+    TR::Register *reg1, TR::Register *mreg, TR::Register *reg2, TR::Register *reg3, int32_t imm,
+    TR::RegisterDependencyConditions *deps, TR::CodeGenerator *cg, OMR::X86::Encoding encoding, bool zeroMask)
+{
+    TR_ASSERT_FATAL(encoding != OMR::X86::Bad && encoding >= OMR::X86::Encoding::EVEX_L128,
+        "Must use EVEX encoding for AVX-512 instructions");
+    TR_ASSERT_FATAL(mreg->getKind() == TR_VMR, "Mask register must be a VMR");
+
+    return new (cg->trHeapMemory())
+        TR::X86RegMaskRegRegImmInstruction(reg1, mreg, reg2, reg3, imm, node, op, deps, cg, encoding, zeroMask);
+}
+
+// X86RegMemInstruction
+//
+TR::X86RegMemInstruction *Inst_RegMem(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *treg,
+    TR::MemoryReference *mr, TR::CodeGenerator *cg, OMR::X86::Encoding encoding)
+{
+    return new (cg->trHeapMemory()) TR::X86RegMemInstruction(op, node, treg, mr, cg, encoding);
+}
+
+TR::X86RegMemInstruction *Inst_RegMem(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *treg,
+    TR::MemoryReference *mr, TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg, OMR::X86::Encoding encoding)
+{
+    return new (cg->trHeapMemory()) TR::X86RegMemInstruction(op, node, treg, mr, cond, cg, encoding);
+}
+
+TR::X86RegMemInstruction *Inst_RegMem(TR::Instruction *instr, TR::InstOpCode::Mnemonic op, TR::Register *treg,
+    TR::MemoryReference *mr, TR::CodeGenerator *cg, OMR::X86::Encoding encoding)
+{
+    return new (cg->trHeapMemory()) TR::X86RegMemInstruction(instr, op, treg, mr, cg, encoding);
+}
+
+// X86RegMemImmInstruction
+//
+TR::X86RegMemImmInstruction *Inst_RegMemImm(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *reg,
+    TR::MemoryReference *mr, int32_t imm, TR::CodeGenerator *cg, OMR::X86::Encoding encoding)
+{
+    return new (cg->trHeapMemory()) TR::X86RegMemImmInstruction(op, node, reg, mr, imm, cg, encoding);
+}
+
+// X86RegRegInstruction
+//
+TR::X86RegRegInstruction *Inst_RegReg(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *treg,
+    TR::Register *sreg, TR::CodeGenerator *cg, OMR::X86::Encoding encoding)
+{
+    return new (cg->trHeapMemory()) TR::X86RegRegInstruction(op, node, treg, sreg, cg, encoding);
+}
+
+TR::X86RegRegInstruction *Inst_RegReg(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *treg,
+    TR::Register *sreg, TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg, OMR::X86::Encoding encoding)
+{
+    return new (cg->trHeapMemory()) TR::X86RegRegInstruction(op, node, treg, sreg, cond, cg, encoding);
+}
+
+TR::X86RegRegInstruction *Inst_RegReg(TR::Instruction *instr, TR::InstOpCode::Mnemonic op, TR::Register *treg,
+    TR::Register *sreg, TR::CodeGenerator *cg, OMR::X86::Encoding encoding)
+{
+    return new (cg->trHeapMemory()) TR::X86RegRegInstruction(instr, op, treg, sreg, cg, encoding);
+}
+
+// X86RegRegImmInstruction
+//
+TR::X86RegRegImmInstruction *Inst_RegRegImm(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *treg,
+    TR::Register *sreg, int32_t imm, TR::CodeGenerator *cg, OMR::X86::Encoding encoding)
+{
+    return new (cg->trHeapMemory()) TR::X86RegRegImmInstruction(op, node, treg, sreg, imm, cg, encoding);
+}
+
+// X86RegRegMemInstruction
+//
+TR::X86RegRegMemInstruction *Inst_RegRegMem(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *reg1,
+    TR::Register *reg2, TR::MemoryReference *mr, TR::CodeGenerator *cg, OMR::X86::Encoding encoding)
+{
+    TR_ASSERT_FATAL(encoding != OMR::X86::Legacy, "Cannot use legacy SSE encoding for 3-operand instruction");
+
+    return new (cg->trHeapMemory()) TR::X86RegRegMemInstruction(op, node, reg1, reg2, mr, cg, encoding);
+}
+
+TR::X86RegRegMemInstruction *Inst_RegRegMem(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *reg1,
+    TR::Register *reg2, TR::MemoryReference *mr, TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg,
+    OMR::X86::Encoding encoding)
+{
+    TR_ASSERT_FATAL(encoding != OMR::X86::Legacy, "Cannot use legacy SSE encoding for 3-operand instruction");
+
+    return new (cg->trHeapMemory()) TR::X86RegRegMemInstruction(op, node, reg1, reg2, mr, cond, cg, encoding);
+}
+
+// X86RegRegRegInstruction
+//
+TR::X86RegRegRegInstruction *Inst_RegRegReg(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *reg1,
+    TR::Register *reg2, TR::Register *reg3, TR::CodeGenerator *cg, OMR::X86::Encoding encoding)
+{
+    TR_ASSERT_FATAL(encoding != OMR::X86::Legacy, "Cannot use legacy SSE encoding for 3-operand instruction");
+
+    return new (cg->trHeapMemory()) TR::X86RegRegRegInstruction(op, node, reg1, reg2, reg3, cg, encoding);
+}
+
+TR::X86RegRegRegInstruction *Inst_RegRegReg(TR::InstOpCode::Mnemonic op, TR::Node *node, TR::Register *reg1,
+    TR::Register *reg2, TR::Register *reg3, TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg,
+    OMR::X86::Encoding encoding)
+{
+    TR_ASSERT_FATAL(encoding != OMR::X86::Legacy, "Cannot use legacy SSE encoding for 3-operand instruction");
+
+    return new (cg->trHeapMemory()) TR::X86RegRegRegInstruction(op, node, reg1, reg2, reg3, cond, cg, encoding);
+}
+
+// X86VFPCallCleanupInstruction
+//
+TR::X86VFPCallCleanupInstruction *Inst_VFPCallCleanup(TR::Instruction *precedingInstruction, int32_t adjustment,
+    TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86VFPCallCleanupInstruction(precedingInstruction, adjustment, cg);
+}
+
+TR::X86VFPCallCleanupInstruction *Inst_VFPCallCleanup(int32_t adjustment, TR::Node *node, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86VFPCallCleanupInstruction(adjustment, node, cg);
+}
+
+// X86VFPDedicateInstruction
+//
+TR::X86VFPDedicateInstruction *Inst_VFPDedicate(TR::Instruction *precedingInstruction,
+    TR::RealRegister *framePointerReg, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86VFPDedicateInstruction(precedingInstruction, framePointerReg, cg);
+}
+
+TR::X86VFPDedicateInstruction *Inst_VFPDedicate(TR::RealRegister *framePointerReg, TR::Node *node,
+    TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86VFPDedicateInstruction(framePointerReg, node, cg);
+}
+
+TR::X86VFPDedicateInstruction *Inst_VFPDedicate(TR::Instruction *precedingInstruction,
+    TR::RealRegister *framePointerReg, TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86VFPDedicateInstruction(precedingInstruction, framePointerReg, cond, cg);
+}
+
+TR::X86VFPDedicateInstruction *Inst_VFPDedicate(TR::RealRegister *framePointerReg, TR::Node *node,
+    TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86VFPDedicateInstruction(framePointerReg, node, cond, cg);
+}
+
+// X86VFPReleaseInstruction
+//
+TR::X86VFPReleaseInstruction *Inst_VFPRelease(TR::Instruction *precedingInstruction,
+    TR::X86VFPDedicateInstruction *dedicateInstruction, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86VFPReleaseInstruction(precedingInstruction, dedicateInstruction, cg);
+}
+
+TR::X86VFPReleaseInstruction *Inst_VFPRelease(TR::X86VFPDedicateInstruction *dedicateInstruction, TR::Node *node,
+    TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86VFPReleaseInstruction(dedicateInstruction, node, cg);
+}
+
+// X86VFPRestoreInstruction
+//
+TR::X86VFPRestoreInstruction *Inst_VFPRestore(TR::Instruction *precedingInstruction,
+    TR::X86VFPSaveInstruction *saveInstruction, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86VFPRestoreInstruction(precedingInstruction, saveInstruction, cg);
+}
+
+TR::X86VFPRestoreInstruction *Inst_VFPRestore(TR::X86VFPSaveInstruction *saveInstruction, TR::Node *node,
+    TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86VFPRestoreInstruction(saveInstruction, node, cg);
+}
+
+// X86VFPSaveInstruction
+//
+TR::X86VFPSaveInstruction *Inst_VFPSave(TR::Instruction *precedingInstruction, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86VFPSaveInstruction(precedingInstruction, cg);
+}
+
+TR::X86VFPSaveInstruction *Inst_VFPSave(TR::Node *node, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86VFPSaveInstruction(node, cg);
+}
+
+#ifdef J9_PROJECT_SPECIFIC
+TR::X86VirtualGuardNOPInstruction *Inst_VirtualGuardNOP(TR::Node *node, TR_VirtualGuardSite *site,
+    TR::RegisterDependencyConditions *deps, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::X86VirtualGuardNOPInstruction(TR::InstOpCode::vgnop, node, site, deps, cg);
+}
+
+TR::X86VirtualGuardNOPInstruction *Inst_VirtualGuardNOP(TR::Node *node, TR_VirtualGuardSite *site,
+    TR::RegisterDependencyConditions *deps, TR::LabelSymbol *label, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory())
+        TR::X86VirtualGuardNOPInstruction(TR::InstOpCode::vgnop, node, site, deps, cg, label);
+}
+
+TR::X86VirtualGuardNOPInstruction *Inst_VirtualGuardNOP(TR::Instruction *i, TR::Node *node, TR_VirtualGuardSite *site,
+    TR::RegisterDependencyConditions *deps, TR::LabelSymbol *label, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory())
+        TR::X86VirtualGuardNOPInstruction(i, TR::InstOpCode::vgnop, node, site, deps, cg, label);
+}
+#endif
+
+}} // namespace OMR::X86
