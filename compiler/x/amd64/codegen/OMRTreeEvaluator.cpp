@@ -2207,7 +2207,7 @@ TR::Register *OMR::X86::AMD64::TreeEvaluator::dbits2lEvaluator(TR::Node *node, T
             // This one is not clever, but it is simple, and it's based directly
             // on the IA32 version which is known to work, so is safer.
             //
-            TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)0, (uint8_t)1, cg);
+            TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)0, (uint8_t)1, cg);
             deps->addPostCondition(treg, TR::RealRegister::NoReg, cg);
 
             TR::MemoryReference *nan1MR
@@ -2234,12 +2234,10 @@ TR::Register *OMR::X86::AMD64::TreeEvaluator::dbits2lEvaluator(TR::Node *node, T
             //
             uint64_t nanDetector = DOUBLE_NAN_2_LOW;
 
-            TR::RegisterDependencyConditions *internalControlFlowDeps
-                = generateRegisterDependencyConditions((uint8_t)0, (uint8_t)1, cg);
+            TR::RegisterDependencyConditions *internalControlFlowDeps = RegDeps((uint8_t)0, (uint8_t)1, cg);
             internalControlFlowDeps->addPostCondition(treg, TR::RealRegister::NoReg, cg);
 
-            TR::RegisterDependencyConditions *helperDeps
-                = generateRegisterDependencyConditions((uint8_t)1, (uint8_t)1, cg);
+            TR::RegisterDependencyConditions *helperDeps = RegDeps((uint8_t)1, (uint8_t)1, cg);
             helperDeps->addPreCondition(treg, TR::RealRegister::eax, cg);
             helperDeps->addPostCondition(treg, TR::RealRegister::eax, cg);
 

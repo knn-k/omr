@@ -715,7 +715,7 @@ TR::Register *TR::AMD64SystemLinkage::buildIndirectDispatch(TR::Node *callNode)
         = getProperties().getNumIntegerArgumentRegisters() + getProperties().getNumFloatArgumentRegisters() + 1;
     uint32_t post = getProperties().getNumVolatileRegisters() + 1 + (callNode->getDataType() == TR::NoType ? 0 : 1);
 
-    TR::RegisterDependencyConditions *callDeps = generateRegisterDependencyConditions(pre, 1, cg());
+    TR::RegisterDependencyConditions *callDeps = RegDeps(pre, 1, cg());
 
     TR::RealRegister::RegNum scratchRegIndex = getProperties().getIntegerScratchRegister(1);
     callDeps->addPostCondition(vftRegister, scratchRegIndex, cg());
@@ -732,7 +732,7 @@ TR::Register *TR::AMD64SystemLinkage::buildIndirectDispatch(TR::Node *callNode)
 
     // Build label post-conditions
     //
-    TR::RegisterDependencyConditions *postDeps = generateRegisterDependencyConditions(0, post, cg());
+    TR::RegisterDependencyConditions *postDeps = RegDeps(0, post, cg());
     TR::Register *returnReg = buildVolatileAndReturnDependencies(callNode, postDeps);
     postDeps->stopAddingPostConditions();
 
@@ -757,8 +757,8 @@ TR::Register *TR::AMD64SystemLinkage::buildDirectDispatch(TR::Node *callNode, bo
     uint32_t pre = getProperties().getNumIntegerArgumentRegisters() + getProperties().getNumFloatArgumentRegisters();
     uint32_t post = getProperties().getNumVolatileRegisters() + (callNode->getDataType() == TR::NoType ? 0 : 1);
 
-    TR::RegisterDependencyConditions *preDeps = generateRegisterDependencyConditions(pre, 0, cg());
-    TR::RegisterDependencyConditions *postDeps = generateRegisterDependencyConditions(0, post, cg());
+    TR::RegisterDependencyConditions *preDeps = RegDeps(pre, 0, cg());
+    TR::RegisterDependencyConditions *postDeps = RegDeps(0, post, cg());
 
     // Evaluate outgoing arguments on the system stack and build pre-conditions.
     //

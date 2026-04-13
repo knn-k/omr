@@ -1112,7 +1112,7 @@ TR::Register *OMR::X86::TreeEvaluator::SSE2ArraycmpEvaluator(TR::Node *node, TR:
     Inst_Label(OP::label, node, equalLabel, cg);
     Inst_RegImm(OP::MOVRegImm4(), node, resultReg, 0, cg);
 
-    TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)0, 8, cg);
+    TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)0, 8, cg);
     deps->addPostCondition(xmm1Reg, TR::RealRegister::xmm1, cg);
     deps->addPostCondition(xmm2Reg, TR::RealRegister::xmm2, cg);
     deps->addPostCondition(resultReg, TR::RealRegister::NoReg, cg);
@@ -1247,7 +1247,7 @@ TR::Register *OMR::X86::TreeEvaluator::SSE2ArraycmpLenEvaluator(TR::Node *node, 
     cg->stopUsingRegister(s1Reg);
     cg->stopUsingRegister(s2Reg);
 
-    TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)0, 8, cg);
+    TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)0, 8, cg);
     deps->addPostCondition(xmm1Reg, TR::RealRegister::xmm1, cg);
     deps->addPostCondition(xmm2Reg, TR::RealRegister::xmm2, cg);
 
@@ -1518,7 +1518,7 @@ static void arrayCopy64BitPrimitiveOnIA32(TR::Node *node, TR::Register *dstReg, 
     TR::Register *scratch = cg->allocateRegister();
     TR::Register *XMM = cg->allocateRegister(TR_FPR);
 
-    TR::RegisterDependencyConditions *dependencies = generateRegisterDependencyConditions((uint8_t)0, (uint8_t)5, cg);
+    TR::RegisterDependencyConditions *dependencies = RegDeps((uint8_t)0, (uint8_t)5, cg);
     dependencies->addPostCondition(scratch, TR::RealRegister::ByteReg, cg);
     dependencies->addPostCondition(XMM, TR::RealRegister::NoReg, cg);
     dependencies->addPostCondition(srcReg, TR::RealRegister::NoReg, cg);
@@ -1945,7 +1945,7 @@ void OMR::X86::TreeEvaluator::arrayCopy32BitPrimitiveInlineSmallSizeWithoutREPMO
 static void arrayCopy16BitPrimitive(TR::Node *node, TR::Register *dstReg, TR::Register *srcReg, TR::Register *sizeReg,
     TR::CodeGenerator *cg)
 {
-    TR::RegisterDependencyConditions *dependencies = generateRegisterDependencyConditions((uint8_t)3, (uint8_t)3, cg);
+    TR::RegisterDependencyConditions *dependencies = RegDeps((uint8_t)3, (uint8_t)3, cg);
     dependencies->addPreCondition(srcReg, TR::RealRegister::esi, cg);
     dependencies->addPreCondition(dstReg, TR::RealRegister::edi, cg);
     dependencies->addPreCondition(sizeReg, TR::RealRegister::ecx, cg);
@@ -2445,7 +2445,7 @@ static void arrayCopyPrimitiveInlineSmallSizeWithoutREPMOVS(TR::Node *node, TR::
     TR::Register *tmpXmmYmmReg1 = cg->allocateRegister(TR_VRF);
     TR::Register *tmpXmmYmmReg2 = cg->allocateRegister(TR_VRF);
 
-    TR::RegisterDependencyConditions *dependencies = generateRegisterDependencyConditions((uint8_t)7, (uint8_t)7, cg);
+    TR::RegisterDependencyConditions *dependencies = RegDeps((uint8_t)7, (uint8_t)7, cg);
 
     dependencies->addPreCondition(srcReg, TR::RealRegister::esi, cg);
     dependencies->addPreCondition(dstReg, TR::RealRegister::edi, cg);
@@ -2889,7 +2889,7 @@ static void arrayCopyDefault(TR::Node *node, uint8_t elementSize, TR::Register *
         return;
     }
 
-    TR::RegisterDependencyConditions *dependencies = generateRegisterDependencyConditions((uint8_t)3, (uint8_t)3, cg);
+    TR::RegisterDependencyConditions *dependencies = RegDeps((uint8_t)3, (uint8_t)3, cg);
     dependencies->addPreCondition(srcReg, TR::RealRegister::esi, cg);
     dependencies->addPreCondition(dstReg, TR::RealRegister::edi, cg);
     dependencies->addPreCondition(sizeReg, TR::RealRegister::ecx, cg);
@@ -3240,8 +3240,7 @@ TR::Register *OMR::X86::TreeEvaluator::arraytranslateEvaluator(TR::Node *node, T
 
     int noOfDependencies = (sourceByte && !arraytranslateOT) ? 8 : 9;
 
-    TR::RegisterDependencyConditions *dependencies
-        = generateRegisterDependencyConditions((uint8_t)0, noOfDependencies, cg);
+    TR::RegisterDependencyConditions *dependencies = RegDeps((uint8_t)0, noOfDependencies, cg);
     dependencies->addPostCondition(srcPtrReg, TR::RealRegister::esi, cg);
     dependencies->addPostCondition(dstPtrReg, TR::RealRegister::edi, cg);
     dependencies->addPostCondition(lengthReg, TR::RealRegister::ecx, cg);
@@ -3511,7 +3510,7 @@ static void arraySet64BitPrimitiveOnIA32(TR::Node *node, TR::Register *addressRe
 {
     TR::Register *XMM = cg->allocateRegister(TR_FPR);
 
-    TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)0, (uint8_t)2, cg);
+    TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)0, (uint8_t)2, cg);
     deps->addPostCondition(addressReg, TR::RealRegister::NoReg, cg);
     deps->addPostCondition(sizeReg, TR::RealRegister::ecx, cg);
 
@@ -3563,8 +3562,7 @@ static void arraySetDefault(TR::Node *node, uint8_t elementSize, TR::Register *a
 {
     TR::Register *EAX = cg->allocateRegister();
 
-    TR::RegisterDependencyConditions *stosDependencies
-        = generateRegisterDependencyConditions((uint8_t)0, (uint8_t)3, cg);
+    TR::RegisterDependencyConditions *stosDependencies = RegDeps((uint8_t)0, (uint8_t)3, cg);
     stosDependencies->addPostCondition(EAX, TR::RealRegister::eax, cg);
     stosDependencies->addPostCondition(sizeReg, TR::RealRegister::ecx, cg);
     stosDependencies->addPostCondition(addressReg, TR::RealRegister::edi, cg);
@@ -3787,7 +3785,7 @@ static void arraySetXMM(TR::Node *node, uint8_t elementSize, TR::Register *addre
 
     arraySet64ByteLoop(node, elementSize, addressReg, xmmValueReg, sizeReg, scratch1Reg, scratch2Reg, cg);
 
-    TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions(0, 6, cg);
+    TR::RegisterDependencyConditions *deps = RegDeps(0, 6, cg);
 
     deps->addPostCondition(addressReg, TR::RealRegister::NoReg, cg);
     deps->addPostCondition(valueReg, TR::RealRegister::NoReg, cg);
@@ -4057,7 +4055,7 @@ static TR::Register *inline64BitAtomicCompareAndMemoryUpdateOn32Bit(TR::Node *no
     TR::Register *oldvalue = cg->longClobberEvaluate(node->getChild(1));
     TR::Register *newvalue = cg->evaluate(node->getChild(2));
 
-    TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)4, (uint8_t)4, cg);
+    TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)4, (uint8_t)4, cg);
     deps->addPreCondition(oldvalue->getLowOrder(), TR::RealRegister::eax, cg);
     deps->addPreCondition(oldvalue->getHighOrder(), TR::RealRegister::edx, cg);
     deps->addPreCondition(newvalue->getLowOrder(), TR::RealRegister::ebx, cg);
@@ -4108,7 +4106,7 @@ static TR::Register *inlineAtomicCompareAndMemoryUpdate(TR::Node *node, bool ret
     TR::Register *oldvalue = cg->gprClobberEvaluate(node->getChild(1), OP::MOVRegReg());
     TR::Register *newvalue = cg->evaluate(node->getChild(2));
 
-    TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)1, (uint8_t)1, cg);
+    TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)1, (uint8_t)1, cg);
     deps->addPreCondition(oldvalue, TR::RealRegister::eax, cg);
     deps->addPostCondition(oldvalue, TR::RealRegister::eax, cg);
 
@@ -4688,7 +4686,7 @@ TR::Register *OMR::X86::TreeEvaluator::icmpsetEvaluator(TR::Node *node, TR::Code
     // an OP::XOR4RegReg clears the top half of the register on x64 so it can be used in all cases
     Inst_RegReg(OP::XOR4RegReg, node, resultReg, resultReg, cg);
 
-    TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)1, (uint8_t)1, cg);
+    TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)1, (uint8_t)1, cg);
     deps->addPreCondition(compareReg, TR::RealRegister::eax, cg);
     deps->addPostCondition(compareReg, TR::RealRegister::eax, cg);
     Inst_MemReg(cg->comp()->target().isSMP() ? OP::LCMPXCHGMemReg(nodeIs64Bit) : OP::CMPXCHGMemReg(nodeIs64Bit), node,
@@ -4950,21 +4948,21 @@ TR::Register *OMR::X86::TreeEvaluator::tstartEvaluator(TR::Node *node, TR::CodeG
     if (fallThroughNode->getNumChildren() != 0) {
         GRANode = fallThroughNode->getFirstChild();
         cg->evaluate(GRANode);
-        fallThroughConditions = generateRegisterDependencyConditions(GRANode, cg, 0);
+        fallThroughConditions = RegDeps(GRANode, cg, 0);
         cg->decReferenceCount(GRANode);
     }
 
     if (persistentFailureNode->getNumChildren() != 0) {
         GRANode = persistentFailureNode->getFirstChild();
         cg->evaluate(GRANode);
-        persistentConditions = generateRegisterDependencyConditions(GRANode, cg, 0);
+        persistentConditions = RegDeps(GRANode, cg, 0);
         cg->decReferenceCount(GRANode);
     }
 
     if (transientFailureNode->getNumChildren() != 0) {
         GRANode = transientFailureNode->getFirstChild();
         cg->evaluate(GRANode);
-        transientConditions = generateRegisterDependencyConditions(GRANode, cg, 0);
+        transientConditions = RegDeps(GRANode, cg, 0);
         cg->decReferenceCount(GRANode);
     }
 
@@ -4972,7 +4970,7 @@ TR::Register *OMR::X86::TreeEvaluator::tstartEvaluator(TR::Node *node, TR::CodeG
     // add place holder register so that eax would not contain any useful value before xbegin
     TR::Register *dummyReg = cg->allocateRegister();
     dummyReg->setPlaceholderReg();
-    TR::RegisterDependencyConditions *startLabelConditions = generateRegisterDependencyConditions((uint8_t)0, 1, cg);
+    TR::RegisterDependencyConditions *startLabelConditions = RegDeps((uint8_t)0, 1, cg);
     startLabelConditions->addPostCondition(dummyReg, TR::RealRegister::eax, cg);
     startLabelConditions->stopAddingConditions();
     cg->stopUsingRegister(dummyReg);
@@ -4987,7 +4985,7 @@ TR::Register *OMR::X86::TreeEvaluator::tstartEvaluator(TR::Node *node, TR::CodeG
     else
         Inst_Label(OP::JMP4, node, fallThroughLabel, cg);
 
-    endLabelConditions = generateRegisterDependencyConditions((uint8_t)0, 1, cg);
+    endLabelConditions = RegDeps((uint8_t)0, 1, cg);
     endLabelConditions->addPostCondition(accReg, TR::RealRegister::eax, cg);
     endLabelConditions->stopAddingConditions();
 
@@ -5171,7 +5169,7 @@ TR::Register *OMR::X86::TreeEvaluator::vectorFPNaNHelper(TR::Node *node, TR::Reg
         if (et.isDouble())
             movOpcode = OP::VMOVDQU64RegReg;
 
-        TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions(0, 2, cg);
+        TR::RegisterDependencyConditions *deps = RegDeps(0, 2, cg);
         TR::Register *maskReg = cg->allocateRegister(TR_VMR);
         TR::Register *dummyMaskReg = cg->allocateRegister(TR_VMR);
 
@@ -5306,7 +5304,7 @@ TR::Register *OMR::X86::TreeEvaluator::vectorCompareEvaluator(TR::Node *node, TR
                 break;
         }
 
-        TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)0, (uint8_t)2, cg);
+        TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)0, (uint8_t)2, cg);
         deps->addPostCondition(resultReg, TR::RealRegister::NoReg, cg);
 
         if (!maskNode) {
@@ -5743,11 +5741,11 @@ TR::Register *OMR::X86::TreeEvaluator::bitpermuteEvaluator(TR::Node *node, TR::C
         auto lengthReg = cg->evaluate(length);
 
         auto indexReg = cg->allocateRegister(TR_GPR);
-        TR::RegisterDependencyConditions *shiftDependencies = generateRegisterDependencyConditions((uint8_t)1, 1, cg);
+        TR::RegisterDependencyConditions *shiftDependencies = RegDeps((uint8_t)1, 1, cg);
         shiftDependencies->addPreCondition(indexReg, TR::RealRegister::ecx, cg);
         shiftDependencies->addPostCondition(indexReg, TR::RealRegister::ecx, cg);
 
-        TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)0, (uint8_t)2, cg);
+        TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)0, (uint8_t)2, cg);
         deps->addPostCondition(addrReg, TR::RealRegister::NoReg, cg);
         deps->addPostCondition(indexReg, TR::RealRegister::ecx, cg);
 

@@ -379,7 +379,7 @@ TR::Register *OMR::X86::TreeEvaluator::fpReturnEvaluator(TR::Node *node, TR::Cod
         Inst_MemReg(xmmOpCode, node, tempMR, returnRegister, cg);
         Inst_Mem(x87OpCode, node, generateX86MemoryReference(*tempMR, 0, cg), cg);
     } else {
-        dependencies = generateRegisterDependencyConditions((uint8_t)1, 0, cg);
+        dependencies = RegDeps((uint8_t)1, 0, cg);
         dependencies->addPreCondition(returnRegister, machineReturnRegister, cg);
         dependencies->stopAddingConditions();
     }
@@ -734,7 +734,7 @@ TR::Register *OMR::X86::TreeEvaluator::fpConvertToLong(TR::Node *node, TR::Symbo
         TR::Register *highReg = cg->allocateRegister(TR_GPR);
         TR::RealRegister *espReal = cg->machine()->getRealRegister(TR::RealRegister::esp);
 
-        deps = generateRegisterDependencyConditions((uint8_t)0, 3, cg);
+        deps = RegDeps((uint8_t)0, 3, cg);
         deps->addPostCondition(lowReg, TR::RealRegister::NoReg, cg);
         deps->addPostCondition(highReg, TR::RealRegister::NoReg, cg);
         deps->addPostCondition(doubleReg, TR::RealRegister::NoReg, cg);
@@ -842,7 +842,7 @@ TR::Register *OMR::X86::TreeEvaluator::fpConvertToLong(TR::Node *node, TR::Symbo
         cg->addSnippet(new (cg->trHeapMemory()) TR::X86FPConvertToLongSnippet(reStartLabel, snippetLabel, helperSymRef,
             node, loadHighInstr, loadLowInstr, cg));
 
-        TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)0, accReg ? 3 : 2, cg);
+        TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)0, accReg ? 3 : 2, cg);
 
         // Make sure the high and low long registers are assigned to something.
         //
@@ -927,7 +927,7 @@ TR::Register *OMR::X86::TreeEvaluator::f2iEvaluator(TR::Node *node, TR::CodeGene
     Inst_Label(OP::JE4, node, exceptionLabel, cg);
 
     // TODO: (omr issue #4969): Remove once support for spills in OOL paths is added
-    TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)0, (uint8_t)2, cg);
+    TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)0, (uint8_t)2, cg);
     deps->addPostCondition(targetRegister, TR::RealRegister::NoReg, cg);
     deps->addPostCondition(sourceRegister, TR::RealRegister::NoReg, cg);
 
@@ -1113,7 +1113,7 @@ TR::Register *OMR::X86::TreeEvaluator::fbits2iEvaluator(TR::Node *node, TR::Code
             Inst_Label(OP::JB4, node, lab2, cg);
             Inst_Label(OP::label, node, lab1, cg);
             Inst_RegImm(OP::MOV4RegImm4, node, target, FLOAT_NAN, cg);
-            TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)0, (uint8_t)1, cg);
+            TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)0, (uint8_t)1, cg);
             deps->addPostCondition(target, TR::RealRegister::NoReg, cg);
             Inst_Label(OP::label, node, lab2, deps, cg);
         } else {
@@ -1122,12 +1122,10 @@ TR::Register *OMR::X86::TreeEvaluator::fbits2iEvaluator(TR::Node *node, TR::Code
             TR::Register *treg = target;
             uint32_t nanDetector = FLOAT_NAN_2_LOW;
 
-            TR::RegisterDependencyConditions *internalControlFlowDeps
-                = generateRegisterDependencyConditions((uint8_t)0, (uint8_t)1, cg);
+            TR::RegisterDependencyConditions *internalControlFlowDeps = RegDeps((uint8_t)0, (uint8_t)1, cg);
             internalControlFlowDeps->addPostCondition(treg, TR::RealRegister::NoReg, cg);
 
-            TR::RegisterDependencyConditions *helperDeps
-                = generateRegisterDependencyConditions((uint8_t)1, (uint8_t)1, cg);
+            TR::RegisterDependencyConditions *helperDeps = RegDeps((uint8_t)1, (uint8_t)1, cg);
             helperDeps->addPreCondition(treg, TR::RealRegister::eax, cg);
             helperDeps->addPostCondition(treg, TR::RealRegister::eax, cg);
 
@@ -1230,7 +1228,7 @@ TR::Register *OMR::X86::TreeEvaluator::generateBranchOrSetOnFPCompare(TR::Node *
         if (node->getNumChildren() == 3 && node->getChild(2)->getNumChildren() != 0) {
             TR::Node *third = node->getChild(2);
             cg->evaluate(third);
-            deps = generateRegisterDependencyConditions(third, cg, 1);
+            deps = RegDeps(third, cg, 1);
             deps->stopAddingConditions();
         }
     }
@@ -1341,7 +1339,7 @@ TR::Register *OMR::X86::TreeEvaluator::generateFPCompareResult(TR::Node *node, T
 
     Inst_Reg(OP::DEC1Reg, node, targetRegister, cg);
 
-    TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)0, (uint8_t)1, cg);
+    TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)0, (uint8_t)1, cg);
     deps->addPostCondition(targetRegister, TR::RealRegister::NoReg, cg);
     Inst_Label(OP::label, node, doneLabel, deps, cg);
 

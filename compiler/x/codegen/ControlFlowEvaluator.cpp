@@ -330,8 +330,7 @@ TR::Register *OMR::X86::TreeEvaluator::lookupEvaluator(TR::Node *node, TR::CodeG
     TR::Machine *machine = cg->machine();
     uint32_t maxAssignableRegisters = machine->maxAssignableRegisters();
 
-    TR::RegisterDependencyConditions *deps
-        = generateRegisterDependencyConditions((uint8_t)0, maxAssignableRegisters, cg);
+    TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)0, maxAssignableRegisters, cg);
 
     startLabel->setStartInternalControlFlow();
     endLabel->setEndInternalControlFlow();
@@ -446,7 +445,7 @@ TR::Register *OMR::X86::TreeEvaluator::tableEvaluator(TR::Node *node, TR::CodeGe
     // Add GlRegDep dependencies to indirect jump
     //
     if (secondChild->getNumChildren() > 0) {
-        deps = generateRegisterDependencyConditions(secondChild->getFirstChild(), cg, 0, NULL);
+        deps = RegDeps(secondChild->getFirstChild(), cg);
         deps->stopAddingConditions();
     }
 
@@ -1032,7 +1031,7 @@ TR::Register *OMR::X86::TreeEvaluator::igotoEvaluator(TR::Node *node, TR::CodeGe
         TR_ASSERT(secondChild->getOpCodeValue() == TR::GlRegDeps, "second child of a igoto should be a TR::GlRegDeps");
         cg->evaluate(secondChild);
 
-        secondChildDeps = generateRegisterDependencyConditions(secondChild, cg, 0);
+        secondChildDeps = RegDeps(secondChild, cg, 0);
         cg->decReferenceCount(secondChild);
     }
 
@@ -1063,7 +1062,7 @@ TR::Register *OMR::X86::TreeEvaluator::integerReturnEvaluator(TR::Node *node, TR
 
     TR::RegisterDependencyConditions *dependencies = NULL;
     if (machineReturnRegister != TR::RealRegister::NoReg) {
-        dependencies = generateRegisterDependencyConditions((uint8_t)1, 0, cg);
+        dependencies = RegDeps((uint8_t)1, 0, cg);
         dependencies->addPreCondition(returnRegister, machineReturnRegister, cg);
         dependencies->stopAddingConditions();
     }
@@ -2020,7 +2019,7 @@ static bool virtualGuardHelper(TR::Node *node, TR::CodeGenerator *cg)
     if (node->getNumChildren() == 3) {
         TR::Node *third = node->getChild(2);
         cg->evaluate(third);
-        deps = generateRegisterDependencyConditions(third, cg, 1);
+        deps = RegDeps(third, cg, 1);
         deps->stopAddingConditions();
     }
 

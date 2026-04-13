@@ -1396,8 +1396,7 @@ void OMR::X86::Machine::createRegisterAssociationDirective(TR::Instruction *curs
     int numGPRs = TR::RealRegister::LastAssignableGPR;
     int numXMMRs = TR::RealRegister::LastXMMR - TR::RealRegister::FirstXMMR + 1;
 
-    TR::RegisterDependencyConditions *associations
-        = generateRegisterDependencyConditions((uint8_t)0, numGPRs + numXMMRs, cg());
+    TR::RegisterDependencyConditions *associations = RegDeps((uint8_t)0, numGPRs + numXMMRs, cg());
 
     // Go through the current associations held in the machine and put a copy of
     // that state out into the stream after the cursor
@@ -1565,7 +1564,7 @@ TR::RegisterDependencyConditions *OMR::X86::Machine::createDepCondForLiveGPRs()
     TR::RegisterDependencyConditions *deps = NULL;
 
     if (c) {
-        deps = generateRegisterDependencyConditions(0, c, cg());
+        deps = RegDeps(0, c, cg());
         for (i = TR::RealRegister::FirstGPR; i <= TR::RealRegister::LastXMMR;
              i = ((i == TR::RealRegister::LastAssignableGPR) ? TR::RealRegister::FirstXMMR : i + 1)) {
             TR::RealRegister *realReg = self()->getRealRegister((TR::RealRegister::RegNum)i);
@@ -1620,7 +1619,7 @@ TR::RegisterDependencyConditions *OMR::X86::Machine::createCondForLiveAndSpilled
     TR::RegisterDependencyConditions *deps = NULL;
 
     if (c) {
-        deps = generateRegisterDependencyConditions(0, c, cg());
+        deps = RegDeps(0, c, cg());
         for (i = TR::RealRegister::FirstGPR; i <= endReg;
              i = ((i == TR::RealRegister::LastAssignableGPR) ? TR::RealRegister::FirstXMMR : i + 1)) {
             TR::RealRegister *realReg = self()->getRealRegister((TR::RealRegister::RegNum)i);
@@ -1790,7 +1789,7 @@ TR::RegisterDependencyConditions *TR_RegisterAssignerState::createDependenciesFr
     if (numDeps == 0)
         return NULL;
 
-    TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions(0, numDeps, _machine->cg());
+    TR::RegisterDependencyConditions *deps = RegDeps(0, numDeps, _machine->cg());
 
     TR_RegisterAssignerState *rasAtMerge = oi->getRegisterAssignerStateAtMerge();
     TR_ASSERT(rasAtMerge, "Must have captured register assigner state at merge");

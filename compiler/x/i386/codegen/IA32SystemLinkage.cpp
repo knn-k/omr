@@ -367,12 +367,11 @@ TR::Register *TR::IA32SystemLinkage::buildDirectDispatch(TR::Node *callNode, boo
     if (!methodSymbol->isHelper())
         diagnostic("Building call site for %s\n", methodSymbol->getMethod()->signature(trMemory()));
 
-    TR::RegisterDependencyConditions *deps;
-    deps = generateRegisterDependencyConditions((uint8_t)0, (uint8_t)6, cg());
+    TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)0, (uint8_t)6, cg());
     TR::Register *returnReg = buildVolatileAndReturnDependencies(callNode, deps);
     deps->stopAddingConditions();
 
-    TR::RegisterDependencyConditions *dummy = generateRegisterDependencyConditions((uint8_t)0, (uint8_t)0, cg());
+    TR::RegisterDependencyConditions *dummy = RegDeps((uint8_t)0, (uint8_t)0, cg());
 
     uint32_t argSize = buildArgs(callNode, dummy);
 

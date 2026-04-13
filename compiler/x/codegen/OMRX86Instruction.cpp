@@ -1607,9 +1607,7 @@ void insertUnresolvedReferenceInstructionMemoryBarrier(TR::CodeGenerator *cg, in
     if (cg->comp()->target().is64Bit())
         addressReg = mr->getAddressRegister();
 
-    TR::RegisterDependencyConditions *deps = NULL;
-
-    deps = generateRegisterDependencyConditions((uint8_t)0, 7, cg);
+    TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)0, 7, cg);
 
     if (baseReg)
         deps->addPostCondition(baseReg, TR::RealRegister::NoReg, cg);
@@ -3181,8 +3179,7 @@ TR::X86LabelInstruction *generateLabelInstruction(OP::Mnemonic opCode, TR::Node 
         cg->evaluate(glRegDep);
     }
 
-    TR::X86LabelInstruction *instr
-        = generateLabelInstruction(opCode, node, label, generateRegisterDependencyConditions(glRegDep, cg, 0), cg);
+    TR::X86LabelInstruction *instr = generateLabelInstruction(opCode, node, label, RegDeps(glRegDep, cg, 0), cg);
 
     return instr;
 }
@@ -3985,8 +3982,7 @@ TR::X86LabelInstruction *Inst_Label(OP::Mnemonic opCode, TR::Node *node, TR::Lab
         cg->evaluate(glRegDep);
     }
 
-    TR::X86LabelInstruction *instr
-        = Inst_Label(opCode, node, label, generateRegisterDependencyConditions(glRegDep, cg, 0), cg);
+    TR::X86LabelInstruction *instr = Inst_Label(opCode, node, label, RegDeps(glRegDep, cg, 0), cg);
 
     return instr;
 }

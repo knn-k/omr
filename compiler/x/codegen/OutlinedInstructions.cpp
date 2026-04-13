@@ -191,7 +191,7 @@ TR::RegisterDependencyConditions *TR_OutlinedInstructions::formEvaluatedArgument
 
     if (c) {
         TR::Machine *machine = _cg->machine();
-        depConds = generateRegisterDependencyConditions(0, c, _cg);
+        depConds = RegDeps(0, c, _cg);
 
         for (i = _callNode->getFirstArgumentIndex(); i < _callNode->getNumChildren(); i++) {
             TR::Register *reg = _callNode->getChild(i)->getRegister();

@@ -1222,7 +1222,7 @@ void TR_X86BinaryCommutativeAnalyser::longDualMultiplyAnalyser(TR::Node *root)
     // conditions on the four MUL instructions
     TR::RegisterDependencyConditions *depsMul[4];
     for (int i = 0; i < 4; i++) {
-        depsMul[i] = generateRegisterDependencyConditions(2, 2, _cg);
+        depsMul[i] = RegDeps(2, 2, _cg);
         depsMul[i]->addPreCondition(eax, TR::RealRegister::eax, _cg);
         depsMul[i]->addPostCondition(eax, TR::RealRegister::eax, _cg);
         depsMul[i]->addPreCondition(edx, TR::RealRegister::edx, _cg);
@@ -1447,7 +1447,7 @@ void TR_X86BinaryCommutativeAnalyser::longMultiplyAnalyser(TR::Node *root)
             }
         }
 
-        TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)3, 3, _cg);
+        TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)3, 3, _cg);
         deps->addPreCondition(oneLow, TR::RealRegister::eax, _cg);
         deps->addPostCondition(oneLow, TR::RealRegister::eax, _cg);
         deps->addPreCondition(oneHigh, TR::RealRegister::edx, _cg);
@@ -1510,7 +1510,7 @@ void TR_X86BinaryCommutativeAnalyser::longMultiplyAnalyser(TR::Node *root)
             }
         }
 
-        TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)3, 3, _cg);
+        TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)3, 3, _cg);
         deps->addPreCondition(twoLow, TR::RealRegister::eax, _cg);
         deps->addPostCondition(twoLow, TR::RealRegister::eax, _cg);
         deps->addPreCondition(twoHigh, TR::RealRegister::edx, _cg);
@@ -1599,7 +1599,7 @@ void TR_X86BinaryCommutativeAnalyser::longMultiplyAnalyser(TR::Node *root)
         if (!firstHighZero && !secondHighZero)
             Inst_RegReg(OP::ADD4RegReg, root, twoHigh, oneHigh, _cg);
 
-        TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)2, 2, _cg);
+        TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)2, 2, _cg);
         deps->addPreCondition(resultHigh, TR::RealRegister::edx, _cg);
         deps->addPostCondition(resultHigh, TR::RealRegister::edx, _cg);
         deps->addPreCondition(resultLow, TR::RealRegister::eax, _cg);
@@ -1668,7 +1668,7 @@ void TR_X86BinaryCommutativeAnalyser::longMultiplyAnalyser(TR::Node *root)
         }
 
         TR::MemoryReference *lowMR2 = generateX86MemoryReference(*lowMR, 0, _cg);
-        TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)2, 2, _cg);
+        TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)2, 2, _cg);
         deps->addPreCondition(oneLow, TR::RealRegister::eax, _cg);
         deps->addPostCondition(oneLow, TR::RealRegister::eax, _cg);
         deps->addPreCondition(oneHigh, TR::RealRegister::edx, _cg);
@@ -1732,7 +1732,7 @@ void TR_X86BinaryCommutativeAnalyser::longMultiplyAnalyser(TR::Node *root)
             intermediateResultReg = twoHigh;
         }
 
-        TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)2, 2, _cg);
+        TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)2, 2, _cg);
         deps->addPreCondition(oneLow, TR::RealRegister::eax, _cg);
         deps->addPostCondition(oneLow, TR::RealRegister::eax, _cg);
         if (oneHigh == 0) {
