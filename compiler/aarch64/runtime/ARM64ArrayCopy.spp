@@ -67,12 +67,18 @@ fwACLoop:
 	stp	q30, q31, [x2], #32
 	bne	fwACLoop
 fwAC63:
-	tbz	x0, #5, fwAC31			// test bit 5
-	// Copy 32 bytes
-	ldp	q30, q31, [x1], #32
-	stp	q30, q31, [x2], #32
+	and	x0, x0, #63
+	subs	x3, x0, #32
+	blt	fwAC31
+	// Copy 32-63 bytes
+	add	x4, x1, x3
+	ldp	q28, q29, [x1]
+	ldp	q30, q31, [x4]
+	add	x3, x2, x3
+	stp	q28, q29, [x2]
+	stp	q30, q31, [x3]
+	ret
 fwAC31:
-	and	x0, x0, #31
 	subs	x3, x0, #16
 	blt	fwAC15
 	// Copy 16-31 bytes

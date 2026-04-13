@@ -7148,18 +7148,22 @@ TR::Register *OMR::ARM64::TreeEvaluator::arraycopyEvaluator(TR::Node *node, TR::
         && !disableInlinePrimitiveForwardArraycopy) {
         inlinePrimitiveForwardArraycopy(node, srcAddrReg, dstAddrReg, lengthReg, cg);
     } else {
-        // x0-x4 and v30-v31 are destroyed in the helper
+        // x0-x4 and v28-v31 are destroyed in the helper
         TR::RegisterDependencyConditions *deps
-            = new (cg->trHeapMemory()) TR::RegisterDependencyConditions(7, 7, cg->trMemory());
+            = new (cg->trHeapMemory()) TR::RegisterDependencyConditions(9, 9, cg->trMemory());
         TR::addDependency(deps, lengthReg, TR::RealRegister::x0, TR_GPR, cg);
         TR::addDependency(deps, srcAddrReg, TR::RealRegister::x1, TR_GPR, cg);
         TR::addDependency(deps, dstAddrReg, TR::RealRegister::x2, TR_GPR, cg);
         TR::addDependency(deps, NULL, TR::RealRegister::x3, TR_GPR, cg);
         TR::addDependency(deps, NULL, TR::RealRegister::x4, TR_GPR, cg);
+        TR::addDependency(deps, NULL, TR::RealRegister::v28, TR_FPR, cg);
+        TR::addDependency(deps, NULL, TR::RealRegister::v29, TR_FPR, cg);
         TR::addDependency(deps, NULL, TR::RealRegister::v30, TR_FPR, cg);
         TR::addDependency(deps, NULL, TR::RealRegister::v31, TR_FPR, cg);
         TR::Register *x3Reg = deps->searchPostConditionRegister(TR::RealRegister::x3);
         TR::Register *x4Reg = deps->searchPostConditionRegister(TR::RealRegister::x4);
+        TR::Register *v28Reg = deps->searchPostConditionRegister(TR::RealRegister::v28);
+        TR::Register *v29Reg = deps->searchPostConditionRegister(TR::RealRegister::v29);
         TR::Register *v30Reg = deps->searchPostConditionRegister(TR::RealRegister::v30);
         TR::Register *v31Reg = deps->searchPostConditionRegister(TR::RealRegister::v31);
 
@@ -7173,6 +7177,8 @@ TR::Register *OMR::ARM64::TreeEvaluator::arraycopyEvaluator(TR::Node *node, TR::
 
         cg->stopUsingRegister(x3Reg);
         cg->stopUsingRegister(x4Reg);
+        cg->stopUsingRegister(v28Reg);
+        cg->stopUsingRegister(v29Reg);
         cg->stopUsingRegister(v30Reg);
         cg->stopUsingRegister(v31Reg);
     }
