@@ -655,8 +655,7 @@ void OMR::X86::CodeGenerator::beginInstructionSelection()
     //
     if (self()->enableSinglePrecisionMethods() && comp->getJittedMethodSymbol()->usesSinglePrecisionMode()) {
         Inst_Mem(OP::LDCWMem, startNode,
-            generateX86MemoryReference(self()->findOrCreate2ByteConstant(startNode, SINGLE_PRECISION_ROUND_TO_NEAREST),
-                self()),
+            MRef_const(self()->findOrCreate2ByteConstant(startNode, SINGLE_PRECISION_ROUND_TO_NEAREST), self()),
             self());
     }
 }
@@ -677,9 +676,8 @@ void OMR::X86::CodeGenerator::endInstructionSelection()
         TR_ASSERT(self()->getLastCatchAppendInstruction(),
             "endInstructionSelection() ==> Could not find the dummy finally block!\n");
         Inst_Mem(self()->getLastCatchAppendInstruction(), OP::LDCWMem,
-            generateX86MemoryReference(
-                self()->findOrCreate2ByteConstant(self()->getLastCatchAppendInstruction()->getNode(),
-                    DOUBLE_PRECISION_ROUND_TO_NEAREST),
+            MRef_const(self()->findOrCreate2ByteConstant(self()->getLastCatchAppendInstruction()->getNode(),
+                           DOUBLE_PRECISION_ROUND_TO_NEAREST),
                 self()),
             self());
     }
@@ -3045,19 +3043,18 @@ TR::Instruction *OMR::X86::CodeGenerator::generateDebugCounterBump(TR::Instructi
     TR::DebugCounterBase *counter, int32_t delta, TR::RegisterDependencyConditions *cond)
 {
     if (delta == 1)
-        return Inst_Mem(cursor, OP::INC4Mem, generateX86MemoryReference(counter->getBumpCountSymRef(comp()), self()),
-            self());
+        return Inst_Mem(cursor, OP::INC4Mem, MRef_sym(counter->getBumpCountSymRef(comp()), self()), self());
     else
         return Inst_MemImm(cursor, (-128 <= delta && delta <= 127) ? OP::ADD4MemImms : OP::ADD4MemImm4,
-            generateX86MemoryReference(counter->getBumpCountSymRef(comp()), self()), delta, self());
+            MRef_sym(counter->getBumpCountSymRef(comp()), self()), delta, self());
 }
 
 TR::Instruction *OMR::X86::CodeGenerator::generateDebugCounterBump(TR::Instruction *cursor,
     TR::DebugCounterBase *counter, TR::Register *deltaReg, TR::RegisterDependencyConditions *cond)
 {
     if (deltaReg)
-        return Inst_MemReg(cursor, OP::ADD4MemReg,
-            generateX86MemoryReference(counter->getBumpCountSymRef(comp()), self()), deltaReg, self());
+        return Inst_MemReg(cursor, OP::ADD4MemReg, MRef_sym(counter->getBumpCountSymRef(comp()), self()), deltaReg,
+            self());
     else
         return cursor;
 }

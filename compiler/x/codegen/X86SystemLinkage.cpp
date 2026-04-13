@@ -135,7 +135,7 @@ TR::Instruction *TR::X86SystemLinkage::copyParametersToHomeLocation(TR::Instruct
                     diagnostic("copyParametersToHomeLocation: Loading %d\n", ai);
                 // ai := stack
                 loadCursor = Inst_RegMem(loadCursor, TR::Linkage::movOpcodes(RegMem, movDataType),
-                    machine->getRealRegister(ai), generateX86MemoryReference(framePointer, offset, cg()), cg());
+                    machine->getRealRegister(ai), MRef_Bdisp32(framePointer, offset, cg()), cg());
             }
         } else // It's in a linkage register
         {
@@ -152,8 +152,7 @@ TR::Instruction *TR::X86SystemLinkage::copyParametersToHomeLocation(TR::Instruct
                     diagnostic("copyParametersToHomeLocation: Storing %d\n", sourceIndex);
                 // stack := lri
                 cursor = Inst_MemReg(cursor, TR::Linkage::movOpcodes(MemReg, movDataType),
-                    generateX86MemoryReference(framePointer, offset, cg()), machine->getRealRegister(sourceIndex),
-                    cg());
+                    MRef_Bdisp32(framePointer, offset, cg()), machine->getRealRegister(sourceIndex), cg());
             }
 
             // Copy to the ai register if necessary
@@ -268,8 +267,7 @@ TR::Instruction *TR::X86SystemLinkage::savePreservedRegisters(TR::Instruction *c
             TR::RealRegister *reg = machine()->getRealRegister(getProperties().getPreservedRegister((uint32_t)pindex));
             if (reg->getHasBeenAssignedInMethod() && reg->getState() != TR::RealRegister::Locked) {
                 cursor = Inst_MemReg(cursor, TR::Linkage::movOpcodes(MemReg, fullRegisterMovType(reg)),
-                    generateX86MemoryReference(machine()->getRealRegister(TR::RealRegister::vfp), offsetCursor, cg()),
-                    reg, cg());
+                    MRef_Bdisp32(machine()->getRealRegister(TR::RealRegister::vfp), offsetCursor, cg()), reg, cg());
                 offsetCursor -= pointerSize;
             }
         }
@@ -525,8 +523,7 @@ TR::Instruction *TR::X86SystemLinkage::restorePreservedRegisters(TR::Instruction
 
             if (reg->getHasBeenAssignedInMethod()) {
                 cursor = Inst_RegMem(cursor, TR::Linkage::movOpcodes(RegMem, fullRegisterMovType(reg)), reg,
-                    generateX86MemoryReference(machine()->getRealRegister(TR::RealRegister::vfp), offsetCursor, cg()),
-                    cg());
+                    MRef_Bdisp32(machine()->getRealRegister(TR::RealRegister::vfp), offsetCursor, cg()), cg());
                 offsetCursor -= pointerSize;
             }
         }

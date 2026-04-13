@@ -131,7 +131,7 @@ bool OMR::X86::TreeEvaluator::analyseSubForLEA(TR::Node *node, TR::CodeGenerator
             //    const     (secondChild)
             //
             indexRegister = cg->evaluate(firstChild->getFirstChild());
-            leaMR = generateX86MemoryReference(NULL, indexRegister, stride, displacement, cg);
+            leaMR = MRef_BISdisp32(NULL, indexRegister, stride, displacement, cg);
             targetRegister = cg->allocateRegister();
             Inst_RegMem(OP::LEARegMem(nodeIs64Bit), node, targetRegister, leaMR, cg);
             cg->decReferenceCount(firstChild->getFirstChild());
@@ -161,8 +161,8 @@ bool OMR::X86::TreeEvaluator::analyseSubForLEA(TR::Node *node, TR::CodeGenerator
                 //       ?        (lrchild)
                 //    const       (secondChild)
                 //
-                leaMR = generateX86MemoryReference(cg->evaluate(lrChild), cg->evaluate(llChild->getFirstChild()),
-                    stride, displacement, cg);
+                leaMR = MRef_BISdisp32(cg->evaluate(lrChild), cg->evaluate(llChild->getFirstChild()), stride,
+                    displacement, cg);
                 cg->decReferenceCount(llChild->getFirstChild());
                 cg->decReferenceCount(llChild->getSecondChild());
             } else if (lrChild->getRegister() == NULL && lrChild->getReferenceCount() == 1
@@ -175,12 +175,12 @@ bool OMR::X86::TreeEvaluator::analyseSubForLEA(TR::Node *node, TR::CodeGenerator
                 //          stride
                 //    const       (secondChild)
                 //
-                leaMR = generateX86MemoryReference(cg->evaluate(llChild), cg->evaluate(lrChild->getFirstChild()),
-                    stride, displacement, cg);
+                leaMR = MRef_BISdisp32(cg->evaluate(llChild), cg->evaluate(lrChild->getFirstChild()), stride,
+                    displacement, cg);
                 cg->decReferenceCount(lrChild->getFirstChild());
                 cg->decReferenceCount(lrChild->getSecondChild());
             } else {
-                leaMR = generateX86MemoryReference(cg->evaluate(llChild), cg->evaluate(lrChild), 0, displacement, cg);
+                leaMR = MRef_BISdisp32(cg->evaluate(llChild), cg->evaluate(lrChild), 0, displacement, cg);
             }
             targetRegister = cg->allocateRegister();
             Inst_RegMem(OP::LEARegMem(nodeIs64Bit), node, targetRegister, leaMR, cg);
@@ -254,7 +254,7 @@ bool OMR::X86::TreeEvaluator::analyseAddForLEA(TR::Node *node, TR::CodeGenerator
             indexNode = addFirstChild->getFirstChild();
             indexRegister = evaluateAndForceSize(indexNode, nodeIs64Bit, cg);
 
-            leaMR = generateX86MemoryReference(baseRegister, indexRegister, stride, offset, cg);
+            leaMR = MRef_BISdisp32(baseRegister, indexRegister, stride, offset, cg);
             targetRegister = cg->allocateRegister();
             Inst_RegMem(OP::LEARegMem(nodeIs64Bit), node, targetRegister, leaMR, cg);
 
@@ -306,9 +306,9 @@ bool OMR::X86::TreeEvaluator::analyseAddForLEA(TR::Node *node, TR::CodeGenerator
         if (constNode) {
             // can be a long for an aladd
             if (constNode->getOpCodeValue() == TR::lconst)
-                leaMR = generateX86MemoryReference(NULL, indexRegister, stride, constNode->getLongInt(), cg);
+                leaMR = MRef_BISdisp32(NULL, indexRegister, stride, constNode->getLongInt(), cg);
             else
-                leaMR = generateX86MemoryReference(NULL, indexRegister, stride, constNode->getInt(), cg);
+                leaMR = MRef_BISdisp32(NULL, indexRegister, stride, constNode->getInt(), cg);
             tempNode = NULL;
         } else if (baseNode->getRegister() == NULL && baseNode->getReferenceCount() == 1
             && baseNode->getOpCode().isAdd() && baseNode->getSecondChild()->getOpCode().isLoadConst()
@@ -323,11 +323,11 @@ bool OMR::X86::TreeEvaluator::analyseAddForLEA(TR::Node *node, TR::CodeGenerator
             //
             TR_ASSERT(!constNode, "cannot have two const nodes in this pattern");
             constNode = baseNode->getSecondChild();
-            leaMR = generateX86MemoryReference(cg->evaluate(baseNode->getFirstChild()), indexRegister, stride,
+            leaMR = MRef_BISdisp32(cg->evaluate(baseNode->getFirstChild()), indexRegister, stride,
                 TR::TreeEvaluator::integerConstNodeValue(constNode, cg), cg);
             tempNode = baseNode->getFirstChild();
         } else {
-            leaMR = generateX86MemoryReference(cg->evaluate(baseNode), indexRegister, stride, 0, cg);
+            leaMR = MRef_BISdisp32(cg->evaluate(baseNode), indexRegister, stride, 0, cg);
             tempNode = baseNode;
         }
         targetRegister = cg->allocateRegister();
@@ -382,7 +382,7 @@ bool OMR::X86::TreeEvaluator::analyseAddForLEA(TR::Node *node, TR::CodeGenerator
                     indexNode = firstChild->getFirstChild()->getFirstChild();
                     TR_ASSERT(node->getSize() == indexNode->getSize(),
                         "evaluateAndForceSize never needed for indexNode");
-                    leaMR = generateX86MemoryReference(cg->evaluate(baseNode), cg->evaluate(indexNode), stride1,
+                    leaMR = MRef_BISdisp32(cg->evaluate(baseNode), cg->evaluate(indexNode), stride1,
                         TR::TreeEvaluator::integerConstNodeValue(constNode, cg), cg);
                     cg->decReferenceCount(firstChild->getFirstChild()->getSecondChild());
                     cg->decReferenceCount(firstChild->getFirstChild());
@@ -398,7 +398,7 @@ bool OMR::X86::TreeEvaluator::analyseAddForLEA(TR::Node *node, TR::CodeGenerator
                     baseNode = firstChild->getFirstChild();
                     indexNode = firstChild->getSecondChild()->getFirstChild();
                     TR_ASSERT(node->getSize() == baseNode->getSize(), "evaluateAndForceSize never needed for baseNode");
-                    leaMR = generateX86MemoryReference(cg->evaluate(baseNode), cg->evaluate(indexNode), stride2,
+                    leaMR = MRef_BISdisp32(cg->evaluate(baseNode), cg->evaluate(indexNode), stride2,
                         TR::TreeEvaluator::integerConstNodeValue(constNode, cg), cg);
                     cg->decReferenceCount(firstChild->getSecondChild()->getSecondChild());
                     cg->decReferenceCount(firstChild->getSecondChild());
@@ -415,12 +415,12 @@ bool OMR::X86::TreeEvaluator::analyseAddForLEA(TR::Node *node, TR::CodeGenerator
                     //    const
                     //
 
-                    leaMR = generateX86MemoryReference(cg->evaluate(baseNode),
+                    leaMR = MRef_Bdisp32(cg->evaluate(baseNode),
                         TR::TreeEvaluator::integerConstNodeValue(constNode, cg)
                             + TR::TreeEvaluator::integerConstNodeValue(indexNode, cg),
                         cg);
                 } else {
-                    leaMR = generateX86MemoryReference(cg->evaluate(baseNode), cg->evaluate(indexNode), 0,
+                    leaMR = MRef_BISdisp32(cg->evaluate(baseNode), cg->evaluate(indexNode), 0,
                         TR::TreeEvaluator::integerConstNodeValue(constNode, cg), cg);
                 }
             }
@@ -440,7 +440,7 @@ bool OMR::X86::TreeEvaluator::analyseAddForLEA(TR::Node *node, TR::CodeGenerator
         //    ?           (secondChild)
         // fold parent add of 'loadaddr + secondChild' into lea generated for the loadaddr
         bool isInternal = node->getOpCode().isArrayRef() && node->isInternalPointer() && node->getPinningArrayPointer();
-        leaMR = generateX86MemoryReference(firstChild->getSymbolReference(), cg);
+        leaMR = MRef_sym(firstChild->getSymbolReference(), cg);
         leaMR->populateMemoryReference(secondChild, cg);
         // generateLEAForLoadAddr calls leaMR->decNodeReferenceCounts(cg)
         //
@@ -464,8 +464,7 @@ bool OMR::X86::TreeEvaluator::analyseAddForLEA(TR::Node *node, TR::CodeGenerator
         intptr_t val = TR::TreeEvaluator::integerConstNodeValue(firstChild->getSecondChild(), cg);
         if (firstChild->getOpCode().isSub())
             val = -val;
-        leaMR = generateX86MemoryReference(cg->evaluate(firstChild->getFirstChild()), cg->evaluate(secondChild), 0, val,
-            cg);
+        leaMR = MRef_BISdisp32(cg->evaluate(firstChild->getFirstChild()), cg->evaluate(secondChild), 0, val, cg);
         targetRegister = cg->allocateRegister();
         Inst_RegMem(OP::LEARegMem(nodeIs64Bit), node, targetRegister, leaMR, cg);
         node->setRegister(targetRegister);
@@ -614,10 +613,10 @@ TR::Register *OMR::X86::TreeEvaluator::integerAddEvaluator(TR::Node *node, TR::C
             //
             if (firstChild->getReferenceCount() > 1) {
                 TR::Register *reg = cg->evaluate(firstChild);
-                tempMR = generateX86MemoryReference(*reg->getMemRef(), 0, cg);
+                tempMR = MRef_MRefOff(*reg->getMemRef(), 0, cg);
                 oursIsTheOnlyMemRef = false;
             } else {
-                tempMR = generateX86MemoryReference(firstChild, cg);
+                tempMR = MRef_node(firstChild, cg);
             }
         }
 
@@ -679,7 +678,7 @@ TR::Register *OMR::X86::TreeEvaluator::integerAddEvaluator(TR::Node *node, TR::C
                     Inst_RegImm(OP::AddRegImm4(nodeIs64Bit, isWithCarry), node, targetRegister,
                         static_cast<int32_t>(constValue), cg);
                 } else {
-                    tempMR = generateX86MemoryReference(tempReg, constValue, cg);
+                    tempMR = MRef_Bdisp32(tempReg, constValue, cg);
                     Inst_RegMem(OP::LEARegMem(nodeIs64Bit), node, targetRegister, tempMR, cg);
                 }
             } else {
@@ -825,10 +824,10 @@ TR::Register *OMR::X86::TreeEvaluator::baddEvaluator(TR::Node *node, TR::CodeGen
         //
         if (firstChild->getReferenceCount() > 1) {
             TR::Register *reg = cg->evaluate(firstChild);
-            tempMR = generateX86MemoryReference(*reg->getMemRef(), 0, cg);
+            tempMR = MRef_MRefOff(*reg->getMemRef(), 0, cg);
             oursIsTheOnlyMemRef = false;
         } else {
-            tempMR = generateX86MemoryReference(firstChild, cg, false);
+            tempMR = MRef_node(firstChild, cg, false);
         }
     }
 
@@ -840,7 +839,7 @@ TR::Register *OMR::X86::TreeEvaluator::baddEvaluator(TR::Node *node, TR::CodeGen
         if (!isMemOp)
             targetRegister = cg->evaluate(firstChild);
         if (targetRegister && firstChild->getReferenceCount() > 1) {
-            tempMR = generateX86MemoryReference(targetRegister, value, cg);
+            tempMR = MRef_Bdisp32(targetRegister, value, cg);
             targetRegister = cg->allocateRegister();
             Inst_RegMem(OP::LEA4RegMem, node, targetRegister, tempMR, cg);
         } else {
@@ -930,10 +929,10 @@ TR::Register *OMR::X86::TreeEvaluator::saddEvaluator(TR::Node *node, TR::CodeGen
         //
         if (firstChild->getReferenceCount() > 1) {
             TR::Register *reg = cg->evaluate(firstChild);
-            tempMR = generateX86MemoryReference(*reg->getMemRef(), 0, cg);
+            tempMR = MRef_MRefOff(*reg->getMemRef(), 0, cg);
             oursIsTheOnlyMemRef = false;
         } else {
-            tempMR = generateX86MemoryReference(firstChild, cg, false);
+            tempMR = MRef_node(firstChild, cg, false);
         }
     }
 
@@ -945,7 +944,7 @@ TR::Register *OMR::X86::TreeEvaluator::saddEvaluator(TR::Node *node, TR::CodeGen
         if (!isMemOp)
             targetRegister = cg->evaluate(firstChild);
         if (targetRegister && firstChild->getReferenceCount() > 1) {
-            tempMR = generateX86MemoryReference(targetRegister, value, cg);
+            tempMR = MRef_Bdisp32(targetRegister, value, cg);
             targetRegister = cg->allocateRegister();
             Inst_RegMem(OP::LEA4RegMem, node, targetRegister, tempMR, cg);
         } else {
@@ -1054,10 +1053,10 @@ TR::Register *OMR::X86::TreeEvaluator::integerSubEvaluator(TR::Node *node, TR::C
         //
         if (firstChild->getReferenceCount() > 1) {
             TR::Register *reg = cg->evaluate(firstChild);
-            tempMR = generateX86MemoryReference(*reg->getMemRef(), 0, cg);
+            tempMR = MRef_MRefOff(*reg->getMemRef(), 0, cg);
             oursIsTheOnlyMemRef = false;
         } else {
-            tempMR = generateX86MemoryReference(firstChild, cg, false);
+            tempMR = MRef_node(firstChild, cg, false);
         }
     }
 
@@ -1075,7 +1074,7 @@ TR::Register *OMR::X86::TreeEvaluator::integerSubEvaluator(TR::Node *node, TR::C
         if (!isMemOp)
             targetRegister = cg->evaluate(firstChild);
         if (targetRegister && !computesCarry && firstChild->getReferenceCount() > 1) {
-            tempMR = generateX86MemoryReference(targetRegister, -constValue, cg);
+            tempMR = MRef_Bdisp32(targetRegister, -constValue, cg);
             targetRegister = cg->allocateRegister();
             Inst_RegMem(OP::LEARegMem(nodeIs64Bit), node, targetRegister, tempMR, cg);
         } else {
@@ -1181,10 +1180,10 @@ TR::Register *OMR::X86::TreeEvaluator::bsubEvaluator(TR::Node *node, TR::CodeGen
         //
         if (firstChild->getReferenceCount() > 1) {
             TR::Register *reg = cg->evaluate(firstChild);
-            tempMR = generateX86MemoryReference(*reg->getMemRef(), 0, cg);
+            tempMR = MRef_MRefOff(*reg->getMemRef(), 0, cg);
             oursIsTheOnlyMemRef = false;
         } else {
-            tempMR = generateX86MemoryReference(firstChild, cg, false);
+            tempMR = MRef_node(firstChild, cg, false);
         }
     }
 
@@ -1196,7 +1195,7 @@ TR::Register *OMR::X86::TreeEvaluator::bsubEvaluator(TR::Node *node, TR::CodeGen
         if (!isMemOp)
             targetRegister = cg->evaluate(firstChild);
         if (targetRegister && firstChild->getReferenceCount() > 1) {
-            tempMR = generateX86MemoryReference(targetRegister, -value, cg);
+            tempMR = MRef_Bdisp32(targetRegister, -value, cg);
             targetRegister = cg->allocateRegister();
             Inst_RegMem(OP::LEA4RegMem, node, targetRegister, tempMR, cg);
         } else {
@@ -1282,10 +1281,10 @@ TR::Register *OMR::X86::TreeEvaluator::ssubEvaluator(TR::Node *node, TR::CodeGen
         //
         if (firstChild->getReferenceCount() > 1) {
             TR::Register *reg = cg->evaluate(firstChild);
-            tempMR = generateX86MemoryReference(*reg->getMemRef(), 0, cg);
+            tempMR = MRef_MRefOff(*reg->getMemRef(), 0, cg);
             oursIsTheOnlyMemRef = false;
         } else {
-            tempMR = generateX86MemoryReference(firstChild, cg, false);
+            tempMR = MRef_node(firstChild, cg, false);
         }
     }
 
@@ -1297,7 +1296,7 @@ TR::Register *OMR::X86::TreeEvaluator::ssubEvaluator(TR::Node *node, TR::CodeGen
         if (!isMemOp)
             targetRegister = cg->evaluate(firstChild);
         if (firstChild->getReferenceCount() > 1) {
-            tempMR = generateX86MemoryReference(targetRegister, -value, cg);
+            tempMR = MRef_Bdisp32(targetRegister, -value, cg);
             targetRegister = cg->allocateRegister();
             Inst_RegMem(OP::LEA4RegMem, node, targetRegister, tempMR, cg);
         } else {
@@ -1498,7 +1497,7 @@ TR::Register *OMR::X86::TreeEvaluator::integerMulEvaluator(TR::Node *node, TR::C
                         } else {
                             opCode = OP::IMulRegMemImm4(node->getSize());
                         }
-                        TR::MemoryReference *tempMR = generateX86MemoryReference(firstChild, cg);
+                        TR::MemoryReference *tempMR = MRef_node(firstChild, cg);
                         targetRegister = cg->allocateRegister();
                         Inst_RegMemImm(opCode, node, targetRegister, tempMR, static_cast<int32_t>(value), cg);
                         tempMR->decNodeReferenceCounts(cg);
@@ -1525,7 +1524,7 @@ TR::Register *OMR::X86::TreeEvaluator::integerMulEvaluator(TR::Node *node, TR::C
         multDependencies->addPostCondition(targetRegister, TR::RealRegister::eax, cg);
 
         if (firstChild->getReferenceCount() == 1 && firstChild->getOpCode().isMemoryReference()) {
-            TR::MemoryReference *tempMR = generateX86MemoryReference(firstChild, cg);
+            TR::MemoryReference *tempMR = MRef_node(firstChild, cg);
             Inst_RegMem(OP::IMUL1AccMem, node, targetRegister, tempMR, multDependencies, cg);
             tempMR->decNodeReferenceCounts(cg);
         } else {
@@ -1863,7 +1862,7 @@ TR::Register *OMR::X86::TreeEvaluator::signedIntegerDivOrRemAnalyser(TR::Node *n
         if (!nodeIs64Bit || IS_32BIT_SIGNED(m))
             Inst_RegImm(OP::MOVRegImm4(nodeIs64Bit), node, eaxRegister, static_cast<int32_t>(m), cg);
         else
-            Inst_RegMem(OP::LEA8RegMem, node, eaxRegister, generateX86MemoryReference(m, cg), cg);
+            Inst_RegMem(OP::LEA8RegMem, node, eaxRegister, MRef_abs(m, cg), cg);
         Inst_RegReg(OP::IMULAccReg(nodeIs64Bit), node, eaxRegister, dividendRegister, multDependencies, cg);
 
         cg->stopUsingRegister(eaxRegister);
@@ -2008,7 +2007,7 @@ TR::Register *OMR::X86::TreeEvaluator::integerDivOrRemEvaluator(TR::Node *node, 
                 divideInstr
                     = Inst_RegReg(OP::DIVAccReg(nodeIs64Bit), node, eaxRegister, divisorRegister, eaxEdxDeps, cg);
             } else {
-                TR::MemoryReference *tempMR = generateX86MemoryReference(secondChild, cg);
+                TR::MemoryReference *tempMR = MRef_node(secondChild, cg);
                 divideInstr = Inst_RegMem(OP::DIVAccMem(nodeIs64Bit), node, eaxRegister, tempMR, eaxEdxDeps, cg);
                 tempMR->decNodeReferenceCounts(cg);
             }
@@ -2026,7 +2025,7 @@ TR::Register *OMR::X86::TreeEvaluator::integerDivOrRemEvaluator(TR::Node *node, 
                     divideInstr
                         = Inst_RegReg(OP::IDIVAccReg(nodeIs64Bit), node, eaxRegister, divisorRegister, eaxEdxDeps, cg);
             } else {
-                TR::MemoryReference *tempMR = generateX86MemoryReference(secondChild, cg);
+                TR::MemoryReference *tempMR = MRef_node(secondChild, cg);
                 if (node->getFirstChild()->isNonNegative() || node->getOpCode().isUnsigned())
                     Inst_RegReg(OP::XOR4RegReg, node, edxRegister, edxRegister, edxDeps, cg);
                 else
@@ -2181,10 +2180,10 @@ TR::X86MemInstruction *OMR::X86::TreeEvaluator::generateMemoryShift(TR::Node *no
     //
     if (firstChild->getReferenceCount() > 1) {
         TR::Register *reg = cg->evaluate(firstChild);
-        memRef = generateX86MemoryReference(*reg->getMemRef(), 0, cg);
+        memRef = MRef_MRefOff(*reg->getMemRef(), 0, cg);
         oursIsTheOnlyMemRef = false;
     } else {
-        memRef = generateX86MemoryReference(firstChild, cg, false);
+        memRef = MRef_node(firstChild, cg, false);
     }
 
     bool loadConstant = secondChild->getOpCode().isLoadConst();
@@ -2276,7 +2275,7 @@ TR::Register *OMR::X86::TreeEvaluator::integerShlEvaluator(TR::Node *node, TR::C
         //
         TR::Node *firstChild = node->getFirstChild();
         TR::Node *secondChild = node->getSecondChild();
-        TR::MemoryReference *memRef = generateX86MemoryReference(cg);
+        TR::MemoryReference *memRef = MRef(cg);
         memRef->setIndexRegister(cg->evaluate(firstChild));
         memRef->setStride(static_cast<int32_t>(shiftAmount));
         TR::Register *targetRegister = cg->allocateRegister();
@@ -2386,10 +2385,10 @@ TR::Register *OMR::X86::TreeEvaluator::bshlEvaluator(TR::Node *node, TR::CodeGen
         //
         if (firstChild->getReferenceCount() > 1) {
             TR::Register *reg = cg->evaluate(firstChild);
-            tempMR = generateX86MemoryReference(*reg->getMemRef(), 0, cg);
+            tempMR = MRef_MRefOff(*reg->getMemRef(), 0, cg);
             oursIsTheOnlyMemRef = false;
         } else {
-            tempMR = generateX86MemoryReference(firstChild, cg, false);
+            tempMR = MRef_node(firstChild, cg, false);
         }
     }
 
@@ -2409,7 +2408,7 @@ TR::Register *OMR::X86::TreeEvaluator::bshlEvaluator(TR::Node *node, TR::CodeGen
                 targetRegister = cg->intClobberEvaluate(firstChild);
             } else if (value <= 3 && firstChild->getReferenceCount() > 1) {
                 targetRegister = cg->evaluate(firstChild);
-                TR::MemoryReference *tempMR = generateX86MemoryReference(cg);
+                TR::MemoryReference *tempMR = MRef(cg);
                 tempMR->setIndexRegister(targetRegister);
                 tempMR->setStride(value);
                 targetRegister = cg->allocateRegister();
@@ -2476,10 +2475,10 @@ TR::Register *OMR::X86::TreeEvaluator::sshlEvaluator(TR::Node *node, TR::CodeGen
         //
         if (firstChild->getReferenceCount() > 1) {
             TR::Register *reg = cg->evaluate(firstChild);
-            tempMR = generateX86MemoryReference(*reg->getMemRef(), 0, cg);
+            tempMR = MRef_MRefOff(*reg->getMemRef(), 0, cg);
             oursIsTheOnlyMemRef = false;
         } else {
-            tempMR = generateX86MemoryReference(firstChild, cg, false);
+            tempMR = MRef_node(firstChild, cg, false);
         }
     }
 
@@ -2499,7 +2498,7 @@ TR::Register *OMR::X86::TreeEvaluator::sshlEvaluator(TR::Node *node, TR::CodeGen
                 targetRegister = cg->intClobberEvaluate(firstChild);
             } else if (value <= 3 && firstChild->getReferenceCount() > 1) {
                 targetRegister = cg->evaluate(firstChild);
-                TR::MemoryReference *tempMR = generateX86MemoryReference(cg);
+                TR::MemoryReference *tempMR = MRef(cg);
                 tempMR->setIndexRegister(targetRegister);
                 tempMR->setStride(value);
                 targetRegister = cg->allocateRegister();
@@ -2562,10 +2561,10 @@ TR::Register *OMR::X86::TreeEvaluator::bshrEvaluator(TR::Node *node, TR::CodeGen
         //
         if (firstChild->getReferenceCount() > 1) {
             TR::Register *reg = cg->evaluate(firstChild);
-            tempMR = generateX86MemoryReference(*reg->getMemRef(), 0, cg);
+            tempMR = MRef_MRefOff(*reg->getMemRef(), 0, cg);
             oursIsTheOnlyMemRef = false;
         } else {
-            tempMR = generateX86MemoryReference(firstChild, cg, false);
+            tempMR = MRef_node(firstChild, cg, false);
         }
     } else {
         targetRegister = cg->intClobberEvaluate(firstChild);
@@ -2639,10 +2638,10 @@ TR::Register *OMR::X86::TreeEvaluator::sshrEvaluator(TR::Node *node, TR::CodeGen
         //
         if (firstChild->getReferenceCount() > 1) {
             TR::Register *reg = cg->evaluate(firstChild);
-            tempMR = generateX86MemoryReference(*reg->getMemRef(), 0, cg);
+            tempMR = MRef_MRefOff(*reg->getMemRef(), 0, cg);
             oursIsTheOnlyMemRef = false;
         } else {
-            tempMR = generateX86MemoryReference(firstChild, cg, false);
+            tempMR = MRef_node(firstChild, cg, false);
         }
     } else {
         targetRegister = cg->intClobberEvaluate(firstChild);
@@ -2714,10 +2713,10 @@ TR::Register *OMR::X86::TreeEvaluator::bushrEvaluator(TR::Node *node, TR::CodeGe
         //
         if (firstChild->getReferenceCount() > 1) {
             TR::Register *reg = cg->evaluate(firstChild);
-            tempMR = generateX86MemoryReference(*reg->getMemRef(), 0, cg);
+            tempMR = MRef_MRefOff(*reg->getMemRef(), 0, cg);
             oursIsTheOnlyMemRef = false;
         } else {
-            tempMR = generateX86MemoryReference(firstChild, cg, false);
+            tempMR = MRef_node(firstChild, cg, false);
         }
     } else if (testOpcode1 == TR::bconst
         && performTransformation(comp,
@@ -2797,10 +2796,10 @@ TR::Register *OMR::X86::TreeEvaluator::sushrEvaluator(TR::Node *node, TR::CodeGe
         //
         if (firstChild->getReferenceCount() > 1) {
             TR::Register *reg = cg->evaluate(firstChild);
-            tempMR = generateX86MemoryReference(*reg->getMemRef(), 0, cg);
+            tempMR = MRef_MRefOff(*reg->getMemRef(), 0, cg);
             oursIsTheOnlyMemRef = false;
         } else {
-            tempMR = generateX86MemoryReference(firstChild, cg, false);
+            tempMR = MRef_node(firstChild, cg, false);
         }
     } else {
         targetRegister = cg->intClobberEvaluate(firstChild);
@@ -2936,10 +2935,10 @@ TR::Register *OMR::X86::TreeEvaluator::logicalEvaluator(TR::Node *node, OP::Mnem
         //
         if (firstChild->getReferenceCount() > 1) {
             TR::Register *reg = cg->evaluate(firstChild);
-            tempMR = generateX86MemoryReference(*reg->getMemRef(), 0, cg);
+            tempMR = MRef_MRefOff(*reg->getMemRef(), 0, cg);
             oursIsTheOnlyMemRef = false;
         } else {
-            tempMR = generateX86MemoryReference(firstChild, cg, false);
+            tempMR = MRef_node(firstChild, cg, false);
         }
     }
 

@@ -704,8 +704,7 @@ void OMR::X86::MemoryReference::consolidateRegisters(TR::Node *node, TR::CodeGen
         tempTargetRegister = cg->allocateRegister();
     }
 
-    TR::MemoryReference *interimMemoryReference
-        = generateX86MemoryReference(_baseRegister, _indexRegister, _stride, cg);
+    TR::MemoryReference *interimMemoryReference = MRef_BIS(_baseRegister, _indexRegister, _stride, cg);
     Inst_RegMem(OP::LEARegMem(), node, tempTargetRegister, interimMemoryReference, cg);
     self()->decNodeReferenceCounts(cg);
     _baseRegister = tempTargetRegister;
@@ -732,7 +731,7 @@ void OMR::X86::MemoryReference::assignRegisters(TR::Instruction *currentInstruct
 
             if (assignedBaseRegister == NULL) {
                 // Note: a MemRef can be used only once -- if you want to reuse make a copy using
-                // generateX86MemoryReference(OMR::X86::MemoryReference  &, intptr_t, TR::CodeGenerator *cg).
+                // MRef_MRefOff(OMR::X86::MemoryReference  &, intptr_t, TR::CodeGenerator *cg).
                 TR_ASSERT_FATAL(!_baseRegister->getRealRegister(),
                     "_baseRegister is a Real Register already, are you reusing a Memory Reference?");
                 assignedBaseRegister = assignGPRegister(currentInstruction, _baseRegister, TR_WordReg, cg);

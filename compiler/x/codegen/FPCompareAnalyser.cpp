@@ -333,11 +333,11 @@ TR::Register *TR_IA32XMMCompareAnalyser::xmmCompareAnalyser(TR::Node *root, OP::
     // Generate the compare instruction.
     //
     if (getCmpReg1Mem2() || reverseMemOp) {
-        TR::MemoryReference *tempMR = generateX86MemoryReference(secondChild, _cg);
+        TR::MemoryReference *tempMR = MRef_node(secondChild, _cg);
         Inst_RegMem(cmpRegMemOpCode, root, firstRegister, tempMR, _cg);
         tempMR->decNodeReferenceCounts(_cg);
     } else if (getCmpReg2Mem1()) {
-        TR::MemoryReference *tempMR = generateX86MemoryReference(firstChild, _cg);
+        TR::MemoryReference *tempMR = MRef_node(firstChild, _cg);
         Inst_RegMem(cmpRegMemOpCode, root, secondRegister, tempMR, _cg);
         notReversedOperands();
         tempMR->decNodeReferenceCounts(_cg);

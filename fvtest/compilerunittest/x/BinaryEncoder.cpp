@@ -142,7 +142,7 @@ TEST_P(XRegMemEncodingTest, encode)
     auto mrBaseReg = getRealRegister(std::get<2>(GetParam()), cg());
     auto mrOffset = std::get<3>(GetParam());
 
-    auto mr = generateX86MemoryReference(mrBaseReg, mrOffset, cg());
+    auto mr = MRef_Bdisp32(mrBaseReg, mrOffset, cg());
     auto instr = Inst_RegMem(std::get<0>(GetParam()), fakeNode, regA, mr, cg());
 
     ASSERT_EQ(std::get<4>(GetParam()), encodeInstruction(instr));
@@ -1593,7 +1593,7 @@ TEST_P(XRegMemEncEncodingTest, encode)
     auto disp = std::get<3>(GetParam());
     auto enc = std::get<4>(GetParam());
 
-    auto mr = generateX86MemoryReference(base, disp, cg());
+    auto mr = MRef_Bdisp32(base, disp, cg());
     auto instr = Inst_RegMem(std::get<0>(GetParam()), fakeNode, target, mr, cg(), enc);
 
     ASSERT_EQ(std::get<5>(GetParam()), encodeInstruction(instr));
@@ -1691,7 +1691,7 @@ TEST_P(XMemRegEncEncodingTest, encode)
     auto disp = std::get<3>(GetParam());
     auto enc = std::get<4>(GetParam());
 
-    auto mr = generateX86MemoryReference(base, disp, cg());
+    auto mr = MRef_Bdisp32(base, disp, cg());
     auto instr = Inst_MemReg(std::get<0>(GetParam()), fakeNode, mr, target, cg(), enc);
 
     ASSERT_EQ(std::get<5>(GetParam()), encodeInstruction(instr));
@@ -1852,7 +1852,7 @@ TEST_P(XMemEncEncodingTest, encode)
     auto base = getRealRegister(std::get<1>(GetParam()), cg());
     auto disp = std::get<2>(GetParam());
 
-    auto mr = generateX86MemoryReference(base, disp, cg());
+    auto mr = MRef_Bdisp32(base, disp, cg());
     auto instr = Inst_Mem(std::get<0>(GetParam()), fakeNode, mr, cg());
     ASSERT_EQ(std::get<3>(GetParam()), encodeInstruction(instr));
 }
@@ -1877,7 +1877,7 @@ TEST_P(XRegMaskMemEncEncodingTest, encode)
     auto disp = std::get<4>(GetParam());
     auto enc = std::get<5>(GetParam());
 
-    auto mr = generateX86MemoryReference(base, disp, cg());
+    auto mr = MRef_Bdisp32(base, disp, cg());
     auto instr = Inst_RegMaskMem(std::get<0>(GetParam()), fakeNode, target, mask, mr, cg(), enc);
 
     ASSERT_EQ(std::get<6>(GetParam()), encodeInstruction(instr));
@@ -1924,7 +1924,7 @@ TEST_P(XMemMaskRegEncEncodingTest, encode)
     auto disp = std::get<4>(GetParam());
     auto enc = std::get<5>(GetParam());
 
-    auto mr = generateX86MemoryReference(base, disp, cg());
+    auto mr = MRef_Bdisp32(base, disp, cg());
     auto instr = Inst_MemMaskReg(std::get<0>(GetParam()), fakeNode, mr, mask, target, cg(), enc);
 
     ASSERT_EQ(std::get<6>(GetParam()), encodeInstruction(instr));

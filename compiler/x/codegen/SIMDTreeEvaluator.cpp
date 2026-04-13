@@ -46,7 +46,7 @@ static TR::MemoryReference *ConvertToPatchableMemoryReference(TR::MemoryReferenc
         //
         TR::Register *tempReg = cg->allocateRegister();
         Inst_RegMem(OP::LEARegMem(), node, tempReg, mr, cg);
-        mr = generateX86MemoryReference(tempReg, 0, cg);
+        mr = MRef_Bdisp32(tempReg, 0, cg);
         cg->stopUsingRegister(tempReg);
     }
     return mr;
@@ -74,7 +74,7 @@ TR::Register *OMR::X86::TreeEvaluator::SIMDRegStoreEvaluator(TR::Node *node, TR:
 TR::Register *OMR::X86::TreeEvaluator::maskLoadEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
     if (cg->supportsOpMaskRegisters()) {
-        TR::MemoryReference *tempMR = generateX86MemoryReference(node, cg);
+        TR::MemoryReference *tempMR = MRef_node(node, cg);
         tempMR = ConvertToPatchableMemoryReference(tempMR, node, cg);
         TR::Register *resultReg = cg->allocateRegister(TR_VMR);
         OP::Mnemonic opcode
@@ -96,7 +96,7 @@ TR::Register *OMR::X86::TreeEvaluator::maskLoadEvaluator(TR::Node *node, TR::Cod
 TR::Register *OMR::X86::TreeEvaluator::maskStoreEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
     if (cg->supportsOpMaskRegisters()) {
-        TR::MemoryReference *tempMR = generateX86MemoryReference(node, cg);
+        TR::MemoryReference *tempMR = MRef_node(node, cg);
         tempMR = ConvertToPatchableMemoryReference(tempMR, node, cg);
         TR::Node *valueNode = node->getChild(node->getOpCode().isIndirect() ? 1 : 0);
 
@@ -120,7 +120,7 @@ TR::Register *OMR::X86::TreeEvaluator::maskStoreEvaluator(TR::Node *node, TR::Co
 TR::Register *OMR::X86::TreeEvaluator::SIMDloadEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
     TR::Compilation *comp = cg->comp();
-    TR::MemoryReference *tempMR = generateX86MemoryReference(node, cg);
+    TR::MemoryReference *tempMR = MRef_node(node, cg);
     tempMR = ConvertToPatchableMemoryReference(tempMR, node, cg);
     TR::Register *resultReg = cg->allocateRegister(TR_VRF);
     TR::Node *maskNode = node->getOpCode().isVectorMasked() ? node->getChild(1) : NULL;
@@ -187,7 +187,7 @@ TR::Register *OMR::X86::TreeEvaluator::SIMDstoreEvaluator(TR::Node *node, TR::Co
 {
     TR::Compilation *comp = cg->comp();
     TR::Node *valueNode = node->getChild(node->getOpCode().isIndirect() ? 1 : 0);
-    TR::MemoryReference *tempMR = generateX86MemoryReference(node, cg);
+    TR::MemoryReference *tempMR = MRef_node(node, cg);
     tempMR = ConvertToPatchableMemoryReference(tempMR, node, cg);
     TR::Register *valueReg = cg->evaluate(valueNode);
 

@@ -643,8 +643,7 @@ void OMR::X86::RegisterDependencyGroup::assignRegisters(TR::Instruction *current
                     TR_ASSERT(virtReg->getBackingStorage(), "should have a backing store for spilled reg virtuals");
                     assignedReg = toRealRegister(virtReg->getAssignedRegister());
 
-                    TR::MemoryReference *tempMR
-                        = generateX86MemoryReference(virtReg->getBackingStorage()->getSymbolReference(), cg);
+                    TR::MemoryReference *tempMR = MRef_sym(virtReg->getBackingStorage()->getSymbolReference(), cg);
 
                     OP::Mnemonic op;
                     if (assignedReg->getKind() == TR_FPR) {

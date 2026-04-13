@@ -166,7 +166,7 @@ TR::Register *TR_X86SubtractAnalyser::integerSubtractAnalyserImpl(TR::Node *root
                 Inst_RegReg(regRegOpCode, root, thirdReg, secondRegister, _cg);
             } else // assert getSubReg3Mem2() == true
             {
-                TR::MemoryReference *tempMR = generateX86MemoryReference(secondChild, _cg);
+                TR::MemoryReference *tempMR = MRef_node(secondChild, _cg);
                 Inst_RegMem(regMemOpCode, root, thirdReg, tempMR, _cg);
                 tempMR->decNodeReferenceCounts(_cg);
             }
@@ -175,7 +175,7 @@ TR::Register *TR_X86SubtractAnalyser::integerSubtractAnalyserImpl(TR::Node *root
                 Inst_RegReg(regRegOpCode, root, firstRegister, secondRegister, _cg);
             } else // assert getSubReg3Mem2() == true
             {
-                TR::MemoryReference *tempMR = generateX86MemoryReference(secondChild, _cg);
+                TR::MemoryReference *tempMR = MRef_node(secondChild, _cg);
                 Inst_RegMem(regMemOpCode, root, firstRegister, tempMR, _cg);
                 tempMR->decNodeReferenceCounts(_cg);
             }
@@ -186,7 +186,7 @@ TR::Register *TR_X86SubtractAnalyser::integerSubtractAnalyserImpl(TR::Node *root
         targetRegister = firstRegister;
     } else // assert getSubReg1Mem2() == true
     {
-        TR::MemoryReference *tempMR = generateX86MemoryReference(secondChild, _cg);
+        TR::MemoryReference *tempMR = MRef_node(secondChild, _cg);
         Inst_RegMem(regMemOpCode, root, firstRegister, tempMR, _cg);
         targetRegister = firstRegister;
         tempMR->decNodeReferenceCounts(_cg);
@@ -345,7 +345,7 @@ TR::Register *TR_X86SubtractAnalyser::longSubtractAnalyserImpl(TR::Node *root, T
             }
         } else // assert getSubReg3Mem2() == true
         {
-            TR::MemoryReference *lowMR = generateX86MemoryReference(secondChild, _cg);
+            TR::MemoryReference *lowMR = MRef_node(secondChild, _cg);
             /**
              * The below code is needed to ensure correct behaviour when the subtract analyser encounters a lushr
              * bytecode that shifts by 32 bits. This is the only case where the useSecondHighOrder bit is set. When the
@@ -357,14 +357,14 @@ TR::Register *TR_X86SubtractAnalyser::longSubtractAnalyserImpl(TR::Node *root, T
                 TR_ASSERT(secondHighZero,
                     "useSecondHighOrder should be consistent with secondHighZero. useSecondHighOrder subsumes "
                     "secondHighZero");
-                lowMR = generateX86MemoryReference(*lowMR, 4, _cg);
+                lowMR = MRef_MRefOff(*lowMR, 4, _cg);
             }
 
             Inst_RegMem(regMemOpCode, root, lowThird, lowMR, _cg);
             if (secondHighZero) {
                 Inst_RegImm(OP::SBB4RegImms, root, highThird, 0, _cg);
             } else {
-                TR::MemoryReference *highMR = generateX86MemoryReference(*lowMR, 4, _cg);
+                TR::MemoryReference *highMR = MRef_MRefOff(*lowMR, 4, _cg);
                 Inst_RegMem(OP::SBB4RegMem, root, highThird, highMR, _cg);
             }
             lowMR->decNodeReferenceCounts(_cg);
@@ -380,7 +380,7 @@ TR::Register *TR_X86SubtractAnalyser::longSubtractAnalyserImpl(TR::Node *root, T
         targetRegister = firstRegister;
     } else // assert getSubReg1Mem2() == true
     {
-        TR::MemoryReference *lowMR = generateX86MemoryReference(secondChild, _cg);
+        TR::MemoryReference *lowMR = MRef_node(secondChild, _cg);
         /**
          * The below code is needed to ensure correct behaviour when the subtract analyser encounters a lushr bytecode
          * that shifts by 32 bits. This is the only case where the useSecondHighOrder bit is set. When the first child
@@ -388,14 +388,14 @@ TR::Register *TR_X86SubtractAnalyser::longSubtractAnalyserImpl(TR::Node *root, T
          * the below ensures that the upper part of the first child of the lushr is used as lowMR.
          */
         if (useSecondHighOrder)
-            lowMR = generateX86MemoryReference(*lowMR, 4, _cg);
+            lowMR = MRef_MRefOff(*lowMR, 4, _cg);
 
         Inst_RegMem(regMemOpCode, root, firstRegister->getLowOrder(), lowMR, _cg);
 
         if (secondHighZero) {
             Inst_RegImm(OP::SBB4RegImms, root, firstRegister->getHighOrder(), 0, _cg);
         } else {
-            TR::MemoryReference *highMR = generateX86MemoryReference(*lowMR, 4, _cg);
+            TR::MemoryReference *highMR = MRef_MRefOff(*lowMR, 4, _cg);
             Inst_RegMem(OP::SBB4RegMem, root, firstRegister->getHighOrder(), highMR, _cg);
         }
 

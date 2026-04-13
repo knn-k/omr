@@ -129,7 +129,7 @@ TR::Register *OMR::X86::TreeEvaluator::unaryVectorArithmeticEvaluator(TR::Node *
     if (simdEncoding != OMR::X86::Legacy && !opcode.isVectorMasked() && valueNode->getRegister() == NULL
         && valueNode->getReferenceCount() == 1 && regMemOpcode.getMnemonic() != OP::bad) {
         if (simdEncoding != OMR::X86::Encoding::Bad) {
-            TR::MemoryReference *mr = generateX86MemoryReference(valueNode, cg);
+            TR::MemoryReference *mr = MRef_node(valueNode, cg);
             Inst_RegMem(regMemOpcode.getMnemonic(), node, resultReg, mr, cg, simdEncoding);
             mr->decNodeReferenceCounts(cg);
             return resultReg;

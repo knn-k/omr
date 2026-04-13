@@ -1590,7 +1590,7 @@ void insertUnresolvedReferenceInstructionMemoryBarrier(TR::CodeGenerator *cg, in
         // generate LOCK OR dword ptr [esp], 0
         padInst = Inst_Alignment(inst, 8, cg);
         TR::RealRegister *espReal = cg->machine()->getRealRegister(TR::RealRegister::esp);
-        TR::MemoryReference *espMemRef = generateX86MemoryReference(espReal, 0, cg);
+        TR::MemoryReference *espMemRef = MRef_Bdisp32(espReal, 0, cg);
         fenceInst
             = new (cg->trHeapMemory()) TR::X86MemImmInstruction(padInst, fenceOp.getOpCodeValue(), espMemRef, 0, cg);
     } else {
