@@ -1020,3 +1020,17 @@ TR::RegisterDependencyConditions *generateRegisterDependencyConditions(TR::Node 
 {
     return new (cg->trHeapMemory()) TR::RegisterDependencyConditions(node, cg, additionalRegDeps);
 }
+
+namespace TR {
+
+TR::RegisterDependencyConditions *RegDeps(uint32_t numPreConds, uint32_t numPostConds, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::RegisterDependencyConditions(numPreConds, numPostConds, cg->trMemory());
+}
+
+TR::RegisterDependencyConditions *RegDeps(TR::Node *node, TR::CodeGenerator *cg, uint32_t additionalRegDeps)
+{
+    return new (cg->trHeapMemory()) TR::RegisterDependencyConditions(node, cg, additionalRegDeps);
+}
+
+} // namespace TR
