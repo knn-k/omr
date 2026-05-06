@@ -174,7 +174,7 @@ OMR::X86::RegisterDependencyConditions::RegisterDependencyConditions(TR::Node *n
                     }
                 }
 
-                generateRegRegInstruction(placeToAdd, TR::InstOpCode::MOVRegReg(), copyReg, globalReg, cg);
+                Inst_RegReg(placeToAdd, OP::MOVRegReg(), copyReg, globalReg, cg);
 
                 if (highGlobalReg) {
                     generateRegcopyDebugCounter(cg, "gpr-pair");
@@ -191,7 +191,7 @@ OMR::X86::RegisterDependencyConditions::RegisterDependencyConditions(TR::Node *n
                         highCopyReg->setPinningArrayPointer(highGlobalReg->getPinningArrayPointer());
                     }
 
-                    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, highCopyReg, highGlobalReg, cg);
+                    Inst_RegReg(OP::MOV4RegReg, node, highCopyReg, highGlobalReg, cg);
                 } else {
                     generateRegcopyDebugCounter(cg, "gpr");
                     highCopyReg = NULL;
@@ -200,26 +200,24 @@ OMR::X86::RegisterDependencyConditions::RegisterDependencyConditions(TR::Node *n
                 generateRegcopyDebugCounter(cg, "fpr");
                 if (globalReg->isSinglePrecision()) {
                     copyReg = cg->allocateSinglePrecisionRegister(TR_FPR);
-                    generateRegRegInstruction(TR::InstOpCode::MOVAPSRegReg, node, copyReg, child->getRegister(), cg);
+                    Inst_RegReg(OP::MOVAPSRegReg, node, copyReg, child->getRegister(), cg);
                 } else {
                     copyReg = cg->allocateRegister(TR_FPR);
-                    generateRegRegInstruction(TR::InstOpCode::MOVAPDRegReg, node, copyReg, child->getRegister(), cg);
+                    Inst_RegReg(OP::MOVAPDRegReg, node, copyReg, child->getRegister(), cg);
                 }
             } else if (globalReg->getKind() == TR_VRF) {
                 generateRegcopyDebugCounter(cg, "vrf");
                 copyReg = cg->allocateRegister(TR_VRF);
-                TR::InstOpCode::Mnemonic op = cg->comp()->target().cpu.supportsAVX() ? TR::InstOpCode::VMOVDQUYmmYmm
-                                                                                     : TR::InstOpCode::MOVDQURegReg;
-                op = cg->comp()->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512F) ? TR::InstOpCode::VMOVDQUZmmZmm
-                                                                                       : op;
-                generateRegRegInstruction(op, node, copyReg, child->getRegister(), cg);
+                OP::Mnemonic op = cg->comp()->target().cpu.supportsAVX() ? OP::VMOVDQUYmmYmm : OP::MOVDQURegReg;
+                op = cg->comp()->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512F) ? OP::VMOVDQUZmmZmm : op;
+                Inst_RegReg(op, node, copyReg, child->getRegister(), cg);
             } else if (globalReg->getKind() == TR_VMR) {
                 generateRegcopyDebugCounter(cg, "vmr");
                 copyReg = cg->allocateRegister(TR_VMR);
-                TR::InstOpCode::Mnemonic op = cg->comp()->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512BW)
-                    ? TR::InstOpCode::KMOVQMaskMask
-                    : TR::InstOpCode::KMOVWMaskMask;
-                generateRegRegInstruction(op, node, copyReg, child->getRegister(), cg);
+                OP::Mnemonic op = cg->comp()->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512BW)
+                    ? OP::KMOVQMaskMask
+                    : OP::KMOVWMaskMask;
+                Inst_RegReg(op, node, copyReg, child->getRegister(), cg);
             }
 
             globalReg = copyReg;
@@ -645,27 +643,22 @@ void OMR::X86::RegisterDependencyGroup::assignRegisters(TR::Instruction *current
                     TR_ASSERT(virtReg->getBackingStorage(), "should have a backing store for spilled reg virtuals");
                     assignedReg = toRealRegister(virtReg->getAssignedRegister());
 
-                    TR::MemoryReference *tempMR
-                        = generateX86MemoryReference(virtReg->getBackingStorage()->getSymbolReference(), cg);
+                    TR::MemoryReference *tempMR = MRef_sym(virtReg->getBackingStorage()->getSymbolReference(), cg);
 
-                    TR::InstOpCode::Mnemonic op;
+                    OP::Mnemonic op;
                     if (assignedReg->getKind() == TR_FPR) {
-                        op = (assignedReg->isSinglePrecision()) ? TR::InstOpCode::MOVSSRegMem
-                                                                : (cg->getXMMDoubleLoadOpCode());
+                        op = (assignedReg->isSinglePrecision()) ? OP::MOVSSRegMem : (cg->getXMMDoubleLoadOpCode());
                     } else if (assignedReg->getKind() == TR_VMR) {
-                        op = TR::InstOpCode::KMOVWMaskMem;
+                        op = OP::KMOVWMaskMem;
 
                         if (cg->comp()->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512BW)) {
-                            op = TR::InstOpCode::KMOVQMaskMem;
+                            op = OP::KMOVQMaskMem;
                         }
                     } else if (assignedReg->getKind() == TR_VRF) {
-                        op = cg->comp()->target().cpu.supportsAVX() ? TR::InstOpCode::VMOVDQUYmmMem
-                                                                    : TR::InstOpCode::MOVDQURegMem;
-                        op = cg->comp()->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512F)
-                            ? TR::InstOpCode::VMOVDQUZmmMem
-                            : op;
+                        op = cg->comp()->target().cpu.supportsAVX() ? OP::VMOVDQUYmmMem : OP::MOVDQURegMem;
+                        op = cg->comp()->target().cpu.supportsFeature(OMR_FEATURE_X86_AVX512F) ? OP::VMOVDQUZmmMem : op;
                     } else {
-                        op = TR::InstOpCode::LRegMem();
+                        op = OP::LRegMem();
                     }
 
                     TR::X86RegMemInstruction *inst = new (cg->trHeapMemory())
@@ -1026,3 +1019,17 @@ TR::RegisterDependencyConditions *generateRegisterDependencyConditions(TR::Node 
 {
     return new (cg->trHeapMemory()) TR::RegisterDependencyConditions(node, cg, additionalRegDeps);
 }
+
+namespace TR {
+
+TR::RegisterDependencyConditions *RegDeps(uint32_t numPreConds, uint32_t numPostConds, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::RegisterDependencyConditions(numPreConds, numPostConds, cg->trMemory());
+}
+
+TR::RegisterDependencyConditions *RegDeps(TR::Node *node, TR::CodeGenerator *cg, uint32_t additionalRegDeps)
+{
+    return new (cg->trHeapMemory()) TR::RegisterDependencyConditions(node, cg, additionalRegDeps);
+}
+
+} // namespace TR

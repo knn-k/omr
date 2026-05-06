@@ -367,12 +367,11 @@ TR::Register *TR::IA32SystemLinkage::buildDirectDispatch(TR::Node *callNode, boo
     if (!methodSymbol->isHelper())
         diagnostic("Building call site for %s\n", methodSymbol->getMethod()->signature(trMemory()));
 
-    TR::RegisterDependencyConditions *deps;
-    deps = generateRegisterDependencyConditions((uint8_t)0, (uint8_t)6, cg());
+    TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)0, (uint8_t)6, cg());
     TR::Register *returnReg = buildVolatileAndReturnDependencies(callNode, deps);
     deps->stopAddingConditions();
 
-    TR::RegisterDependencyConditions *dummy = generateRegisterDependencyConditions((uint8_t)0, (uint8_t)0, cg());
+    TR::RegisterDependencyConditions *dummy = RegDeps((uint8_t)0, (uint8_t)0, cg());
 
     uint32_t argSize = buildArgs(callNode, dummy);
 
@@ -382,15 +381,14 @@ TR::Register *TR::IA32SystemLinkage::buildDirectDispatch(TR::Node *callNode, boo
     // Call-out
     int32_t stackAdjustment = cg()->getProperties().getCallerCleanup() ? 0 : -argSize;
     cg()->resetIsLeafMethod();
-    TR::X86ImmInstruction *instr = generateImmSymInstruction(TR::InstOpCode::CALLImm4, callNode,
-        (uintptr_t)methodSymbol->getMethodAddress(), methodSymRef, cg());
+    TR::X86ImmInstruction *instr
+        = Inst_ImmSym(OP::CALLImm4, callNode, (uintptr_t)methodSymbol->getMethodAddress(), methodSymRef, cg());
     instr->setAdjustsFramePointerBy(stackAdjustment);
 
     if (cg()->getProperties().getCallerCleanup() && argSize > 0) {
         // Clean up arguments
         //
-        generateRegImmInstruction((argSize <= 127) ? TR::InstOpCode::ADD4RegImms : TR::InstOpCode::ADD4RegImm4,
-            callNode, stackPointerReg, argSize, cg());
+        Inst_RegImm((argSize <= 127) ? OP::ADD4RegImms : OP::ADD4RegImm4, callNode, stackPointerReg, argSize, cg());
     }
 
     /**
@@ -405,7 +403,7 @@ TR::Register *TR::IA32SystemLinkage::buildDirectDispatch(TR::Node *callNode, boo
     // this label rather than on the call
     //
     TR::LabelSymbol *endSystemCallSequence = generateLabelSymbol(cg());
-    generateLabelInstruction(TR::InstOpCode::label, callNode, endSystemCallSequence, deps, cg());
+    Inst_Label(OP::label, callNode, endSystemCallSequence, deps, cg());
 
     // Stop using the killed registers that are not going to persist
     //

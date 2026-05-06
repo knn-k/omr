@@ -329,7 +329,7 @@ public:
 
     bool isAuthenticAMD() { return _vendorFlags.testAny(TR_AuthenticAMD); }
 
-    bool requiresLFENCE() { return false; /* Dummy for now, we may need TR::InstOpCode::LFENCE in future processors*/ }
+    bool requiresLFENCE() { return false; /* Dummy for now, we may need OP::LFENCE in future processors*/ }
 
     int32_t getX86Architecture() { return (_processorDescription & 0x000000ff); }
 
@@ -852,7 +852,7 @@ public:
     // The core "clobberEvaluate" logic for single registers (not register
     // pairs), parameterized by the opcode used to move the desired value into a
     // clobberable register if necessary
-    TR::Register *gprClobberEvaluate(TR::Node *node, TR::InstOpCode::Mnemonic movRegRegOpCode);
+    TR::Register *gprClobberEvaluate(TR::Node *node, OP::Mnemonic movRegRegOpCode);
 
     TR_OutlinedInstructions *findOutlinedInstructionsFromLabel(TR::LabelSymbol *label);
     TR_OutlinedInstructions *findOutlinedInstructionsFromMergeLabel(TR::LabelSymbol *label);
@@ -956,7 +956,7 @@ private:
 
     TR::LabelSymbol *_switchToInterpreterLabel;
 
-    TR::InstOpCode::Mnemonic _xmmDoubleLoadOpCode;
+    OP::Mnemonic _xmmDoubleLoadOpCode;
 
     int32_t _numReservedIPICTrampolines; ///< number of reserved IPIC trampolines
 
@@ -1037,9 +1037,9 @@ public:
 
     TR::X86ImmInstruction *getReturnTypeInfoInstruction() { return _returnTypeInfoInstruction; }
 
-    TR::InstOpCode::Mnemonic getXMMDoubleLoadOpCode() { return _xmmDoubleLoadOpCode; }
+    OP::Mnemonic getXMMDoubleLoadOpCode() { return _xmmDoubleLoadOpCode; }
 
-    void setXMMDoubleLoadOpCode(TR::InstOpCode::Mnemonic o) { _xmmDoubleLoadOpCode = o; }
+    void setXMMDoubleLoadOpCode(OP::Mnemonic o) { _xmmDoubleLoadOpCode = o; }
 
     TR::LabelSymbol *getSwitchToInterpreterLabel() { return _switchToInterpreterLabel; }
 

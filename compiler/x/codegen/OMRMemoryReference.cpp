@@ -660,9 +660,9 @@ TR::Register *OMR::X86::MemoryReference::evaluate(TR::Node *node, TR::CodeGenera
             // Sign extension in the 64-bit case
             TR::Instruction *instr = NULL;
             if (node->getSize() == 4)
-                instr = generateRegRegInstruction(TR::InstOpCode::MOVSXReg8Reg4, node, reg, reg, cg);
+                instr = Inst_RegReg(OP::MOVSXReg8Reg4, node, reg, reg, cg);
             else if (node->getSize() == 2)
-                instr = generateRegRegInstruction(TR::InstOpCode::MOVSXReg8Reg2, node, reg, reg, cg);
+                instr = Inst_RegReg(OP::MOVSXReg8Reg2, node, reg, reg, cg);
 
             logprintf(trace, log, "Add a sign extension instruction to 64-bit in Upcasting Mode %x\n", instr);
         }
@@ -671,7 +671,7 @@ TR::Register *OMR::X86::MemoryReference::evaluate(TR::Node *node, TR::CodeGenera
             // Sign extension in the 32-bit case
             TR::Instruction *instr = NULL;
             if (node->getSize() == 2)
-                instr = generateRegRegInstruction(TR::InstOpCode::MOVSXReg4Reg2, node, reg, reg, cg);
+                instr = Inst_RegReg(OP::MOVSXReg4Reg2, node, reg, reg, cg);
 
             logprintf(trace, log, "Add a sign extension instruction to 32-bit in Upcasting Mode %x\n", instr);
         }
@@ -704,9 +704,8 @@ void OMR::X86::MemoryReference::consolidateRegisters(TR::Node *node, TR::CodeGen
         tempTargetRegister = cg->allocateRegister();
     }
 
-    TR::MemoryReference *interimMemoryReference
-        = generateX86MemoryReference(_baseRegister, _indexRegister, _stride, cg);
-    generateRegMemInstruction(TR::InstOpCode::LEARegMem(), node, tempTargetRegister, interimMemoryReference, cg);
+    TR::MemoryReference *interimMemoryReference = MRef_BIS(_baseRegister, _indexRegister, _stride, cg);
+    Inst_RegMem(OP::LEARegMem(), node, tempTargetRegister, interimMemoryReference, cg);
     self()->decNodeReferenceCounts(cg);
     _baseRegister = tempTargetRegister;
     _baseNode = NULL;
@@ -732,7 +731,7 @@ void OMR::X86::MemoryReference::assignRegisters(TR::Instruction *currentInstruct
 
             if (assignedBaseRegister == NULL) {
                 // Note: a MemRef can be used only once -- if you want to reuse make a copy using
-                // generateX86MemoryReference(OMR::X86::MemoryReference  &, intptr_t, TR::CodeGenerator *cg).
+                // MRef_MRefOff(OMR::X86::MemoryReference  &, intptr_t, TR::CodeGenerator *cg).
                 TR_ASSERT_FATAL(!_baseRegister->getRealRegister(),
                     "_baseRegister is a Real Register already, are you reusing a Memory Reference?");
                 assignedBaseRegister = assignGPRegister(currentInstruction, _baseRegister, TR_WordReg, cg);
@@ -1529,4 +1528,66 @@ TR::MemoryReference *generateX86MemoryReference(TR::X86DataSnippet *cds, TR::Cod
 TR::MemoryReference *generateX86MemoryReference(TR::LabelSymbol *label, TR::CodeGenerator *cg)
 {
     return new (cg->trHeapMemory()) TR::MemoryReference(label, cg);
+}
+
+/////////////////////////////////////////////////////////////////////
+// TR::MemoryReference factory functions
+/////////////////////////////////////////////////////////////////////
+
+TR::MemoryReference *TR::MRef(TR::CodeGenerator *cg) { return new (cg->trHeapMemory()) TR::MemoryReference(cg); }
+
+TR::MemoryReference *TR::MRef_abs(intptr_t disp, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::MemoryReference(disp, cg);
+}
+
+TR::MemoryReference *TR::MRef_Bdisp32(TR::Register *br, intptr_t disp, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::MemoryReference(br, disp, cg);
+}
+
+TR::MemoryReference *TR::MRef_BIS(TR::Register *br, TR::Register *ir, uint8_t s, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::MemoryReference(br, ir, s, cg);
+}
+
+TR::MemoryReference *TR::MRef_BISdisp32(TR::Register *br, TR::Register *ir, uint8_t s, intptr_t disp32,
+    TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::MemoryReference(br, ir, s, disp32, cg);
+}
+
+TR::MemoryReference *TR::MRef_const(TR::X86DataSnippet *cds, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::MemoryReference(cds, cg);
+}
+
+TR::MemoryReference *TR::MRef_label(TR::LabelSymbol *label, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::MemoryReference(label, cg);
+}
+
+TR::MemoryReference *TR::MRef_node(TR::Node *node, TR::CodeGenerator *cg, bool canRematerializeAddressAdds)
+{
+    TR::LabelSymbol *constRefLabel = cg->assignConstRefLabel(node);
+    if (constRefLabel != NULL) {
+        return MRef_label(constRefLabel, cg);
+    }
+
+    return new (cg->trHeapMemory()) TR::MemoryReference(node, cg, canRematerializeAddressAdds);
+}
+
+TR::MemoryReference *TR::MRef_sym(TR::SymbolReference *sr, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::MemoryReference(sr, cg);
+}
+
+TR::MemoryReference *TR::MRef_symOff(TR::SymbolReference *sr, intptr_t offset, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::MemoryReference(sr, offset, cg);
+}
+
+TR::MemoryReference *TR::MRef_MRefOff(TR::MemoryReference &mr, intptr_t offset, TR::CodeGenerator *cg)
+{
+    return new (cg->trHeapMemory()) TR::MemoryReference(mr, offset, cg);
 }

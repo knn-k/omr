@@ -134,8 +134,8 @@ TR::Instruction *TR::X86SystemLinkage::copyParametersToHomeLocation(TR::Instruct
                 if (debug("traceCopyParametersToHomeLocation"))
                     diagnostic("copyParametersToHomeLocation: Loading %d\n", ai);
                 // ai := stack
-                loadCursor = generateRegMemInstruction(loadCursor, TR::Linkage::movOpcodes(RegMem, movDataType),
-                    machine->getRealRegister(ai), generateX86MemoryReference(framePointer, offset, cg()), cg());
+                loadCursor = Inst_RegMem(loadCursor, TR::Linkage::movOpcodes(RegMem, movDataType),
+                    machine->getRealRegister(ai), MRef_Bdisp32(framePointer, offset, cg()), cg());
             }
         } else // It's in a linkage register
         {
@@ -151,9 +151,8 @@ TR::Instruction *TR::X86SystemLinkage::copyParametersToHomeLocation(TR::Instruct
                 if (debug("traceCopyParametersToHomeLocation"))
                     diagnostic("copyParametersToHomeLocation: Storing %d\n", sourceIndex);
                 // stack := lri
-                cursor = generateMemRegInstruction(cursor, TR::Linkage::movOpcodes(MemReg, movDataType),
-                    generateX86MemoryReference(framePointer, offset, cg()), machine->getRealRegister(sourceIndex),
-                    cg());
+                cursor = Inst_MemReg(cursor, TR::Linkage::movOpcodes(MemReg, movDataType),
+                    MRef_Bdisp32(framePointer, offset, cg()), machine->getRealRegister(sourceIndex), cg());
             }
 
             // Copy to the ai register if necessary
@@ -228,8 +227,7 @@ TR::Instruction *TR::X86SystemLinkage::copyParametersToHomeLocation(TR::Instruct
                 if (debug("traceCopyParametersToHomeLocation"))
                     diagnostic("copyParametersToHomeLocation: Moving %d to %d\n", source, regCursor);
                 // regCursor := regCursor.sourceReg
-                cursor = generateRegRegInstruction(cursor,
-                    TR::Linkage::movOpcodes(RegReg, movStatus[source].outgoingDataType),
+                cursor = Inst_RegReg(cursor, TR::Linkage::movOpcodes(RegReg, movStatus[source].outgoingDataType),
                     machine->getRealRegister(regCursor), machine->getRealRegister(source), cg());
                 // Update movStatus as we go so we don't generate redundant movs
                 movStatus[regCursor].sourceReg = noReg;
@@ -260,7 +258,7 @@ TR::Instruction *TR::X86SystemLinkage::savePreservedRegisters(TR::Instruction *c
             TR::RealRegister::RegNum idx = _properties.getPreservedRegister((uint32_t)pindex);
             TR::RealRegister *reg = machine()->getRealRegister(idx);
             if (reg->getHasBeenAssignedInMethod() && reg->getState() != TR::RealRegister::Locked) {
-                cursor = new (trHeapMemory()) TR::X86RegInstruction(cursor, TR::InstOpCode::PUSHReg, reg, cg());
+                cursor = new (trHeapMemory()) TR::X86RegInstruction(cursor, OP::PUSHReg, reg, cg());
             }
         }
     } else {
@@ -268,9 +266,8 @@ TR::Instruction *TR::X86SystemLinkage::savePreservedRegisters(TR::Instruction *c
             TR::RealRegister::RegNum idx = _properties.getPreservedRegister((uint32_t)pindex);
             TR::RealRegister *reg = machine()->getRealRegister(getProperties().getPreservedRegister((uint32_t)pindex));
             if (reg->getHasBeenAssignedInMethod() && reg->getState() != TR::RealRegister::Locked) {
-                cursor = generateMemRegInstruction(cursor, TR::Linkage::movOpcodes(MemReg, fullRegisterMovType(reg)),
-                    generateX86MemoryReference(machine()->getRealRegister(TR::RealRegister::vfp), offsetCursor, cg()),
-                    reg, cg());
+                cursor = Inst_MemReg(cursor, TR::Linkage::movOpcodes(MemReg, fullRegisterMovType(reg)),
+                    MRef_Bdisp32(machine()->getRealRegister(TR::RealRegister::vfp), offsetCursor, cg()), reg, cg());
                 offsetCursor -= pointerSize;
             }
         }
@@ -409,14 +406,14 @@ void TR::X86SystemLinkage::createPrologue(TR::Instruction *cursor)
 
     cg()->setFrameSizeInBytes(frameSize);
 
-    // Set the VFP state for the TR::InstOpCode::proc instruction
+    // Set the VFP state for the OP::proc instruction
     //
     if (properties.getAlwaysDedicateFramePointerRegister()) {
-        cursor = new (trHeapMemory()) TR::X86RegInstruction(cursor, TR::InstOpCode::PUSHReg,
+        cursor = new (trHeapMemory()) TR::X86RegInstruction(cursor, OP::PUSHReg,
             machine()->getRealRegister(properties.getFramePointerRegister()), cg());
 
         TR::RealRegister *stackPointerReg = machine()->getRealRegister(TR::RealRegister::esp);
-        cursor = new (trHeapMemory()) TR::X86RegRegInstruction(cursor, TR::InstOpCode::MOVRegReg(),
+        cursor = new (trHeapMemory()) TR::X86RegRegInstruction(cursor, OP::MOVRegReg(),
             machine()->getRealRegister(properties.getFramePointerRegister()), stackPointerReg, cg());
 
         cg()->initializeVFPState(properties.getFramePointerRegister(), _properties.getPointerSize());
@@ -427,7 +424,7 @@ void TR::X86SystemLinkage::createPrologue(TR::Instruction *cursor)
     // Entry breakpoint
     //
     if (comp()->getOption(TR_EntryBreakPoints)) {
-        cursor = new (trHeapMemory()) TR::Instruction(TR::InstOpCode::INT3, cursor, cg());
+        cursor = new (trHeapMemory()) TR::Instruction(OP::INT3, cursor, cg());
     }
 
     // Allocate the stack frame
@@ -437,10 +434,9 @@ void TR::X86SystemLinkage::createPrologue(TR::Instruction *cursor)
         // No need to do anything
     } else if (allocSize == singleWordSize) {
         TR::RealRegister *realReg = getSingleWordFrameAllocationRegister();
-        cursor = new (trHeapMemory()) TR::X86RegInstruction(cursor, TR::InstOpCode::PUSHReg, realReg, cg());
+        cursor = new (trHeapMemory()) TR::X86RegInstruction(cursor, OP::PUSHReg, realReg, cg());
     } else {
-        const TR::InstOpCode::Mnemonic subOp
-            = (allocSize <= 127) ? TR::InstOpCode::SUBRegImms() : TR::InstOpCode::SUBRegImm4();
+        const OP::Mnemonic subOp = (allocSize <= 127) ? OP::SUBRegImms() : OP::SUBRegImm4();
         cursor = new (trHeapMemory()) TR::X86RegImmInstruction(cursor, subOp, espReal, allocSize, cg());
     }
 
@@ -513,7 +509,7 @@ TR::Instruction *TR::X86SystemLinkage::restorePreservedRegisters(TR::Instruction
             TR::RealRegister::RegNum idx = _properties.getPreservedRegister((uint32_t)pindex);
             TR::RealRegister *reg = machine()->getRealRegister(idx);
             if (reg->getHasBeenAssignedInMethod()) {
-                cursor = new (trHeapMemory()) TR::X86RegInstruction(cursor, TR::InstOpCode::POPReg, reg, cg());
+                cursor = new (trHeapMemory()) TR::X86RegInstruction(cursor, OP::POPReg, reg, cg());
             }
         }
     } else {
@@ -526,10 +522,8 @@ TR::Instruction *TR::X86SystemLinkage::restorePreservedRegisters(TR::Instruction
                 reg->getHasBeenAssignedInMethod());
 
             if (reg->getHasBeenAssignedInMethod()) {
-                cursor = generateRegMemInstruction(cursor, TR::Linkage::movOpcodes(RegMem, fullRegisterMovType(reg)),
-                    reg,
-                    generateX86MemoryReference(machine()->getRealRegister(TR::RealRegister::vfp), offsetCursor, cg()),
-                    cg());
+                cursor = Inst_RegMem(cursor, TR::Linkage::movOpcodes(RegMem, fullRegisterMovType(reg)), reg,
+                    MRef_Bdisp32(machine()->getRealRegister(TR::RealRegister::vfp), offsetCursor, cg()), cg());
                 offsetCursor -= pointerSize;
             }
         }
@@ -554,8 +548,7 @@ void TR::X86SystemLinkage::createEpilogue(TR::Instruction *cursor)
         //
         allocSize = localSize;
         const uint32_t outgoingArgSize = cg()->getLargestOutgoingArgSize();
-        TR::InstOpCode::Mnemonic op
-            = (outgoingArgSize <= 127) ? TR::InstOpCode::ADDRegImms() : TR::InstOpCode::ADDRegImm4();
+        OP::Mnemonic op = (outgoingArgSize <= 127) ? OP::ADDRegImms() : OP::ADDRegImm4();
         cursor = new (trHeapMemory()) TR::X86RegImmInstruction(cursor, op, espReal, outgoingArgSize, cg());
     }
 
@@ -572,24 +565,24 @@ void TR::X86SystemLinkage::createEpilogue(TR::Instruction *cursor)
     if (_properties.getAlwaysDedicateFramePointerRegister()) {
         // Restore stack pointer from frame pointer
         //
-        cursor = new (trHeapMemory()) TR::X86RegRegInstruction(cursor, TR::InstOpCode::MOVRegReg(), espReal,
+        cursor = new (trHeapMemory()) TR::X86RegRegInstruction(cursor, OP::MOVRegReg(), espReal,
             machine()->getRealRegister(_properties.getFramePointerRegister()), cg());
-        cursor = new (trHeapMemory()) TR::X86RegInstruction(cursor, TR::InstOpCode::POPReg,
+        cursor = new (trHeapMemory()) TR::X86RegInstruction(cursor, OP::POPReg,
             machine()->getRealRegister(_properties.getFramePointerRegister()), cg());
     } else if (allocSize == 0) {
         // No need to do anything
     } else if (allocSize == singleWordSize) {
         TR::RealRegister *realReg = getSingleWordFrameAllocationRegister();
-        cursor = new (trHeapMemory()) TR::X86RegInstruction(cursor, TR::InstOpCode::POPReg, realReg, cg());
+        cursor = new (trHeapMemory()) TR::X86RegInstruction(cursor, OP::POPReg, realReg, cg());
     } else {
-        TR::InstOpCode::Mnemonic op = (allocSize <= 127) ? TR::InstOpCode::ADDRegImms() : TR::InstOpCode::ADDRegImm4();
+        OP::Mnemonic op = (allocSize <= 127) ? OP::ADDRegImms() : OP::ADDRegImm4();
         cursor = new (trHeapMemory()) TR::X86RegImmInstruction(cursor, op, espReal, allocSize, cg());
     }
 
     logprintf(trace, log, "create epilogue using system linkage, after delocating stack frame, cursor is %x.\n",
         cursor);
 
-    if (cursor->getNext()->getOpCodeValue() == TR::InstOpCode::RETImm2) {
+    if (cursor->getNext()->getOpCodeValue() == OP::RETImm2) {
         toIA32ImmInstruction(cursor->getNext())
             ->setSourceImmediate(bodySymbol->getNumParameterSlots() << getProperties().getParmSlotShift());
 

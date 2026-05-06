@@ -36,6 +36,11 @@ public:
         : OMR::InstOpCodeConnector(m)
     {}
 };
+
+typedef InstOpCode OP;
+
 } // namespace TR
+
+using TR::OP;
 
 #endif

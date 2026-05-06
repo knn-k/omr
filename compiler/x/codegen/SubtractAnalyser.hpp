@@ -48,17 +48,16 @@ public:
         : _cg(cg)
     {}
 
-    void integerSubtractAnalyser(TR::Node *root, TR::InstOpCode::Mnemonic regRegOpCode,
-        TR::InstOpCode::Mnemonic regMemOpCode, TR::InstOpCode::Mnemonic copyOpCode, bool needsEflags = false,
-        TR::Node *borrow = 0);
+    void integerSubtractAnalyser(TR::Node *root, OP::Mnemonic regRegOpCode, OP::Mnemonic regMemOpCode,
+        OP::Mnemonic copyOpCode, bool needsEflags = false, TR::Node *borrow = 0);
 
     void integerSubtractAnalyserWithExplicitOperands(TR::Node *root, TR::Node *firstChild, TR::Node *secondChild,
-        TR::InstOpCode::Mnemonic regRegOpCode, TR::InstOpCode::Mnemonic regMemOpCode,
-        TR::InstOpCode::Mnemonic copyOpCode, bool needsEflags = false, TR::Node *borrow = 0);
+        OP::Mnemonic regRegOpCode, OP::Mnemonic regMemOpCode, OP::Mnemonic copyOpCode, bool needsEflags = false,
+        TR::Node *borrow = 0);
 
     TR::Register *integerSubtractAnalyserImpl(TR::Node *root, TR::Node *firstChild, TR::Node *secondChild,
-        TR::InstOpCode::Mnemonic regRegOpCode, TR::InstOpCode::Mnemonic regMemOpCode,
-        TR::InstOpCode::Mnemonic copyOpCode, bool needsEflags, TR::Node *borrow);
+        OP::Mnemonic regRegOpCode, OP::Mnemonic regMemOpCode, OP::Mnemonic copyOpCode, bool needsEflags,
+        TR::Node *borrow);
 
     void longSubtractAnalyser(TR::Node *root);
     void longSubtractAnalyserWithExplicitOperands(TR::Node *root, TR::Node *firstChild, TR::Node *secondChild);

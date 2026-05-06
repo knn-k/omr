@@ -74,8 +74,7 @@ OMR::X86::Linkage::Linkage(TR::CodeGenerator *cg)
 {
     // Initialize the movOp table based on preferred load instructions for this target.
     //
-    TR::InstOpCode::Mnemonic op
-        = cg->getXMMDoubleLoadOpCode() ? cg->getXMMDoubleLoadOpCode() : TR::InstOpCode::MOVSDRegMem;
+    OP::Mnemonic op = cg->getXMMDoubleLoadOpCode() ? cg->getXMMDoubleLoadOpCode() : OP::MOVSDRegMem;
     _movOpcodes[RegMem][Float8] = op;
 }
 
@@ -653,12 +652,9 @@ TR_MovDataTypes OMR::X86::Linkage::paramMovType(TR::ParameterSymbol *param)
 
 TR::Environment &OMR::X86::Linkage::getTargetFromComp() { return TR::comp()->target(); }
 
-TR::InstOpCode::Mnemonic OMR::X86::Linkage::_movOpcodes[NumMovOperandTypes][NumMovDataTypes] = {
+OP::Mnemonic OMR::X86::Linkage::_movOpcodes[NumMovOperandTypes][NumMovDataTypes] = {
     //    Int4         Int8        Float4         Float8
-    {   TR::InstOpCode::S4MemReg,   TR::InstOpCode::S8MemReg, TR::InstOpCode::MOVSSMemReg,
-     TR::InstOpCode::MOVSDMemReg }, // MemReg
-    {   TR::InstOpCode::L4RegMem,   TR::InstOpCode::L8RegMem, TR::InstOpCode::MOVSSRegMem,
-     TR::InstOpCode::MOVSDRegMem }, // RegMem
-    { TR::InstOpCode::MOV4RegReg, TR::InstOpCode::MOV8RegReg, TR::InstOpCode::MOVSSRegReg,
-     TR::InstOpCode::MOVSDRegReg }, // RegReg
+    {   OP::S4MemReg,   OP::S8MemReg, OP::MOVSSMemReg, OP::MOVSDMemReg }, // MemReg
+    {   OP::L4RegMem,   OP::L8RegMem, OP::MOVSSRegMem, OP::MOVSDRegMem }, // RegMem
+    { OP::MOV4RegReg, OP::MOV8RegReg, OP::MOVSSRegReg, OP::MOVSDRegReg }, // RegReg
 };

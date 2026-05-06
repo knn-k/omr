@@ -55,32 +55,28 @@ public:
     {}
 
     void genericAnalyserWithExplicitOperands(TR::Node *root, TR::Node *firstChild, TR::Node *secondChild,
-        TR::InstOpCode::Mnemonic regRegOpCode, TR::InstOpCode::Mnemonic regMemOpCode,
-        TR::InstOpCode::Mnemonic copyOpCode, bool nonClobberingDestination = false);
+        OP::Mnemonic regRegOpCode, OP::Mnemonic regMemOpCode, OP::Mnemonic copyOpCode,
+        bool nonClobberingDestination = false);
 
-    void genericAnalyser(TR::Node *root, TR::InstOpCode::Mnemonic regRegOpCode, TR::InstOpCode::Mnemonic regMemOpCode,
-        TR::InstOpCode::Mnemonic copyOpCode, bool nonClobberingDestination = false);
+    void genericAnalyser(TR::Node *root, OP::Mnemonic regRegOpCode, OP::Mnemonic regMemOpCode, OP::Mnemonic copyOpCode,
+        bool nonClobberingDestination = false);
 
     TR::Register *genericAnalyserImpl(TR::Node *root, TR::Node *firstChild, TR::Node *secondChild,
-        TR::InstOpCode::Mnemonic regRegOpCode, TR::InstOpCode::Mnemonic regMemOpCode,
-        TR::InstOpCode::Mnemonic copyOpCode, bool nonClobberingDestination);
+        OP::Mnemonic regRegOpCode, OP::Mnemonic regMemOpCode, OP::Mnemonic copyOpCode, bool nonClobberingDestination);
 
-    void genericLongAnalyser(TR::Node *root, TR::InstOpCode::Mnemonic lowRegRegOpCode,
-        TR::InstOpCode::Mnemonic highRegRegOpCode, TR::InstOpCode::Mnemonic lowRegMemOpCode,
-        TR::InstOpCode::Mnemonic lowRegMemOpCode2Byte, TR::InstOpCode::Mnemonic lowRegMemOpCode1Byte,
-        TR::InstOpCode::Mnemonic highRegMemOpCode, TR::InstOpCode::Mnemonic copyOpCode);
+    void genericLongAnalyser(TR::Node *root, OP::Mnemonic lowRegRegOpCode, OP::Mnemonic highRegRegOpCode,
+        OP::Mnemonic lowRegMemOpCode, OP::Mnemonic lowRegMemOpCode2Byte, OP::Mnemonic lowRegMemOpCode1Byte,
+        OP::Mnemonic highRegMemOpCode, OP::Mnemonic copyOpCode);
 
-    void integerAddAnalyser(TR::Node *root, TR::InstOpCode::Mnemonic regRegOpCode,
-        TR::InstOpCode::Mnemonic regMemOpCode, bool needsEflags = false,
+    void integerAddAnalyser(TR::Node *root, OP::Mnemonic regRegOpCode, OP::Mnemonic regMemOpCode,
+        bool needsEflags = false,
         TR::Node *carry = 0); // 0 by default
 
     void integerAddAnalyserWithExplicitOperands(TR::Node *root, TR::Node *firstChild, TR::Node *secondChild,
-        TR::InstOpCode::Mnemonic regRegOpCode, TR::InstOpCode::Mnemonic regMemOpCode, bool needsEflags = false,
-        TR::Node *carry = 0);
+        OP::Mnemonic regRegOpCode, OP::Mnemonic regMemOpCode, bool needsEflags = false, TR::Node *carry = 0);
 
     TR::Register *integerAddAnalyserImpl(TR::Node *root, TR::Node *firstChild, TR::Node *secondChild,
-        TR::InstOpCode::Mnemonic regRegOpCode, TR::InstOpCode::Mnemonic regMemOpCode, bool needsEflags,
-        TR::Node *carry);
+        OP::Mnemonic regRegOpCode, OP::Mnemonic regMemOpCode, bool needsEflags, TR::Node *carry);
 
     void longAddAnalyserWithExplicitOperands(TR::Node *root, TR::Node *firstChild, TR::Node *secondChild);
     void longAddAnalyser(TR::Node *root);

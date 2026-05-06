@@ -56,7 +56,7 @@ class TR_OutlinedInstructions {
     TR::LabelSymbol *_restartLabel;
     TR::Instruction *_firstInstruction;
     TR::Instruction *_appendInstruction;
-    TR::InstOpCode::Mnemonic _targetRegMovOpcode;
+    OP::Mnemonic _targetRegMovOpcode;
 
     TR::Block *_block;
     TR::CodeGenerator *_cg;

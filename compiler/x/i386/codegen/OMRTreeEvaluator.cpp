@@ -76,8 +76,8 @@ class TR_OpaqueMethodBlock;
 //
 
 TR::Register *OMR::X86::I386::TreeEvaluator::longArithmeticCompareRegisterWithImmediate(TR::Node *node,
-    TR::Register *cmpRegister, TR::Node *immedChild, TR::InstOpCode::Mnemonic firstBranchOpCode,
-    TR::InstOpCode::Mnemonic secondBranchOpCode, TR::CodeGenerator *cg)
+    TR::Register *cmpRegister, TR::Node *immedChild, OP::Mnemonic firstBranchOpCode, OP::Mnemonic secondBranchOpCode,
+    TR::CodeGenerator *cg)
 {
     int32_t lowValue = immedChild->getLongIntLow();
     int32_t highValue = immedChild->getLongIntHigh();
@@ -93,34 +93,34 @@ TR::Register *OMR::X86::I386::TreeEvaluator::longArithmeticCompareRegisterWithIm
     if (cg->enableRegisterInterferences())
         cg->getLiveRegisters(TR_GPR)->setByteRegisterAssociation(targetRegister);
 
-    generateLabelInstruction(TR::InstOpCode::label, node, startLabel, cg);
+    Inst_Label(OP::label, node, startLabel, cg);
     compareGPRegisterToImmediate(node, cmpRegister->getHighOrder(), highValue, cg);
-    generateRegInstruction(TR::InstOpCode::SETNE1Reg, node, targetRegister, cg);
-    generateLabelInstruction(TR::InstOpCode::JNE4, node, highDoneLabel, cg);
+    Inst_Reg(OP::SETNE1Reg, node, targetRegister, cg);
+    Inst_Label(OP::JNE4, node, highDoneLabel, cg);
 
     compareGPRegisterToImmediate(node, cmpRegister->getLowOrder(), lowValue, cg);
-    generateRegInstruction(TR::InstOpCode::SETNE1Reg, node, targetRegister, cg);
-    generateLabelInstruction(firstBranchOpCode, node, doneLabel, cg);
-    generateRegInstruction(TR::InstOpCode::NEG1Reg, node, targetRegister, cg);
-    generateLabelInstruction(TR::InstOpCode::JMP4, node, doneLabel, cg);
+    Inst_Reg(OP::SETNE1Reg, node, targetRegister, cg);
+    Inst_Label(firstBranchOpCode, node, doneLabel, cg);
+    Inst_Reg(OP::NEG1Reg, node, targetRegister, cg);
+    Inst_Label(OP::JMP4, node, doneLabel, cg);
 
-    generateLabelInstruction(TR::InstOpCode::label, node, highDoneLabel, cg);
-    generateLabelInstruction(secondBranchOpCode, node, doneLabel, cg);
-    generateRegInstruction(TR::InstOpCode::NEG1Reg, node, targetRegister, cg);
-    TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)0, 3, cg);
+    Inst_Label(OP::label, node, highDoneLabel, cg);
+    Inst_Label(secondBranchOpCode, node, doneLabel, cg);
+    Inst_Reg(OP::NEG1Reg, node, targetRegister, cg);
+    TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)0, 3, cg);
     deps->addPostCondition(cmpRegister->getLowOrder(), TR::RealRegister::NoReg, cg);
     deps->addPostCondition(cmpRegister->getHighOrder(), TR::RealRegister::NoReg, cg);
     deps->addPostCondition(targetRegister, TR::RealRegister::ByteReg, cg);
 
-    generateLabelInstruction(TR::InstOpCode::label, node, doneLabel, deps, cg);
+    Inst_Label(OP::label, node, doneLabel, deps, cg);
 
-    generateRegRegInstruction(TR::InstOpCode::MOVSXReg4Reg1, node, targetRegister, targetRegister, cg);
+    Inst_RegReg(OP::MOVSXReg4Reg1, node, targetRegister, targetRegister, cg);
 
     return targetRegister;
 }
 
-TR::Register *OMR::X86::I386::TreeEvaluator::compareLongAndSetOrderedBoolean(TR::Node *node,
-    TR::InstOpCode::Mnemonic highSetOpCode, TR::InstOpCode::Mnemonic lowSetOpCode, TR::CodeGenerator *cg)
+TR::Register *OMR::X86::I386::TreeEvaluator::compareLongAndSetOrderedBoolean(TR::Node *node, OP::Mnemonic highSetOpCode,
+    OP::Mnemonic lowSetOpCode, TR::CodeGenerator *cg)
 {
     TR::Compilation *comp = cg->comp();
     TR::Node *secondChild = node->getSecondChild();
@@ -141,7 +141,7 @@ TR::Register *OMR::X86::I386::TreeEvaluator::compareLongAndSetOrderedBoolean(TR:
         TR::LabelSymbol *doneLabel = TR::LabelSymbol::create(cg->trHeapMemory(), cg);
         startLabel->setStartInternalControlFlow();
         doneLabel->setEndInternalControlFlow();
-        generateLabelInstruction(TR::InstOpCode::label, node, startLabel, cg);
+        Inst_Label(OP::label, node, startLabel, cg);
 
         compareGPRegisterToImmediate(node, cmpRegister->getHighOrder(), highValue, cg);
 
@@ -150,21 +150,21 @@ TR::Register *OMR::X86::I386::TreeEvaluator::compareLongAndSetOrderedBoolean(TR:
         if (cg->enableRegisterInterferences())
             cg->getLiveRegisters(TR_GPR)->setByteRegisterAssociation(targetRegister);
 
-        generateRegInstruction(highSetOpCode, node, targetRegister, cg);
-        generateLabelInstruction(TR::InstOpCode::JNE4, node, doneLabel, cg);
+        Inst_Reg(highSetOpCode, node, targetRegister, cg);
+        Inst_Label(OP::JNE4, node, doneLabel, cg);
 
         compareGPRegisterToImmediate(node, cmpRegister->getLowOrder(), lowValue, cg);
-        generateRegInstruction(lowSetOpCode, node, targetRegister, cg);
+        Inst_Reg(lowSetOpCode, node, targetRegister, cg);
 
-        TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)0, 3, cg);
+        TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)0, 3, cg);
         deps->addPostCondition(cmpRegister->getLowOrder(), TR::RealRegister::NoReg, cg);
         deps->addPostCondition(cmpRegister->getHighOrder(), TR::RealRegister::NoReg, cg);
         deps->addPostCondition(targetRegister, TR::RealRegister::NoReg, cg);
-        generateLabelInstruction(TR::InstOpCode::label, node, doneLabel, deps, cg);
+        Inst_Label(OP::label, node, doneLabel, deps, cg);
 
         // Result of lcmpXX is an integer.
         //
-        generateRegRegInstruction(TR::InstOpCode::MOVSXReg4Reg1, node, targetRegister, targetRegister, cg);
+        Inst_RegReg(OP::MOVSXReg4Reg1, node, targetRegister, targetRegister, cg);
 
         node->setRegister(targetRegister);
         cg->decReferenceCount(firstChild);
@@ -176,9 +176,8 @@ TR::Register *OMR::X86::I386::TreeEvaluator::compareLongAndSetOrderedBoolean(TR:
     return targetRegister;
 }
 
-void OMR::X86::I386::TreeEvaluator::compareLongsForOrder(TR::Node *node, TR::InstOpCode::Mnemonic highOrderBranchOp,
-    TR::InstOpCode::Mnemonic highOrderReversedBranchOp, TR::InstOpCode::Mnemonic lowOrderBranchOp,
-    TR::CodeGenerator *cg)
+void OMR::X86::I386::TreeEvaluator::compareLongsForOrder(TR::Node *node, OP::Mnemonic highOrderBranchOp,
+    OP::Mnemonic highOrderReversedBranchOp, OP::Mnemonic lowOrderBranchOp, TR::CodeGenerator *cg)
 {
     TR::Compilation *comp = cg->comp();
     TR::Node *secondChild = node->getSecondChild();
@@ -199,7 +198,7 @@ void OMR::X86::I386::TreeEvaluator::compareLongsForOrder(TR::Node *node, TR::Ins
 
         startLabel->setStartInternalControlFlow();
         doneLabel->setEndInternalControlFlow();
-        generateLabelInstruction(TR::InstOpCode::label, node, startLabel, cg);
+        Inst_Label(OP::label, node, startLabel, cg);
 
         compareGPRegisterToImmediate(node, cmpRegister->getHighOrder(), highValue, cg);
 
@@ -207,27 +206,27 @@ void OMR::X86::I386::TreeEvaluator::compareLongsForOrder(TR::Node *node, TR::Ins
         if (node->getNumChildren() == 3) {
             TR::Node *third = node->getChild(2);
             cg->evaluate(third);
-            deps = generateRegisterDependencyConditions(third, cg, 2);
+            deps = RegDeps(third, cg, 2);
             deps->addPostCondition(cmpRegister->getHighOrder(), TR::RealRegister::NoReg, cg);
             deps->addPostCondition(cmpRegister->getLowOrder(), TR::RealRegister::NoReg, cg);
             deps->stopAddingConditions();
 
-            generateLabelInstruction(highOrderBranchOp, node, destinationLabel, deps, cg);
-            generateLabelInstruction(TR::InstOpCode::JNE4, node, doneLabel, deps, cg);
+            Inst_Label(highOrderBranchOp, node, destinationLabel, deps, cg);
+            Inst_Label(OP::JNE4, node, doneLabel, deps, cg);
             compareGPRegisterToImmediate(node, cmpRegister->getLowOrder(), lowValue, cg);
-            generateLabelInstruction(lowOrderBranchOp, node, destinationLabel, deps, cg);
+            Inst_Label(lowOrderBranchOp, node, destinationLabel, deps, cg);
         } else {
-            generateLabelInstruction(highOrderBranchOp, node, destinationLabel, cg);
-            generateLabelInstruction(TR::InstOpCode::JNE4, node, doneLabel, cg);
+            Inst_Label(highOrderBranchOp, node, destinationLabel, cg);
+            Inst_Label(OP::JNE4, node, doneLabel, cg);
             compareGPRegisterToImmediate(node, cmpRegister->getLowOrder(), lowValue, cg);
-            generateLabelInstruction(lowOrderBranchOp, node, destinationLabel, cg);
-            deps = generateRegisterDependencyConditions((uint8_t)0, 2, cg);
+            Inst_Label(lowOrderBranchOp, node, destinationLabel, cg);
+            deps = RegDeps((uint8_t)0, 2, cg);
             deps->addPostCondition(cmpRegister->getHighOrder(), TR::RealRegister::NoReg, cg);
             deps->addPostCondition(cmpRegister->getLowOrder(), TR::RealRegister::NoReg, cg);
             deps->stopAddingConditions();
         }
 
-        generateLabelInstruction(TR::InstOpCode::label, node, doneLabel, deps, cg);
+        Inst_Label(OP::label, node, doneLabel, deps, cg);
 
         cg->decReferenceCount(firstChild);
         cg->decReferenceCount(secondChild);
@@ -1948,9 +1947,9 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lpopcntEvaluator(TR::Node *node, TR
     TR::Register *resultReg = inputLow;
 
     // add low result and high result together
-    generateRegRegInstruction(TR::InstOpCode::POPCNT4RegReg, node, inputLow, inputLow, cg);
-    generateRegRegInstruction(TR::InstOpCode::POPCNT4RegReg, node, inputHigh, inputHigh, cg);
-    generateRegRegInstruction(TR::InstOpCode::ADD4RegReg, node, inputLow, inputHigh, cg);
+    Inst_RegReg(OP::POPCNT4RegReg, node, inputLow, inputLow, cg);
+    Inst_RegReg(OP::POPCNT4RegReg, node, inputHigh, inputHigh, cg);
+    Inst_RegReg(OP::ADD4RegReg, node, inputLow, inputHigh, cg);
 
     cg->stopUsingRegister(inputHigh);
     node->setRegister(resultReg);
@@ -2011,16 +2010,15 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lconstEvaluator(TR::Node *node, TR:
             lowRegister = cg->allocateRegister();
             highRegister = loadConstant(node, highValue, TR_RematerializableInt, cg);
             if (lowValue == highValue) {
-                generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, lowRegister, highRegister, cg);
+                Inst_RegReg(OP::MOV4RegReg, node, lowRegister, highRegister, cg);
             } else {
-                generateRegMemInstruction(TR::InstOpCode::LEA4RegMem, node, lowRegister,
-                    generateX86MemoryReference(highRegister, lowValue - highValue, cg), cg);
+                Inst_RegMem(OP::LEA4RegMem, node, lowRegister, MRef_Bdisp32(highRegister, lowValue - highValue, cg),
+                    cg);
             }
         } else {
             lowRegister = loadConstant(node, lowValue, TR_RematerializableInt, cg);
             highRegister = cg->allocateRegister();
-            generateRegMemInstruction(TR::InstOpCode::LEA4RegMem, node, highRegister,
-                generateX86MemoryReference(lowRegister, highValue - lowValue, cg), cg);
+            Inst_RegMem(OP::LEA4RegMem, node, highRegister, MRef_Bdisp32(lowRegister, highValue - lowValue, cg), cg);
         }
     } else {
         lowRegister = loadConstant(node, lowValue, TR_RematerializableInt, cg);
@@ -2091,20 +2089,20 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lstoreEvaluator(TR::Node *node, TR:
     TR::Instruction *instr = NULL;
 
     if (!isVolatile && valueChild->getOpCodeValue() == TR::lconst && valueChild->getRegister() == NULL) {
-        lowMR = generateX86MemoryReference(node, cg);
-        highMR = generateX86MemoryReference(*lowMR, 4, cg);
+        lowMR = MRef_node(node, cg);
+        highMR = MRef_MRefOff(*lowMR, 4, cg);
 
         int32_t lowValue = valueChild->getLongIntLow();
         int32_t highValue = valueChild->getLongIntHigh();
 
         if (lowValue == highValue) {
             TR::Register *valueReg = loadConstant(node, lowValue, TR_RematerializableInt, cg);
-            instr = generateMemRegInstruction(TR::InstOpCode::S4MemReg, node, lowMR, valueReg, cg);
-            generateMemRegInstruction(TR::InstOpCode::S4MemReg, node, highMR, valueReg, cg);
+            instr = Inst_MemReg(OP::S4MemReg, node, lowMR, valueReg, cg);
+            Inst_MemReg(OP::S4MemReg, node, highMR, valueReg, cg);
             cg->stopUsingRegister(valueReg);
         } else {
-            instr = generateMemImmInstruction(TR::InstOpCode::S4MemImm4, node, lowMR, lowValue, cg);
-            generateMemImmInstruction(TR::InstOpCode::S4MemImm4, node, highMR, highValue, cg);
+            instr = Inst_MemImm(OP::S4MemImm4, node, lowMR, lowValue, cg);
+            Inst_MemImm(OP::S4MemImm4, node, highMR, highValue, cg);
         }
     }
 
@@ -2115,30 +2113,29 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lstoreEvaluator(TR::Node *node, TR:
 
         TR::Register *valueReg = cg->evaluate(valueChild);
         if (valueReg) {
-            lowMR = generateX86MemoryReference(node, cg);
-            highMR = generateX86MemoryReference(*lowMR, 4, cg);
+            lowMR = MRef_node(node, cg);
+            highMR = MRef_MRefOff(*lowMR, 4, cg);
 
             if (isVolatile) {
                 if (performTransformation(comp, "O^O Using SSE for volatile store %s\n",
                         cg->getDebug()->getName(node))) {
                     // Get stack piece
                     TR::MemoryReference *stackLow = cg->machine()->getDummyLocalMR(TR::Int64);
-                    TR::MemoryReference *stackHigh = generateX86MemoryReference(*stackLow, 4, cg);
+                    TR::MemoryReference *stackHigh = MRef_MRefOff(*stackLow, 4, cg);
 
-                    // generate: stack1 <- (valueReg->getloworder())    [TR::InstOpCode::S4MemReg]
-                    instr = generateMemRegInstruction(TR::InstOpCode::S4MemReg, node, stackLow, valueReg->getLowOrder(),
-                        cg);
+                    // generate: stack1 <- (valueReg->getloworder())    [OP::S4MemReg]
+                    instr = Inst_MemReg(OP::S4MemReg, node, stackLow, valueReg->getLowOrder(), cg);
                     // generate: stack1_plus4 <- (valueReg->gethighorder())
-                    generateMemRegInstruction(TR::InstOpCode::S4MemReg, node, stackHigh, valueReg->getHighOrder(), cg);
+                    Inst_MemReg(OP::S4MemReg, node, stackHigh, valueReg->getHighOrder(), cg);
 
                     // generate: xmm <- stack1
-                    TR::MemoryReference *stack = generateX86MemoryReference(*stackLow, 0, cg);
+                    TR::MemoryReference *stack = MRef_MRefOff(*stackLow, 0, cg);
                     // Allocate XMM Reg
                     TR::Register *reg = cg->allocateRegister(TR_FPR);
-                    generateRegMemInstruction(cg->getXMMDoubleLoadOpCode(), node, reg, stack, cg);
+                    Inst_RegMem(cg->getXMMDoubleLoadOpCode(), node, reg, stack, cg);
 
                     // generate: lowMR <- xmm
-                    generateMemRegInstruction(TR::InstOpCode::MOVSDMemReg, node, lowMR, reg, cg);
+                    Inst_MemReg(OP::MOVSDMemReg, node, lowMR, reg, cg);
 
                     // Stop using  xmm
                     cg->stopUsingRegister(reg);
@@ -2151,7 +2148,7 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lstoreEvaluator(TR::Node *node, TR:
                     edxReg = cg->allocateRegister();
                     ecxReg = cg->allocateRegister();
                     ebxReg = cg->allocateRegister();
-                    deps = generateRegisterDependencyConditions((uint8_t)4, (uint8_t)4, cg);
+                    deps = RegDeps((uint8_t)4, (uint8_t)4, cg);
 
                     deps->addPostCondition(eaxReg, TR::RealRegister::eax, cg);
                     deps->addPostCondition(edxReg, TR::RealRegister::edx, cg);
@@ -2162,19 +2159,18 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lstoreEvaluator(TR::Node *node, TR:
                     deps->addPreCondition(ecxReg, TR::RealRegister::ecx, cg);
                     deps->addPreCondition(ebxReg, TR::RealRegister::ebx, cg);
 
-                    instr = generateRegMemInstruction(TR::InstOpCode::L4RegMem, node, eaxReg, lowMR,
+                    instr = Inst_RegMem(OP::L4RegMem, node, eaxReg, lowMR,
                         cg); // forming the EDX:EAX pair
-                    generateRegMemInstruction(TR::InstOpCode::L4RegMem, node, edxReg, highMR, cg);
+                    Inst_RegMem(OP::L4RegMem, node, edxReg, highMR, cg);
                     lowMR->setIgnoreVolatile();
                     highMR->setIgnoreVolatile();
-                    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, ebxReg, valueReg->getLowOrder(),
+                    Inst_RegReg(OP::MOV4RegReg, node, ebxReg, valueReg->getLowOrder(),
                         cg); // forming the ECX:EBX pair
-                    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, ecxReg, valueReg->getHighOrder(), cg);
+                    Inst_RegReg(OP::MOV4RegReg, node, ecxReg, valueReg->getHighOrder(), cg);
 
-                    TR::MemoryReference *cmpxchgMR = generateX86MemoryReference(node, cg);
-                    generateMemInstruction(cg->comp()->target().isSMP() ? TR::InstOpCode::LCMPXCHG8BMem
-                                                                        : TR::InstOpCode::CMPXCHG8BMem,
-                        node, cmpxchgMR, deps, cg);
+                    TR::MemoryReference *cmpxchgMR = MRef_node(node, cg);
+                    Inst_Mem(cg->comp()->target().isSMP() ? OP::LCMPXCHG8BMem : OP::CMPXCHG8BMem, node, cmpxchgMR, deps,
+                        cg);
 
                     cg->stopUsingRegister(eaxReg);
                     cg->stopUsingRegister(edxReg);
@@ -2190,7 +2186,7 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lstoreEvaluator(TR::Node *node, TR:
                 edxReg = cg->allocateRegister();
                 ecxReg = cg->allocateRegister();
                 ebxReg = cg->allocateRegister();
-                deps = generateRegisterDependencyConditions((uint8_t)4, (uint8_t)4, cg);
+                deps = RegDeps((uint8_t)4, (uint8_t)4, cg);
 
                 deps->addPostCondition(eaxReg, TR::RealRegister::eax, cg);
                 deps->addPostCondition(edxReg, TR::RealRegister::edx, cg);
@@ -2201,30 +2197,29 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lstoreEvaluator(TR::Node *node, TR:
                 deps->addPreCondition(ecxReg, TR::RealRegister::ecx, cg);
                 deps->addPreCondition(ebxReg, TR::RealRegister::ebx, cg);
 
-                generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, ebxReg, valueReg->getLowOrder(),
+                Inst_RegReg(OP::MOV4RegReg, node, ebxReg, valueReg->getLowOrder(),
                     cg); // forming the ECX:EBX pair
-                generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, ecxReg, valueReg->getHighOrder(), cg);
+                Inst_RegReg(OP::MOV4RegReg, node, ecxReg, valueReg->getHighOrder(), cg);
 
-                instr = generateRegMemInstruction(TR::InstOpCode::L4RegMem, node, eaxReg, lowMR,
+                instr = Inst_RegMem(OP::L4RegMem, node, eaxReg, lowMR,
                     cg); // forming the EDX:EAX pair
-                generateRegMemInstruction(TR::InstOpCode::L4RegMem, node, edxReg, highMR, cg);
+                Inst_RegMem(OP::L4RegMem, node, edxReg, highMR, cg);
                 lowMR->setIgnoreVolatile();
                 highMR->setIgnoreVolatile();
                 lowMR->setProcessAsLongVolatileLow();
                 highMR->setProcessAsLongVolatileHigh();
 
-                TR::MemoryReference *cmpxchgMR = generateX86MemoryReference(node, cg);
-                generateMemInstruction(cg->comp()->target().isSMP() ? TR::InstOpCode::LCMPXCHG8BMem
-                                                                    : TR::InstOpCode::CMPXCHG8BMem,
-                    node, cmpxchgMR, deps, cg);
+                TR::MemoryReference *cmpxchgMR = MRef_node(node, cg);
+                Inst_Mem(cg->comp()->target().isSMP() ? OP::LCMPXCHG8BMem : OP::CMPXCHG8BMem, node, cmpxchgMR, deps,
+                    cg);
 
                 cg->stopUsingRegister(eaxReg);
                 cg->stopUsingRegister(edxReg);
                 cg->stopUsingRegister(ecxReg);
                 cg->stopUsingRegister(ebxReg);
             } else {
-                instr = generateMemRegInstruction(TR::InstOpCode::S4MemReg, node, lowMR, valueReg->getLowOrder(), cg);
-                generateMemRegInstruction(TR::InstOpCode::S4MemReg, node, highMR, valueReg->getHighOrder(), cg);
+                instr = Inst_MemReg(OP::S4MemReg, node, lowMR, valueReg->getLowOrder(), cg);
+                Inst_MemReg(OP::S4MemReg, node, highMR, valueReg->getHighOrder(), cg);
 
                 TR::SymbolReference &mrSymRef = lowMR->getSymbolReference();
                 if (mrSymRef.isUnresolved()) {
@@ -2251,8 +2246,8 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairReturnEvaluator(TR::Node
     //
     TR::Compilation *comp = cg->comp();
     if (cg->enableSinglePrecisionMethods() && comp->getJittedMethodSymbol()->usesSinglePrecisionMode()) {
-        generateMemInstruction(TR::InstOpCode::LDCWMem, node,
-            generateX86MemoryReference(cg->findOrCreate2ByteConstant(node, DOUBLE_PRECISION_ROUND_TO_NEAREST), cg), cg);
+        Inst_Mem(OP::LDCWMem, node,
+            MRef_const(cg->findOrCreate2ByteConstant(node, DOUBLE_PRECISION_ROUND_TO_NEAREST), cg), cg);
     }
 
     TR::Node *firstChild = node->getFirstChild();
@@ -2267,16 +2262,16 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairReturnEvaluator(TR::Node
 
     TR::RegisterDependencyConditions *dependencies = NULL;
     if (machineLowReturnRegister != TR::RealRegister::NoReg) {
-        dependencies = generateRegisterDependencyConditions((uint8_t)3, 0, cg);
+        dependencies = RegDeps((uint8_t)3, 0, cg);
         dependencies->addPreCondition(lowRegister, machineLowReturnRegister, cg);
         dependencies->addPreCondition(highRegister, machineHighReturnRegister, cg);
         dependencies->stopAddingConditions();
     }
 
     if (linkageProperties.getCallerCleanup()) {
-        generateInstruction(TR::InstOpCode::RET, node, dependencies, cg);
+        Inst(OP::RET, node, dependencies, cg);
     } else {
-        generateImmInstruction(TR::InstOpCode::RETImm2, node, 0, dependencies, cg);
+        Inst_Imm(OP::RETImm2, node, 0, dependencies, cg);
     }
 
     if (comp->getJittedMethodSymbol()->getLinkageConvention() == TR_Private) {
@@ -2309,12 +2304,12 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairAddEvaluator(TR::Node *n
         //
         if (firstChild->getReferenceCount() > 1) {
             TR::Register *reg = cg->evaluate(firstChild);
-            lowMR = generateX86MemoryReference(*reg->getMemRef(), 4, cg);
+            lowMR = MRef_MRefOff(*reg->getMemRef(), 4, cg);
             firstChildAlreadyEvaluated = true;
         } else {
-            lowMR = generateX86MemoryReference(firstChild, cg, false);
+            lowMR = MRef_node(firstChild, cg, false);
         }
-        highMR = generateX86MemoryReference(*lowMR, 4, cg);
+        highMR = MRef_MRefOff(*lowMR, 4, cg);
     }
 
     if (!needsEflags && secondChild->getOpCodeValue() == TR::lconst && secondChild->getRegister() == NULL
@@ -2327,64 +2322,61 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairAddEvaluator(TR::Node *n
 
         if (lowValue >= -128 && lowValue <= 127) {
             if (isMemOp)
-                instr = generateMemImmInstruction(TR::InstOpCode::ADD4MemImms, node, lowMR, lowValue, cg);
+                instr = Inst_MemImm(OP::ADD4MemImms, node, lowMR, lowValue, cg);
             else
-                instr = generateRegImmInstruction(TR::InstOpCode::ADD4RegImms, node, targetRegister->getLowOrder(),
-                    lowValue, cg);
+                instr = Inst_RegImm(OP::ADD4RegImms, node, targetRegister->getLowOrder(), lowValue, cg);
         } else if (lowValue == 128) {
             if (isMemOp)
-                instr = generateMemImmInstruction(TR::InstOpCode::SUB4MemImms, node, lowMR, -128, cg);
+                instr = Inst_MemImm(OP::SUB4MemImms, node, lowMR, -128, cg);
             else
-                instr = generateRegImmInstruction(TR::InstOpCode::SUB4RegImms, node, targetRegister->getLowOrder(),
-                    -128, cg);
+                instr = Inst_RegImm(OP::SUB4RegImms, node, targetRegister->getLowOrder(), -128, cg);
 
             // Use SBB of the negation of (highValue + 1) for the high order,
             // since we are getting the carry bit in the wrong sense from the SUB.
             highValue = -(highValue + 1);
         } else {
             if (isMemOp)
-                instr = generateMemImmInstruction(TR::InstOpCode::ADD4MemImm4, node, lowMR, lowValue, cg);
+                instr = Inst_MemImm(OP::ADD4MemImm4, node, lowMR, lowValue, cg);
             else
-                instr = generateRegImmInstruction(TR::InstOpCode::ADD4RegImm4, node, targetRegister->getLowOrder(),
-                    lowValue, cg);
+                instr = Inst_RegImm(OP::ADD4RegImm4, node, targetRegister->getLowOrder(), lowValue, cg);
         }
 
-        TR::InstOpCode::Mnemonic opCode;
+        OP::Mnemonic opCode;
 
         if (highValue >= -128 && highValue <= 127) {
             if (lowValue == 128)
                 if (isMemOp)
-                    opCode = TR::InstOpCode::SBB4MemImms;
+                    opCode = OP::SBB4MemImms;
                 else
-                    opCode = TR::InstOpCode::SBB4RegImms;
+                    opCode = OP::SBB4RegImms;
             else if (isMemOp)
-                opCode = TR::InstOpCode::ADC4MemImms;
+                opCode = OP::ADC4MemImms;
             else
-                opCode = TR::InstOpCode::ADC4RegImms;
+                opCode = OP::ADC4RegImms;
         } else {
             if (lowValue == 128)
                 if (isMemOp)
-                    opCode = TR::InstOpCode::SBB4MemImm4;
+                    opCode = OP::SBB4MemImm4;
                 else
-                    opCode = TR::InstOpCode::SBB4RegImm4;
+                    opCode = OP::SBB4RegImm4;
             else if (isMemOp)
-                opCode = TR::InstOpCode::ADC4MemImm4;
+                opCode = OP::ADC4MemImm4;
             else
-                opCode = TR::InstOpCode::ADC4RegImm4;
+                opCode = OP::ADC4RegImm4;
         }
 
         if (isMemOp) {
-            generateMemImmInstruction(opCode, node, highMR, highValue, cg);
+            Inst_MemImm(opCode, node, highMR, highValue, cg);
 
             if (debug("traceMemOp"))
                 diagnostic("\n*** Node [" POINTER_PRINTF_FORMAT "] inc by const", node);
         } else {
-            generateRegImmInstruction(opCode, node, targetRegister->getHighOrder(), highValue, cg);
+            Inst_RegImm(opCode, node, targetRegister->getHighOrder(), highValue, cg);
         }
     } else if (isMemOp && !needsEflags) {
         TR::Register *tempReg = cg->evaluate(secondChild);
-        instr = generateMemRegInstruction(TR::InstOpCode::ADD4MemReg, node, lowMR, tempReg->getLowOrder(), cg);
-        generateMemRegInstruction(TR::InstOpCode::ADC4MemReg, node, highMR, tempReg->getHighOrder(), cg);
+        instr = Inst_MemReg(OP::ADD4MemReg, node, lowMR, tempReg->getLowOrder(), cg);
+        Inst_MemReg(OP::ADC4MemReg, node, highMR, tempReg->getHighOrder(), cg);
 
         if (debug("traceMemOp"))
             diagnostic("\n*** Node [" POINTER_PRINTF_FORMAT "] inc by var", node);
@@ -2431,12 +2423,12 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairSubEvaluator(TR::Node *n
         //
         if (firstChild->getReferenceCount() > 1) {
             TR::Register *reg = cg->evaluate(firstChild);
-            lowMR = generateX86MemoryReference(*reg->getMemRef(), 4, cg);
+            lowMR = MRef_MRefOff(*reg->getMemRef(), 4, cg);
             firstChildAlreadyEvaluated = true;
         } else {
-            lowMR = generateX86MemoryReference(firstChild, cg, false);
+            lowMR = MRef_node(firstChild, cg, false);
         }
-        highMR = generateX86MemoryReference(*lowMR, 4, cg);
+        highMR = MRef_MRefOff(*lowMR, 4, cg);
     }
 
     if (!needsEflags && secondChild->getOpCodeValue() == TR::lconst && secondChild->getRegister() == NULL
@@ -2449,64 +2441,61 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairSubEvaluator(TR::Node *n
 
         if (lowValue >= -128 && lowValue <= 127) {
             if (isMemOp)
-                instr = generateMemImmInstruction(TR::InstOpCode::SUB4MemImms, node, lowMR, lowValue, cg);
+                instr = Inst_MemImm(OP::SUB4MemImms, node, lowMR, lowValue, cg);
             else
-                instr = generateRegImmInstruction(TR::InstOpCode::SUB4RegImms, node, targetRegister->getLowOrder(),
-                    lowValue, cg);
+                instr = Inst_RegImm(OP::SUB4RegImms, node, targetRegister->getLowOrder(), lowValue, cg);
         } else if (lowValue == 128) {
             if (isMemOp)
-                instr = generateMemImmInstruction(TR::InstOpCode::ADD4MemImms, node, lowMR, lowValue, cg);
+                instr = Inst_MemImm(OP::ADD4MemImms, node, lowMR, lowValue, cg);
             else
-                instr = generateRegImmInstruction(TR::InstOpCode::ADD4RegImms, node, targetRegister->getLowOrder(),
-                    -128, cg);
+                instr = Inst_RegImm(OP::ADD4RegImms, node, targetRegister->getLowOrder(), -128, cg);
 
             // Use ADC of the negation of (highValue + 1) for the high order,
             // since we are getting the carry bit in the wrong sense from the ADD.
             highValue = -(highValue + 1);
         } else {
             if (isMemOp)
-                instr = generateMemImmInstruction(TR::InstOpCode::SUB4MemImm4, node, lowMR, lowValue, cg);
+                instr = Inst_MemImm(OP::SUB4MemImm4, node, lowMR, lowValue, cg);
             else
-                instr = generateRegImmInstruction(TR::InstOpCode::SUB4RegImm4, node, targetRegister->getLowOrder(),
-                    lowValue, cg);
+                instr = Inst_RegImm(OP::SUB4RegImm4, node, targetRegister->getLowOrder(), lowValue, cg);
         }
 
-        TR::InstOpCode::Mnemonic opCode;
+        OP::Mnemonic opCode;
 
         if (highValue >= -128 && highValue <= 127) {
             if (lowValue == 128)
                 if (isMemOp)
-                    opCode = TR::InstOpCode::ADC4MemImms;
+                    opCode = OP::ADC4MemImms;
                 else
-                    opCode = TR::InstOpCode::ADC4RegImms;
+                    opCode = OP::ADC4RegImms;
             else if (isMemOp)
-                opCode = TR::InstOpCode::SBB4MemImms;
+                opCode = OP::SBB4MemImms;
             else
-                opCode = TR::InstOpCode::SBB4RegImms;
+                opCode = OP::SBB4RegImms;
         } else {
             if (lowValue == 128)
                 if (isMemOp)
-                    opCode = TR::InstOpCode::ADC4MemImm4;
+                    opCode = OP::ADC4MemImm4;
                 else
-                    opCode = TR::InstOpCode::ADC4RegImm4;
+                    opCode = OP::ADC4RegImm4;
             else if (isMemOp)
-                opCode = TR::InstOpCode::SBB4MemImm4;
+                opCode = OP::SBB4MemImm4;
             else
-                opCode = TR::InstOpCode::SBB4RegImm4;
+                opCode = OP::SBB4RegImm4;
         }
 
         if (isMemOp) {
-            generateMemImmInstruction(opCode, node, highMR, highValue, cg);
+            Inst_MemImm(opCode, node, highMR, highValue, cg);
 
             if (debug("traceMemOp"))
                 diagnostic("\n*** Node [" POINTER_PRINTF_FORMAT "] dec by const", node);
         } else {
-            generateRegImmInstruction(opCode, node, targetRegister->getHighOrder(), highValue, cg);
+            Inst_RegImm(opCode, node, targetRegister->getHighOrder(), highValue, cg);
         }
     } else if (isMemOp && !needsEflags) {
         TR::Register *tempReg = cg->evaluate(secondChild);
-        instr = generateMemRegInstruction(TR::InstOpCode::SUB4MemReg, node, lowMR, tempReg->getLowOrder(), cg);
-        generateMemRegInstruction(TR::InstOpCode::SBB4MemReg, node, highMR, tempReg->getHighOrder(), cg);
+        instr = Inst_MemReg(OP::SUB4MemReg, node, lowMR, tempReg->getLowOrder(), cg);
+        Inst_MemReg(OP::SBB4MemReg, node, highMR, tempReg->getHighOrder(), cg);
 
         if (debug("traceMemOp"))
             diagnostic("\n*** Node [" POINTER_PRINTF_FORMAT "] dec by var", node);
@@ -2574,7 +2563,7 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairMulEvaluator(TR::Node *n
     }
 
     if (secondChild->getOpCodeValue() == TR::lconst) {
-        TR::InstOpCode::Mnemonic opCode;
+        OP::Mnemonic opCode;
         int32_t lowValue = secondChild->getLongIntLow();
         int32_t highValue = secondChild->getLongIntHigh();
         int64_t value = secondChild->getLongInt();
@@ -2589,9 +2578,9 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairMulEvaluator(TR::Node *n
         }
         if (lowValue == 0 && highValue == 0) {
             lowRegister = cg->allocateRegister();
-            generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, node, lowRegister, lowRegister, cg);
+            Inst_RegReg(OP::XOR4RegReg, node, lowRegister, lowRegister, cg);
             highRegister = cg->allocateRegister();
-            generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, node, highRegister, highRegister, cg);
+            Inst_RegReg(OP::XOR4RegReg, node, highRegister, highRegister, cg);
         } else if (cg->convertMultiplyToShift(node)) {
             // Don't do a direct memory operation if we have to negate the result
             //
@@ -2599,9 +2588,9 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairMulEvaluator(TR::Node *n
                 node->setDirectMemoryUpdate(false);
             targetRegister = cg->evaluate(node);
             if (absValue != highValue) {
-                generateRegInstruction(TR::InstOpCode::NEG4Reg, node, targetRegister->getLowOrder(), cg);
-                generateRegImmInstruction(TR::InstOpCode::ADC4RegImms, node, targetRegister->getHighOrder(), 0, cg);
-                generateRegInstruction(TR::InstOpCode::NEG4Reg, node, targetRegister->getHighOrder(), cg);
+                Inst_Reg(OP::NEG4Reg, node, targetRegister->getLowOrder(), cg);
+                Inst_RegImm(OP::ADC4RegImms, node, targetRegister->getHighOrder(), 0, cg);
+                Inst_Reg(OP::NEG4Reg, node, targetRegister->getHighOrder(), cg);
             }
             return targetRegister;
         } else if (lowValue == 0) {
@@ -2613,7 +2602,7 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairMulEvaluator(TR::Node *n
                 } else {
                     multiplierRegister = cg->evaluate(firstChild)->getLowOrder();
                 }
-                TR::MemoryReference *tempMR = generateX86MemoryReference(cg);
+                TR::MemoryReference *tempMR = MRef(cg);
                 if (firstChild->getReferenceCount() > 1) {
                     highRegister = cg->allocateRegister();
                 } else {
@@ -2622,7 +2611,7 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairMulEvaluator(TR::Node *n
                 tempMR->setBaseRegister(multiplierRegister);
                 tempMR->setIndexRegister(multiplierRegister);
                 tempMR->setStrideFromMultiplier(absValue - 1);
-                generateRegMemInstruction(TR::InstOpCode::LEA4RegMem, node, highRegister, tempMR, cg);
+                Inst_RegMem(OP::LEA4RegMem, node, highRegister, tempMR, cg);
             } else {
                 absValue = highValue; // No negation necessary
                 if (firstIU2L && firstChild->getReferenceCount() == 1 && firstChild->getRegister() == 0) {
@@ -2649,34 +2638,34 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairMulEvaluator(TR::Node *n
                     if (firstChild->getReferenceCount() > 1 || firstChild->getRegister() != NULL
                         || !firstChild->getOpCode().isMemoryReference()) {
                         if (highValue >= -128 && highValue <= 127) {
-                            opCode = TR::InstOpCode::IMUL4RegRegImms;
+                            opCode = OP::IMUL4RegRegImms;
                         } else {
-                            opCode = TR::InstOpCode::IMUL4RegRegImm4;
+                            opCode = OP::IMUL4RegRegImm4;
                         }
                         if (firstChild->getReferenceCount() > 1 || firstChild->getRegister() != NULL) {
                             highRegister = cg->allocateRegister();
                         } else {
                             highRegister = multiplierRegister;
                         }
-                        generateRegRegImmInstruction(opCode, node, highRegister, multiplierRegister, highValue, cg);
+                        Inst_RegRegImm(opCode, node, highRegister, multiplierRegister, highValue, cg);
                     } else {
                         if (highValue >= -128 && highValue <= 127) {
-                            opCode = TR::InstOpCode::IMUL4RegMemImms;
+                            opCode = OP::IMUL4RegMemImms;
                         } else {
-                            opCode = TR::InstOpCode::IMUL4RegMemImm4;
+                            opCode = OP::IMUL4RegMemImm4;
                         }
-                        nodeMR = generateX86MemoryReference(firstChild, cg);
+                        nodeMR = MRef_node(firstChild, cg);
                         highRegister = cg->allocateRegister();
-                        generateRegMemImmInstruction(opCode, node, highRegister, nodeMR, highValue, cg);
+                        Inst_RegMemImm(opCode, node, highRegister, nodeMR, highValue, cg);
                     }
                 }
             }
             lowRegister = cg->allocateRegister();
-            generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, node, lowRegister, lowRegister, cg);
+            Inst_RegReg(OP::XOR4RegReg, node, lowRegister, lowRegister, cg);
             if (absValue != highValue) {
-                generateRegInstruction(TR::InstOpCode::NEG4Reg, node, lowRegister, cg);
-                generateRegImmInstruction(TR::InstOpCode::ADC4RegImms, node, highRegister, 0, cg);
-                generateRegInstruction(TR::InstOpCode::NEG4Reg, node, highRegister, cg);
+                Inst_Reg(OP::NEG4Reg, node, lowRegister, cg);
+                Inst_RegImm(OP::ADC4RegImms, node, highRegister, 0, cg);
+                Inst_Reg(OP::NEG4Reg, node, highRegister, cg);
             }
         } else if (highValue == 0) {
             TR::Register *multiplierRegister;
@@ -2695,26 +2684,26 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairMulEvaluator(TR::Node *n
                 highRegister = cg->allocateRegister();
             }
             lowRegister = loadConstant(node, lowValue, TR_RematerializableInt, cg);
-            TR::RegisterDependencyConditions *dependencies = generateRegisterDependencyConditions((uint8_t)2, 2, cg);
+            TR::RegisterDependencyConditions *dependencies = RegDeps((uint8_t)2, 2, cg);
             dependencies->addPreCondition(lowRegister, TR::RealRegister::eax, cg);
             dependencies->addPreCondition(highRegister, TR::RealRegister::edx, cg);
             dependencies->addPostCondition(lowRegister, TR::RealRegister::eax, cg);
             dependencies->addPostCondition(highRegister, TR::RealRegister::edx, cg);
             if (intMul) {
-                opCode = TR::InstOpCode::IMUL4AccReg;
+                opCode = OP::IMUL4AccReg;
             } else {
-                opCode = TR::InstOpCode::MUL4AccReg;
+                opCode = OP::MUL4AccReg;
             }
-            generateRegRegInstruction(opCode, node, lowRegister, sourceLow, dependencies, cg);
+            Inst_RegReg(opCode, node, lowRegister, sourceLow, dependencies, cg);
             if (!firstIU2L && !intMul) {
-                generateRegRegInstruction(TR::InstOpCode::TEST4RegReg, node, multiplierRegister->getHighOrder(),
+                Inst_RegReg(OP::TEST4RegReg, node, multiplierRegister->getHighOrder(),
                     multiplierRegister->getHighOrder(), cg);
                 TR::LabelSymbol *startLabel = TR::LabelSymbol::create(cg->trHeapMemory(), cg);
                 TR::LabelSymbol *doneLabel = TR::LabelSymbol::create(cg->trHeapMemory(), cg);
                 startLabel->setStartInternalControlFlow();
                 doneLabel->setEndInternalControlFlow();
-                generateLabelInstruction(TR::InstOpCode::label, node, startLabel, cg);
-                generateLabelInstruction(TR::InstOpCode::JE4, node, doneLabel, cg);
+                Inst_Label(OP::label, node, startLabel, cg);
+                Inst_Label(OP::JE4, node, doneLabel, cg);
                 // create the array of temporary allocated registers
                 TR::Register *tempRegArray[TR_X86IntegerMultiplyDecomposer::MAX_NUM_REGISTERS];
                 int32_t tempRegArraySize = 0;
@@ -2726,9 +2715,9 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairMulEvaluator(TR::Node *n
                 if (tempRegister == 0) // decomposition failed
                 {
                     if (lowValue >= -128 && lowValue <= 127) {
-                        opCode = TR::InstOpCode::IMUL4RegRegImms;
+                        opCode = OP::IMUL4RegRegImms;
                     } else {
-                        opCode = TR::InstOpCode::IMUL4RegRegImm4;
+                        opCode = OP::IMUL4RegRegImm4;
                     }
                     if (firstChild->getReferenceCount() == 1) {
                         tempRegister = multiplierRegister->getHighOrder();
@@ -2738,14 +2727,13 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairMulEvaluator(TR::Node *n
                             "Too many temporary registers to handle");
                         tempRegArray[tempRegArraySize++] = tempRegister;
                     }
-                    generateRegRegImmInstruction(opCode, node, tempRegister, multiplierRegister->getHighOrder(),
-                        lowValue, cg);
+                    Inst_RegRegImm(opCode, node, tempRegister, multiplierRegister->getHighOrder(), lowValue, cg);
                 }
-                generateRegRegInstruction(TR::InstOpCode::ADD4RegReg, node, highRegister, tempRegister, cg);
+                Inst_RegReg(OP::ADD4RegReg, node, highRegister, tempRegister, cg);
 
                 // add dependencies for lowRegister, highRegister, mutiplierRegister and temp registers
                 uint8_t numDeps = 3 + tempRegArraySize;
-                TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions(numDeps, numDeps, cg);
+                TR::RegisterDependencyConditions *deps = RegDeps(numDeps, numDeps, cg);
                 deps->addPreCondition(lowRegister, TR::RealRegister::eax, cg);
                 deps->addPreCondition(highRegister, TR::RealRegister::edx, cg);
                 deps->addPreCondition(multiplierRegister->getHighOrder(), TR::RealRegister::NoReg, cg);
@@ -2757,7 +2745,7 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairMulEvaluator(TR::Node *n
                 deps->addPostCondition(multiplierRegister->getHighOrder(), TR::RealRegister::NoReg, cg);
                 for (i = 0; i < tempRegArraySize; i++)
                     deps->addPostCondition(tempRegArray[i], TR::RealRegister::NoReg, cg);
-                generateLabelInstruction(TR::InstOpCode::label, node, doneLabel, deps, cg);
+                Inst_Label(OP::label, node, doneLabel, deps, cg);
                 for (i = 0; i < tempRegArraySize; i++)
                     cg->stopUsingRegister(tempRegArray[i]);
             }
@@ -2787,7 +2775,7 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairMulEvaluator(TR::Node *n
             int32_t tempRegArraySize = 0;
 
             if (absValue == 3 || absValue == 5 || absValue == 9) {
-                TR::MemoryReference *tempMR = generateX86MemoryReference(cg);
+                TR::MemoryReference *tempMR = MRef(cg);
 
                 tempRegister = cg->allocateRegister();
                 tempRegArray[tempRegArraySize++] = tempRegister;
@@ -2795,7 +2783,7 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairMulEvaluator(TR::Node *n
                 tempMR->setBaseRegister(sourceLow);
                 tempMR->setIndexRegister(sourceLow);
                 tempMR->setStrideFromMultiplier(absValue - 1);
-                generateRegMemInstruction(TR::InstOpCode::LEA4RegMem, node, tempRegister, tempMR, cg);
+                Inst_RegMem(OP::LEA4RegMem, node, tempRegister, tempMR, cg);
             } else {
                 absValue = highValue; // No negation necessary
 
@@ -2812,19 +2800,19 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairMulEvaluator(TR::Node *n
                     if (firstChild->getReferenceCount() > 1 || firstChild->getRegister() != NULL
                         || !firstChild->getOpCode().isMemoryReference()) {
                         if (highValue >= -128 && highValue <= 127) {
-                            opCode = TR::InstOpCode::IMUL4RegRegImms;
+                            opCode = OP::IMUL4RegRegImms;
                         } else {
-                            opCode = TR::InstOpCode::IMUL4RegRegImm4;
+                            opCode = OP::IMUL4RegRegImm4;
                         }
-                        generateRegRegImmInstruction(opCode, node, tempRegister, sourceLow, highValue, cg);
+                        Inst_RegRegImm(opCode, node, tempRegister, sourceLow, highValue, cg);
                     } else {
                         if (highValue >= -128 && highValue <= 127) {
-                            opCode = TR::InstOpCode::IMUL4RegMemImms;
+                            opCode = OP::IMUL4RegMemImms;
                         } else {
-                            opCode = TR::InstOpCode::IMUL4RegMemImm4;
+                            opCode = OP::IMUL4RegMemImm4;
                         }
-                        nodeMR = generateX86MemoryReference(firstChild, cg);
-                        generateRegMemImmInstruction(opCode, node, tempRegister, nodeMR, highValue, cg);
+                        nodeMR = MRef_node(firstChild, cg);
+                        Inst_RegMemImm(opCode, node, tempRegister, nodeMR, highValue, cg);
                     }
                 }
             }
@@ -2832,40 +2820,40 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairMulEvaluator(TR::Node *n
             TR_ASSERT(tempRegister != NULL, "tempRegister shouldn't be NULL at this point");
 
             if (absValue != highValue) {
-                generateRegInstruction(TR::InstOpCode::NEG4Reg, node, tempRegister, cg);
+                Inst_Reg(OP::NEG4Reg, node, tempRegister, cg);
             }
 
             // Second lowOrder * lowValue
 
             lowRegister = loadConstant(node, lowValue, TR_RematerializableInt, cg);
-            TR::RegisterDependencyConditions *dependencies = generateRegisterDependencyConditions((uint8_t)2, 2, cg);
+            TR::RegisterDependencyConditions *dependencies = RegDeps((uint8_t)2, 2, cg);
             dependencies->addPreCondition(lowRegister, TR::RealRegister::eax, cg);
             dependencies->addPreCondition(highRegister, TR::RealRegister::edx, cg);
             dependencies->addPostCondition(lowRegister, TR::RealRegister::eax, cg);
             dependencies->addPostCondition(highRegister, TR::RealRegister::edx, cg);
             if (intMul) {
-                opCode = TR::InstOpCode::IMUL4AccReg;
+                opCode = OP::IMUL4AccReg;
             } else {
-                opCode = TR::InstOpCode::MUL4AccReg;
+                opCode = OP::MUL4AccReg;
             }
-            generateRegRegInstruction(opCode, node, lowRegister, sourceLow, dependencies, cg);
+            Inst_RegReg(opCode, node, lowRegister, sourceLow, dependencies, cg);
 
             // add both results of the highword
-            generateRegRegInstruction(TR::InstOpCode::ADD4RegReg, node, highRegister, tempRegister, cg);
+            Inst_RegReg(OP::ADD4RegReg, node, highRegister, tempRegister, cg);
             // we can free up temporary registers
             for (int i = 0; i < tempRegArraySize; i++)
                 cg->stopUsingRegister(tempRegArray[i]);
 
             // Third highOrder * lowValue
             if (!firstIU2L && !intMul) {
-                generateRegRegInstruction(TR::InstOpCode::TEST4RegReg, node, multiplierRegister->getHighOrder(),
+                Inst_RegReg(OP::TEST4RegReg, node, multiplierRegister->getHighOrder(),
                     multiplierRegister->getHighOrder(), cg);
                 TR::LabelSymbol *startLabel = TR::LabelSymbol::create(cg->trHeapMemory(), cg);
                 TR::LabelSymbol *doneLabel = TR::LabelSymbol::create(cg->trHeapMemory(), cg);
                 startLabel->setStartInternalControlFlow();
                 doneLabel->setEndInternalControlFlow();
-                generateLabelInstruction(TR::InstOpCode::label, node, startLabel, cg);
-                generateLabelInstruction(TR::InstOpCode::JE4, node, doneLabel, cg);
+                Inst_Label(OP::label, node, startLabel, cg);
+                Inst_Label(OP::JE4, node, doneLabel, cg);
 
                 // reset the array of temporary registers
                 tempRegArraySize = 0;
@@ -2877,9 +2865,9 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairMulEvaluator(TR::Node *n
                 tempRegister = mulDecomposer->decomposeIntegerMultiplier(tempRegArraySize, tempRegArray);
                 if (tempRegister == 0) {
                     if (lowValue >= -128 && lowValue <= 127) {
-                        opCode = TR::InstOpCode::IMUL4RegRegImms;
+                        opCode = OP::IMUL4RegRegImms;
                     } else {
-                        opCode = TR::InstOpCode::IMUL4RegRegImm4;
+                        opCode = OP::IMUL4RegRegImm4;
                     }
                     if (firstChild->getReferenceCount() == 1) {
                         tempRegister = multiplierRegister->getHighOrder();
@@ -2889,14 +2877,13 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairMulEvaluator(TR::Node *n
                             "Too many temporary registers to handle");
                         tempRegArray[tempRegArraySize++] = tempRegister;
                     }
-                    generateRegRegImmInstruction(opCode, node, tempRegister, multiplierRegister->getHighOrder(),
-                        lowValue, cg);
+                    Inst_RegRegImm(opCode, node, tempRegister, multiplierRegister->getHighOrder(), lowValue, cg);
                 }
-                generateRegRegInstruction(TR::InstOpCode::ADD4RegReg, node, highRegister, tempRegister, cg);
+                Inst_RegReg(OP::ADD4RegReg, node, highRegister, tempRegister, cg);
 
                 // add dependencies for lowRegister, highRegister, mutiplierRegister and temp registers
                 uint8_t numDeps = 3 + tempRegArraySize;
-                TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions(numDeps, numDeps, cg);
+                TR::RegisterDependencyConditions *deps = RegDeps(numDeps, numDeps, cg);
 
                 deps->addPreCondition(lowRegister, TR::RealRegister::eax, cg);
                 deps->addPreCondition(highRegister, TR::RealRegister::edx, cg);
@@ -2909,7 +2896,7 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairMulEvaluator(TR::Node *n
                 deps->addPostCondition(multiplierRegister->getHighOrder(), TR::RealRegister::NoReg, cg);
                 for (i = 0; i < tempRegArraySize; i++)
                     deps->addPostCondition(tempRegArray[i], TR::RealRegister::NoReg, cg);
-                generateLabelInstruction(TR::InstOpCode::label, node, doneLabel, deps, cg);
+                Inst_Label(OP::label, node, doneLabel, deps, cg);
                 for (i = 0; i < tempRegArraySize; i++)
                     cg->stopUsingRegister(tempRegArray[i]);
             }
@@ -2956,9 +2943,9 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairNegEvaluator(TR::Node *n
     TR::Node *firstChild = node->getFirstChild();
     TR::Register *targetRegister = cg->longClobberEvaluate(firstChild);
     node->setRegister(targetRegister);
-    generateRegInstruction(TR::InstOpCode::NEG4Reg, node, targetRegister->getLowOrder(), cg);
-    generateRegImmInstruction(TR::InstOpCode::ADC4RegImms, node, targetRegister->getHighOrder(), 0, cg);
-    generateRegInstruction(TR::InstOpCode::NEG4Reg, node, targetRegister->getHighOrder(), cg);
+    Inst_Reg(OP::NEG4Reg, node, targetRegister->getLowOrder(), cg);
+    Inst_RegImm(OP::ADC4RegImms, node, targetRegister->getHighOrder(), 0, cg);
+    Inst_Reg(OP::NEG4Reg, node, targetRegister->getHighOrder(), cg);
 
     cg->decReferenceCount(firstChild);
     return targetRegister;
@@ -2970,12 +2957,12 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairAbsEvaluator(TR::Node *n
     TR::Register *targetRegister = cg->longClobberEvaluate(child);
     node->setRegister(targetRegister);
     TR::Register *signRegister = cg->allocateRegister(TR_GPR);
-    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, signRegister, targetRegister->getHighOrder(), cg);
-    generateRegImmInstruction(TR::InstOpCode::SAR4RegImm1, node, signRegister, 31, cg);
-    generateRegRegInstruction(TR::InstOpCode::ADD4RegReg, node, targetRegister->getLowOrder(), signRegister, cg);
-    generateRegRegInstruction(TR::InstOpCode::ADC4RegReg, node, targetRegister->getHighOrder(), signRegister, cg);
-    generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, node, targetRegister->getLowOrder(), signRegister, cg);
-    generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, node, targetRegister->getHighOrder(), signRegister, cg);
+    Inst_RegReg(OP::MOV4RegReg, node, signRegister, targetRegister->getHighOrder(), cg);
+    Inst_RegImm(OP::SAR4RegImm1, node, signRegister, 31, cg);
+    Inst_RegReg(OP::ADD4RegReg, node, targetRegister->getLowOrder(), signRegister, cg);
+    Inst_RegReg(OP::ADC4RegReg, node, targetRegister->getHighOrder(), signRegister, cg);
+    Inst_RegReg(OP::XOR4RegReg, node, targetRegister->getLowOrder(), signRegister, cg);
+    Inst_RegReg(OP::XOR4RegReg, node, targetRegister->getHighOrder(), signRegister, cg);
     cg->stopUsingRegister(signRegister);
     cg->decReferenceCount(child);
     return targetRegister;
@@ -2993,30 +2980,28 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairShlEvaluator(TR::Node *n
         } else if (value <= 3 && firstChild->getReferenceCount() > 1) {
             TR::Register *tempRegister = cg->evaluate(firstChild);
             targetRegister = cg->allocateRegisterPair(cg->allocateRegister(), cg->allocateRegister());
-            generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, targetRegister->getHighOrder(),
-                tempRegister->getHighOrder(), cg);
-            TR::MemoryReference *tempMR = generateX86MemoryReference(cg);
+            Inst_RegReg(OP::MOV4RegReg, node, targetRegister->getHighOrder(), tempRegister->getHighOrder(), cg);
+            TR::MemoryReference *tempMR = MRef(cg);
             tempMR->setIndexRegister(tempRegister->getLowOrder());
             tempMR->setStride(value);
-            generateRegMemInstruction(TR::InstOpCode::LEA4RegMem, node, targetRegister->getLowOrder(), tempMR, cg);
-            generateRegRegImmInstruction(TR::InstOpCode::SHLD4RegRegImm1, node, targetRegister->getHighOrder(),
-                tempRegister->getLowOrder(), value, cg);
+            Inst_RegMem(OP::LEA4RegMem, node, targetRegister->getLowOrder(), tempMR, cg);
+            Inst_RegRegImm(OP::SHLD4RegRegImm1, node, targetRegister->getHighOrder(), tempRegister->getLowOrder(),
+                value, cg);
         } else {
             targetRegister = cg->longClobberEvaluate(firstChild);
             if (value < 32) {
-                generateRegRegImmInstruction(TR::InstOpCode::SHLD4RegRegImm1, node, targetRegister->getHighOrder(),
-                    targetRegister->getLowOrder(), value, cg);
-                generateRegImmInstruction(TR::InstOpCode::SHL4RegImm1, node, targetRegister->getLowOrder(), value, cg);
+                Inst_RegRegImm(OP::SHLD4RegRegImm1, node, targetRegister->getHighOrder(), targetRegister->getLowOrder(),
+                    value, cg);
+                Inst_RegImm(OP::SHL4RegImm1, node, targetRegister->getLowOrder(), value, cg);
             } else {
                 if (value != 32) {
                     value -= 32;
-                    generateRegImmInstruction(TR::InstOpCode::SHL4RegImm1, node, targetRegister->getLowOrder(), value,
-                        cg);
+                    Inst_RegImm(OP::SHL4RegImm1, node, targetRegister->getLowOrder(), value, cg);
                 }
                 TR::Register *tempHighReg = targetRegister->getHighOrder();
                 TR::RegisterPair *targetAsPair = targetRegister->getRegisterPair();
                 targetAsPair->setHighOrder(targetRegister->getLowOrder(), cg);
-                generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, node, tempHighReg, tempHighReg, cg);
+                Inst_RegReg(OP::XOR4RegReg, node, tempHighReg, tempHighReg, cg);
                 targetAsPair->setLowOrder(tempHighReg, cg);
             }
         }
@@ -3030,18 +3015,17 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairShlEvaluator(TR::Node *n
             shiftAmountReg = shiftAmountReg->getLowOrder();
         }
 
-        TR::RegisterDependencyConditions *shiftDependencies = generateRegisterDependencyConditions((uint8_t)1, 1, cg);
+        TR::RegisterDependencyConditions *shiftDependencies = RegDeps((uint8_t)1, 1, cg);
         shiftDependencies->addPreCondition(shiftAmountReg, TR::RealRegister::ecx, cg);
         shiftDependencies->addPostCondition(shiftAmountReg, TR::RealRegister::ecx, cg);
 
-        generateRegRegInstruction(TR::InstOpCode::SHLD4RegRegCL, node, targetRegister->getHighOrder(),
-            targetRegister->getLowOrder(), shiftDependencies, cg);
-        generateRegInstruction(TR::InstOpCode::SHL4RegCL, node, targetRegister->getLowOrder(), shiftDependencies, cg);
-        generateRegImmInstruction(TR::InstOpCode::TEST1RegImm1, node, shiftAmountReg, 32, cg);
-        generateRegRegInstruction(TR::InstOpCode::CMOVNE4RegReg, node, targetRegister->getHighOrder(),
-            targetRegister->getLowOrder(), cg);
-        generateRegMemInstruction(TR::InstOpCode::CMOVNE4RegMem, node, targetRegister->getLowOrder(),
-            generateX86MemoryReference(cg->findOrCreate4ByteConstant(node, 0), cg), cg);
+        Inst_RegReg(OP::SHLD4RegRegCL, node, targetRegister->getHighOrder(), targetRegister->getLowOrder(),
+            shiftDependencies, cg);
+        Inst_Reg(OP::SHL4RegCL, node, targetRegister->getLowOrder(), shiftDependencies, cg);
+        Inst_RegImm(OP::TEST1RegImm1, node, shiftAmountReg, 32, cg);
+        Inst_RegReg(OP::CMOVNE4RegReg, node, targetRegister->getHighOrder(), targetRegister->getLowOrder(), cg);
+        Inst_RegMem(OP::CMOVNE4RegMem, node, targetRegister->getLowOrder(),
+            MRef_const(cg->findOrCreate4ByteConstant(node, 0), cg), cg);
 
         node->setRegister(targetRegister);
         cg->decReferenceCount(firstChild);
@@ -3077,19 +3061,17 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairRolEvaluator(TR::Node *n
                 TR::Register *tempHighReg = cg->allocateRegister();
 
                 // Save off the original high register.
-                generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, tempHighReg, targetRegister->getHighOrder(),
-                    cg);
+                Inst_RegReg(OP::MOV4RegReg, node, tempHighReg, targetRegister->getHighOrder(), cg);
 
                 // E.g.
                 // HH HH HH HH LL LL LL LL, before
                 // HH HH LL LL LL LL LL LL, after
-                generateRegRegImmInstruction(TR::InstOpCode::SHLD4RegRegImm1, node, targetRegister->getHighOrder(),
-                    targetRegister->getLowOrder(), value, cg);
+                Inst_RegRegImm(OP::SHLD4RegRegImm1, node, targetRegister->getHighOrder(), targetRegister->getLowOrder(),
+                    value, cg);
 
                 // HH HH LL LL LL LL LL LL, before
                 // HH HH LL LL LL LL HH HH, after
-                generateRegRegImmInstruction(TR::InstOpCode::SHLD4RegRegImm1, node, targetRegister->getLowOrder(),
-                    tempHighReg, value, cg);
+                Inst_RegRegImm(OP::SHLD4RegRegImm1, node, targetRegister->getLowOrder(), tempHighReg, value, cg);
 
                 cg->stopUsingRegister(tempHighReg);
             }
@@ -3105,22 +3087,20 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairRolEvaluator(TR::Node *n
             shiftAmountReg = shiftAmountReg->getLowOrder();
         }
 
-        TR::RegisterDependencyConditions *shiftDependencies = generateRegisterDependencyConditions((uint8_t)1, 1, cg);
+        TR::RegisterDependencyConditions *shiftDependencies = RegDeps((uint8_t)1, 1, cg);
         shiftDependencies->addPreCondition(shiftAmountReg, TR::RealRegister::ecx, cg);
         shiftDependencies->addPostCondition(shiftAmountReg, TR::RealRegister::ecx, cg);
 
         TR::Register *scratchReg = cg->allocateRegister();
-        generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, scratchReg, targetRegister->getHighOrder(), cg);
-        generateRegImmInstruction(TR::InstOpCode::TEST1RegImm1, node, shiftAmountReg, 32, cg);
-        generateRegRegInstruction(TR::InstOpCode::CMOVNE4RegReg, node, targetRegister->getHighOrder(),
-            targetRegister->getLowOrder(), cg);
-        generateRegRegInstruction(TR::InstOpCode::CMOVNE4RegReg, node, targetRegister->getLowOrder(), scratchReg, cg);
+        Inst_RegReg(OP::MOV4RegReg, node, scratchReg, targetRegister->getHighOrder(), cg);
+        Inst_RegImm(OP::TEST1RegImm1, node, shiftAmountReg, 32, cg);
+        Inst_RegReg(OP::CMOVNE4RegReg, node, targetRegister->getHighOrder(), targetRegister->getLowOrder(), cg);
+        Inst_RegReg(OP::CMOVNE4RegReg, node, targetRegister->getLowOrder(), scratchReg, cg);
 
-        generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, scratchReg, targetRegister->getHighOrder(), cg);
-        generateRegRegInstruction(TR::InstOpCode::SHLD4RegRegCL, node, targetRegister->getHighOrder(),
-            targetRegister->getLowOrder(), shiftDependencies, cg);
-        generateRegRegInstruction(TR::InstOpCode::SHLD4RegRegCL, node, targetRegister->getLowOrder(), scratchReg,
+        Inst_RegReg(OP::MOV4RegReg, node, scratchReg, targetRegister->getHighOrder(), cg);
+        Inst_RegReg(OP::SHLD4RegRegCL, node, targetRegister->getHighOrder(), targetRegister->getLowOrder(),
             shiftDependencies, cg);
+        Inst_RegReg(OP::SHLD4RegRegCL, node, targetRegister->getLowOrder(), scratchReg, shiftDependencies, cg);
 
         cg->stopUsingRegister(scratchReg);
         node->setRegister(targetRegister);
@@ -3142,17 +3122,16 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairShrEvaluator(TR::Node *n
         if (value == 0)
             ;
         else if (value < 32) {
-            generateRegRegImmInstruction(TR::InstOpCode::SHRD4RegRegImm1, node, targetRegister->getLowOrder(),
-                targetRegister->getHighOrder(), value, cg);
-            generateRegImmInstruction(TR::InstOpCode::SAR4RegImm1, node, targetRegister->getHighOrder(), value, cg);
+            Inst_RegRegImm(OP::SHRD4RegRegImm1, node, targetRegister->getLowOrder(), targetRegister->getHighOrder(),
+                value, cg);
+            Inst_RegImm(OP::SAR4RegImm1, node, targetRegister->getHighOrder(), value, cg);
         } else {
             if (value != 32) {
                 value -= 32;
-                generateRegImmInstruction(TR::InstOpCode::SAR4RegImm1, node, targetRegister->getHighOrder(), value, cg);
+                Inst_RegImm(OP::SAR4RegImm1, node, targetRegister->getHighOrder(), value, cg);
             }
-            generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, targetRegister->getLowOrder(),
-                targetRegister->getHighOrder(), cg);
-            generateRegImmInstruction(TR::InstOpCode::SAR4RegImm1, node, targetRegister->getHighOrder(), 31, cg);
+            Inst_RegReg(OP::MOV4RegReg, node, targetRegister->getLowOrder(), targetRegister->getHighOrder(), cg);
+            Inst_RegImm(OP::SAR4RegImm1, node, targetRegister->getHighOrder(), 31, cg);
         }
         node->setRegister(targetRegister);
         cg->decReferenceCount(firstChild);
@@ -3164,20 +3143,19 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairShrEvaluator(TR::Node *n
             shiftAmountReg = shiftAmountReg->getLowOrder();
         }
 
-        TR::RegisterDependencyConditions *shiftDependencies = generateRegisterDependencyConditions((uint8_t)1, 1, cg);
+        TR::RegisterDependencyConditions *shiftDependencies = RegDeps((uint8_t)1, 1, cg);
         shiftDependencies->addPreCondition(shiftAmountReg, TR::RealRegister::ecx, cg);
         shiftDependencies->addPostCondition(shiftAmountReg, TR::RealRegister::ecx, cg);
 
         TR::Register *scratchReg = cg->allocateRegister();
-        generateRegRegInstruction(TR::InstOpCode::SHRD4RegRegCL, node, targetRegister->getLowOrder(),
-            targetRegister->getHighOrder(), shiftDependencies, cg);
-        generateRegInstruction(TR::InstOpCode::SAR4RegCL, node, targetRegister->getHighOrder(), shiftDependencies, cg);
-        generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, scratchReg, targetRegister->getHighOrder(), cg);
-        generateRegImmInstruction(TR::InstOpCode::SAR4RegImm1, node, scratchReg, 31, cg);
-        generateRegImmInstruction(TR::InstOpCode::TEST1RegImm1, node, shiftAmountReg, 32, cg);
-        generateRegRegInstruction(TR::InstOpCode::CMOVNE4RegReg, node, targetRegister->getLowOrder(),
-            targetRegister->getHighOrder(), cg);
-        generateRegRegInstruction(TR::InstOpCode::CMOVNE4RegReg, node, targetRegister->getHighOrder(), scratchReg, cg);
+        Inst_RegReg(OP::SHRD4RegRegCL, node, targetRegister->getLowOrder(), targetRegister->getHighOrder(),
+            shiftDependencies, cg);
+        Inst_Reg(OP::SAR4RegCL, node, targetRegister->getHighOrder(), shiftDependencies, cg);
+        Inst_RegReg(OP::MOV4RegReg, node, scratchReg, targetRegister->getHighOrder(), cg);
+        Inst_RegImm(OP::SAR4RegImm1, node, scratchReg, 31, cg);
+        Inst_RegImm(OP::TEST1RegImm1, node, shiftAmountReg, 32, cg);
+        Inst_RegReg(OP::CMOVNE4RegReg, node, targetRegister->getLowOrder(), targetRegister->getHighOrder(), cg);
+        Inst_RegReg(OP::CMOVNE4RegReg, node, targetRegister->getHighOrder(), scratchReg, cg);
 
         cg->stopUsingRegister(scratchReg);
         node->setRegister(targetRegister);
@@ -3197,18 +3175,18 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairUshrEvaluator(TR::Node *
         targetRegister = cg->longClobberEvaluate(firstChild);
         int32_t value = secondChild->getInt() & shiftMask(true);
         if (value < 32) {
-            generateRegRegImmInstruction(TR::InstOpCode::SHRD4RegRegImm1, node, targetRegister->getLowOrder(),
-                targetRegister->getHighOrder(), value, cg);
-            generateRegImmInstruction(TR::InstOpCode::SHR4RegImm1, node, targetRegister->getHighOrder(), value, cg);
+            Inst_RegRegImm(OP::SHRD4RegRegImm1, node, targetRegister->getLowOrder(), targetRegister->getHighOrder(),
+                value, cg);
+            Inst_RegImm(OP::SHR4RegImm1, node, targetRegister->getHighOrder(), value, cg);
         } else {
             if (value != 32) {
                 value -= 32;
-                generateRegImmInstruction(TR::InstOpCode::SHR4RegImm1, node, targetRegister->getHighOrder(), value, cg);
+                Inst_RegImm(OP::SHR4RegImm1, node, targetRegister->getHighOrder(), value, cg);
             }
             TR::Register *tempLowReg = targetRegister->getLowOrder();
             TR::RegisterPair *targetAsPair = targetRegister->getRegisterPair();
             targetAsPair->setLowOrder(targetRegister->getHighOrder(), cg);
-            generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, node, tempLowReg, tempLowReg, cg);
+            Inst_RegReg(OP::XOR4RegReg, node, tempLowReg, tempLowReg, cg);
             targetAsPair->setHighOrder(tempLowReg, cg);
         }
         node->setRegister(targetRegister);
@@ -3221,18 +3199,17 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairUshrEvaluator(TR::Node *
             shiftAmountReg = shiftAmountReg->getLowOrder();
         }
 
-        TR::RegisterDependencyConditions *shiftDependencies = generateRegisterDependencyConditions((uint8_t)1, 1, cg);
+        TR::RegisterDependencyConditions *shiftDependencies = RegDeps((uint8_t)1, 1, cg);
         shiftDependencies->addPreCondition(shiftAmountReg, TR::RealRegister::ecx, cg);
         shiftDependencies->addPostCondition(shiftAmountReg, TR::RealRegister::ecx, cg);
 
-        generateRegRegInstruction(TR::InstOpCode::SHRD4RegRegCL, node, targetRegister->getLowOrder(),
-            targetRegister->getHighOrder(), shiftDependencies, cg);
-        generateRegInstruction(TR::InstOpCode::SHR4RegCL, node, targetRegister->getHighOrder(), shiftDependencies, cg);
-        generateRegImmInstruction(TR::InstOpCode::TEST1RegImm1, node, shiftAmountReg, 32, cg);
-        generateRegRegInstruction(TR::InstOpCode::CMOVNE4RegReg, node, targetRegister->getLowOrder(),
-            targetRegister->getHighOrder(), cg);
-        generateRegMemInstruction(TR::InstOpCode::CMOVNE4RegMem, node, targetRegister->getHighOrder(),
-            generateX86MemoryReference(cg->findOrCreate4ByteConstant(node, 0), cg), cg);
+        Inst_RegReg(OP::SHRD4RegRegCL, node, targetRegister->getLowOrder(), targetRegister->getHighOrder(),
+            shiftDependencies, cg);
+        Inst_Reg(OP::SHR4RegCL, node, targetRegister->getHighOrder(), shiftDependencies, cg);
+        Inst_RegImm(OP::TEST1RegImm1, node, shiftAmountReg, 32, cg);
+        Inst_RegReg(OP::CMOVNE4RegReg, node, targetRegister->getLowOrder(), targetRegister->getHighOrder(), cg);
+        Inst_RegMem(OP::CMOVNE4RegMem, node, targetRegister->getHighOrder(),
+            MRef_const(cg->findOrCreate4ByteConstant(node, 0), cg), cg);
 
         node->setRegister(targetRegister);
         cg->decReferenceCount(firstChild);
@@ -3263,12 +3240,12 @@ TR::Register *OMR::X86::I386::TreeEvaluator::landEvaluator(TR::Node *node, TR::C
         //
         if (firstChild->getReferenceCount() > 1) {
             TR::Register *reg = cg->evaluate(firstChild);
-            lowMR = generateX86MemoryReference(*reg->getMemRef(), 4, cg);
+            lowMR = MRef_MRefOff(*reg->getMemRef(), 4, cg);
             firstChildAlreadyEvaluated = true;
         } else {
-            lowMR = generateX86MemoryReference(firstChild, cg, false);
+            lowMR = MRef_node(firstChild, cg, false);
         }
-        highMR = generateX86MemoryReference(*lowMR, 4, cg);
+        highMR = MRef_MRefOff(*lowMR, 4, cg);
     }
 
     if (secondChild->getOpCodeValue() == TR::lconst && secondChild->getRegister() == NULL) {
@@ -3277,7 +3254,7 @@ TR::Register *OMR::X86::I386::TreeEvaluator::landEvaluator(TR::Node *node, TR::C
         TR::Register *tempReg = NULL;
         TR::Register *lowReg;
         TR::Register *highReg;
-        TR::InstOpCode::Mnemonic opCode;
+        OP::Mnemonic opCode;
 
         if (!isMemOp) {
             TR::Register *valueReg = cg->evaluate(firstChild);
@@ -3291,9 +3268,9 @@ TR::Register *OMR::X86::I386::TreeEvaluator::landEvaluator(TR::Node *node, TR::C
                 highReg = cg->allocateRegister();
                 targetRegister = cg->allocateRegisterPair(lowReg, highReg);
                 if (lowValue != 0)
-                    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, lowReg, valueReg->getLowOrder(), cg);
+                    Inst_RegReg(OP::MOV4RegReg, node, lowReg, valueReg->getLowOrder(), cg);
                 if (highValue != 0)
-                    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, highReg, valueReg->getHighOrder(), cg);
+                    Inst_RegReg(OP::MOV4RegReg, node, highReg, valueReg->getHighOrder(), cg);
             }
         }
 
@@ -3305,19 +3282,17 @@ TR::Register *OMR::X86::I386::TreeEvaluator::landEvaluator(TR::Node *node, TR::C
         else if (lowValue == 0) {
             if (isMemOp) {
                 tempReg = cg->allocateRegister();
-                generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, node, tempReg, tempReg, cg);
-                lowInstr = generateMemRegInstruction(TR::InstOpCode::S4MemReg, node, lowMR, tempReg, cg);
+                Inst_RegReg(OP::XOR4RegReg, node, tempReg, tempReg, cg);
+                lowInstr = Inst_MemReg(OP::S4MemReg, node, lowMR, tempReg, cg);
             } else
-                lowInstr = generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, node, lowReg, lowReg, cg);
+                lowInstr = Inst_RegReg(OP::XOR4RegReg, node, lowReg, lowReg, cg);
         } else {
             if (isMemOp) {
-                opCode
-                    = (lowValue >= -128 && lowValue <= 127) ? TR::InstOpCode::AND4MemImms : TR::InstOpCode::AND4MemImm4;
-                lowInstr = generateMemImmInstruction(opCode, node, lowMR, lowValue, cg);
+                opCode = (lowValue >= -128 && lowValue <= 127) ? OP::AND4MemImms : OP::AND4MemImm4;
+                lowInstr = Inst_MemImm(opCode, node, lowMR, lowValue, cg);
             } else {
-                opCode
-                    = (lowValue >= -128 && lowValue <= 127) ? TR::InstOpCode::AND4RegImms : TR::InstOpCode::AND4RegImm4;
-                lowInstr = generateRegImmInstruction(opCode, node, lowReg, lowValue, cg);
+                opCode = (lowValue >= -128 && lowValue <= 127) ? OP::AND4RegImms : OP::AND4RegImm4;
+                lowInstr = Inst_RegImm(opCode, node, lowReg, lowValue, cg);
             }
         }
 
@@ -3328,20 +3303,18 @@ TR::Register *OMR::X86::I386::TreeEvaluator::landEvaluator(TR::Node *node, TR::C
                 // Re-use the temporary register if possible.
                 if (tempReg == NULL) {
                     tempReg = cg->allocateRegister();
-                    generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, node, tempReg, tempReg, cg);
+                    Inst_RegReg(OP::XOR4RegReg, node, tempReg, tempReg, cg);
                 }
-                highInstr = generateMemRegInstruction(TR::InstOpCode::S4MemReg, node, highMR, tempReg, cg);
+                highInstr = Inst_MemReg(OP::S4MemReg, node, highMR, tempReg, cg);
             } else
-                highInstr = generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, node, highReg, highReg, cg);
+                highInstr = Inst_RegReg(OP::XOR4RegReg, node, highReg, highReg, cg);
         } else {
             if (isMemOp) {
-                opCode = (highValue >= -128 && highValue <= 127) ? TR::InstOpCode::AND4MemImms
-                                                                 : TR::InstOpCode::AND4MemImm4;
-                highInstr = generateMemImmInstruction(opCode, node, highMR, highValue, cg);
+                opCode = (highValue >= -128 && highValue <= 127) ? OP::AND4MemImms : OP::AND4MemImm4;
+                highInstr = Inst_MemImm(opCode, node, highMR, highValue, cg);
             } else {
-                opCode = (highValue >= -128 && highValue <= 127) ? TR::InstOpCode::AND4RegImms
-                                                                 : TR::InstOpCode::AND4RegImm4;
-                highInstr = generateRegImmInstruction(opCode, node, highReg, highValue, cg);
+                opCode = (highValue >= -128 && highValue <= 127) ? OP::AND4RegImms : OP::AND4RegImm4;
+                highInstr = Inst_RegImm(opCode, node, highReg, highValue, cg);
             }
         }
 
@@ -3355,17 +3328,16 @@ TR::Register *OMR::X86::I386::TreeEvaluator::landEvaluator(TR::Node *node, TR::C
     } else if (isMemOp) {
         TR::Register *tempReg = cg->evaluate(secondChild);
 
-        lowInstr = generateMemRegInstruction(TR::InstOpCode::AND4MemReg, node, lowMR, tempReg->getLowOrder(), cg);
-        highInstr = generateMemRegInstruction(TR::InstOpCode::AND4MemReg, node, highMR, tempReg->getHighOrder(), cg);
+        lowInstr = Inst_MemReg(OP::AND4MemReg, node, lowMR, tempReg->getLowOrder(), cg);
+        highInstr = Inst_MemReg(OP::AND4MemReg, node, highMR, tempReg->getHighOrder(), cg);
 
         if (debug("traceMemOp"))
             diagnostic("\n*** Node [" POINTER_PRINTF_FORMAT "] and by var", node);
     } else {
         TR_X86BinaryCommutativeAnalyser temp(cg);
 
-        temp.genericLongAnalyser(node, TR::InstOpCode::AND4RegReg, TR::InstOpCode::AND4RegReg,
-            TR::InstOpCode::AND4RegMem, TR::InstOpCode::AND2RegMem, TR::InstOpCode::AND1RegMem,
-            TR::InstOpCode::AND4RegMem, TR::InstOpCode::MOV4RegReg);
+        temp.genericLongAnalyser(node, OP::AND4RegReg, OP::AND4RegReg, OP::AND4RegMem, OP::AND2RegMem, OP::AND1RegMem,
+            OP::AND4RegMem, OP::MOV4RegReg);
 
         return node->getRegister();
     }
@@ -3406,12 +3378,12 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lorEvaluator(TR::Node *node, TR::Co
         //
         if (firstChild->getReferenceCount() > 1) {
             TR::Register *reg = cg->evaluate(firstChild);
-            lowMR = generateX86MemoryReference(*reg->getMemRef(), 4, cg);
+            lowMR = MRef_MRefOff(*reg->getMemRef(), 4, cg);
             firstChildAlreadyEvaluated = true;
         } else {
-            lowMR = generateX86MemoryReference(firstChild, cg, false);
+            lowMR = MRef_node(firstChild, cg, false);
         }
-        highMR = generateX86MemoryReference(*lowMR, 4, cg);
+        highMR = MRef_MRefOff(*lowMR, 4, cg);
     }
 
     if (secondChild->getOpCodeValue() == TR::lconst && secondChild->getRegister() == NULL) {
@@ -3419,7 +3391,7 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lorEvaluator(TR::Node *node, TR::Co
         int32_t highValue = secondChild->getLongIntHigh();
         TR::Register *lowReg;
         TR::Register *highReg;
-        TR::InstOpCode::Mnemonic opCode;
+        OP::Mnemonic opCode;
         TR::Register *ccReg = 0;
 
         if (!isMemOp) {
@@ -3434,9 +3406,9 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lorEvaluator(TR::Node *node, TR::Co
                 highReg = cg->allocateRegister();
                 targetRegister = cg->allocateRegisterPair(lowReg, highReg);
                 if (lowValue != -1)
-                    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, lowReg, valueReg->getLowOrder(), cg);
+                    Inst_RegReg(OP::MOV4RegReg, node, lowReg, valueReg->getLowOrder(), cg);
                 if (highValue != -1)
-                    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, highReg, valueReg->getHighOrder(), cg);
+                    Inst_RegReg(OP::MOV4RegReg, node, highReg, valueReg->getHighOrder(), cg);
             }
         }
 
@@ -3446,13 +3418,11 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lorEvaluator(TR::Node *node, TR::Co
             ;
         else {
             if (isMemOp) {
-                opCode
-                    = (lowValue >= -128 && lowValue <= 127) ? TR::InstOpCode::OR4MemImms : TR::InstOpCode::OR4MemImm4;
-                lowInstr = generateMemImmInstruction(opCode, node, lowMR, lowValue, cg);
+                opCode = (lowValue >= -128 && lowValue <= 127) ? OP::OR4MemImms : OP::OR4MemImm4;
+                lowInstr = Inst_MemImm(opCode, node, lowMR, lowValue, cg);
             } else {
-                opCode
-                    = (lowValue >= -128 && lowValue <= 127) ? TR::InstOpCode::OR4RegImms : TR::InstOpCode::OR4RegImm4;
-                lowInstr = generateRegImmInstruction(opCode, node, lowReg, lowValue, cg);
+                opCode = (lowValue >= -128 && lowValue <= 127) ? OP::OR4RegImms : OP::OR4RegImm4;
+                lowInstr = Inst_RegImm(opCode, node, lowReg, lowValue, cg);
             }
         }
 
@@ -3460,13 +3430,11 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lorEvaluator(TR::Node *node, TR::Co
             ;
         else {
             if (isMemOp) {
-                opCode
-                    = (highValue >= -128 && highValue <= 127) ? TR::InstOpCode::OR4MemImms : TR::InstOpCode::OR4MemImm4;
-                highInstr = generateMemImmInstruction(opCode, node, highMR, highValue, cg);
+                opCode = (highValue >= -128 && highValue <= 127) ? OP::OR4MemImms : OP::OR4MemImm4;
+                highInstr = Inst_MemImm(opCode, node, highMR, highValue, cg);
             } else {
-                opCode
-                    = (highValue >= -128 && highValue <= 127) ? TR::InstOpCode::OR4RegImms : TR::InstOpCode::OR4RegImm4;
-                highInstr = generateRegImmInstruction(opCode, node, highReg, highValue, cg);
+                opCode = (highValue >= -128 && highValue <= 127) ? OP::OR4RegImms : OP::OR4RegImm4;
+                highInstr = Inst_RegImm(opCode, node, highReg, highValue, cg);
             }
         }
 
@@ -3475,17 +3443,16 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lorEvaluator(TR::Node *node, TR::Co
     } else if (isMemOp) {
         TR::Register *tempReg = cg->evaluate(secondChild);
 
-        lowInstr = generateMemRegInstruction(TR::InstOpCode::OR4MemReg, node, lowMR, tempReg->getLowOrder(), cg);
-        highInstr = generateMemRegInstruction(TR::InstOpCode::OR4MemReg, node, highMR, tempReg->getHighOrder(), cg);
+        lowInstr = Inst_MemReg(OP::OR4MemReg, node, lowMR, tempReg->getLowOrder(), cg);
+        highInstr = Inst_MemReg(OP::OR4MemReg, node, highMR, tempReg->getHighOrder(), cg);
 
         if (debug("traceMemOp"))
             diagnostic("\n*** Node [" POINTER_PRINTF_FORMAT "] or by var", node);
     } else {
         TR_X86BinaryCommutativeAnalyser temp(cg);
 
-        temp.genericLongAnalyser(node, TR::InstOpCode::OR4RegReg, TR::InstOpCode::OR4RegReg, TR::InstOpCode::OR4RegMem,
-            TR::InstOpCode::OR2RegMem, TR::InstOpCode::OR1RegMem, TR::InstOpCode::OR4RegMem,
-            TR::InstOpCode::MOV4RegReg);
+        temp.genericLongAnalyser(node, OP::OR4RegReg, OP::OR4RegReg, OP::OR4RegMem, OP::OR2RegMem, OP::OR1RegMem,
+            OP::OR4RegMem, OP::MOV4RegReg);
 
         return node->getRegister();
     }
@@ -3525,12 +3492,12 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lxorEvaluator(TR::Node *node, TR::C
         //
         if (firstChild->getReferenceCount() > 1) {
             TR::Register *reg = cg->evaluate(firstChild);
-            lowMR = generateX86MemoryReference(*reg->getMemRef(), 4, cg);
+            lowMR = MRef_MRefOff(*reg->getMemRef(), 4, cg);
             firstChildAlreadyEvaluated = true;
         } else {
-            lowMR = generateX86MemoryReference(firstChild, cg, false);
+            lowMR = MRef_node(firstChild, cg, false);
         }
-        highMR = generateX86MemoryReference(*lowMR, 4, cg);
+        highMR = MRef_MRefOff(*lowMR, 4, cg);
     }
 
     if (secondChild->getOpCodeValue() == TR::lconst && secondChild->getRegister() == NULL) {
@@ -3538,7 +3505,7 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lxorEvaluator(TR::Node *node, TR::C
         int32_t highValue = secondChild->getLongIntHigh();
         TR::Register *lowReg;
         TR::Register *highReg;
-        TR::InstOpCode::Mnemonic opCode;
+        OP::Mnemonic opCode;
         TR::Register *ccReg = 0;
 
         if (!isMemOp) {
@@ -3554,18 +3521,16 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lxorEvaluator(TR::Node *node, TR::C
             ;
         else if (lowValue == -1) {
             if (isMemOp)
-                lowInstr = generateMemInstruction(TR::InstOpCode::NOT4Mem, node, lowMR, cg);
+                lowInstr = Inst_Mem(OP::NOT4Mem, node, lowMR, cg);
             else
-                lowInstr = generateRegInstruction(TR::InstOpCode::NOT4Reg, node, lowReg, cg);
+                lowInstr = Inst_Reg(OP::NOT4Reg, node, lowReg, cg);
         } else {
             if (isMemOp) {
-                opCode
-                    = (lowValue >= -128 && lowValue <= 127) ? TR::InstOpCode::XOR4MemImms : TR::InstOpCode::XOR4MemImm4;
-                lowInstr = generateMemImmInstruction(opCode, node, lowMR, lowValue, cg);
+                opCode = (lowValue >= -128 && lowValue <= 127) ? OP::XOR4MemImms : OP::XOR4MemImm4;
+                lowInstr = Inst_MemImm(opCode, node, lowMR, lowValue, cg);
             } else {
-                opCode
-                    = (lowValue >= -128 && lowValue <= 127) ? TR::InstOpCode::XOR4RegImms : TR::InstOpCode::XOR4RegImm4;
-                lowInstr = generateRegImmInstruction(opCode, node, lowReg, lowValue, cg);
+                opCode = (lowValue >= -128 && lowValue <= 127) ? OP::XOR4RegImms : OP::XOR4RegImm4;
+                lowInstr = Inst_RegImm(opCode, node, lowReg, lowValue, cg);
             }
         }
 
@@ -3573,18 +3538,16 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lxorEvaluator(TR::Node *node, TR::C
             ;
         else if (highValue == -1) {
             if (isMemOp)
-                highInstr = generateMemInstruction(TR::InstOpCode::NOT4Mem, node, highMR, cg);
+                highInstr = Inst_Mem(OP::NOT4Mem, node, highMR, cg);
             else
-                highInstr = generateRegInstruction(TR::InstOpCode::NOT4Reg, node, highReg, cg);
+                highInstr = Inst_Reg(OP::NOT4Reg, node, highReg, cg);
         } else {
             if (isMemOp) {
-                opCode = (highValue >= -128 && highValue <= 127) ? TR::InstOpCode::XOR4MemImms
-                                                                 : TR::InstOpCode::XOR4MemImm4;
-                highInstr = generateMemImmInstruction(opCode, node, highMR, highValue, cg);
+                opCode = (highValue >= -128 && highValue <= 127) ? OP::XOR4MemImms : OP::XOR4MemImm4;
+                highInstr = Inst_MemImm(opCode, node, highMR, highValue, cg);
             } else {
-                opCode = (highValue >= -128 && highValue <= 127) ? TR::InstOpCode::XOR4RegImms
-                                                                 : TR::InstOpCode::XOR4RegImm4;
-                highInstr = generateRegImmInstruction(opCode, node, highReg, highValue, cg);
+                opCode = (highValue >= -128 && highValue <= 127) ? OP::XOR4RegImms : OP::XOR4RegImm4;
+                highInstr = Inst_RegImm(opCode, node, highReg, highValue, cg);
             }
         }
 
@@ -3593,17 +3556,16 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lxorEvaluator(TR::Node *node, TR::C
     } else if (isMemOp) {
         TR::Register *tempReg = cg->evaluate(secondChild);
 
-        lowInstr = generateMemRegInstruction(TR::InstOpCode::XOR4MemReg, node, lowMR, tempReg->getLowOrder(), cg);
-        highInstr = generateMemRegInstruction(TR::InstOpCode::XOR4MemReg, node, highMR, tempReg->getHighOrder(), cg);
+        lowInstr = Inst_MemReg(OP::XOR4MemReg, node, lowMR, tempReg->getLowOrder(), cg);
+        highInstr = Inst_MemReg(OP::XOR4MemReg, node, highMR, tempReg->getHighOrder(), cg);
 
         if (debug("traceMemOp"))
             diagnostic("\n*** Node [" POINTER_PRINTF_FORMAT "] xor by var", node);
     } else {
         TR_X86BinaryCommutativeAnalyser temp(cg);
 
-        temp.genericLongAnalyser(node, TR::InstOpCode::XOR4RegReg, TR::InstOpCode::XOR4RegReg,
-            TR::InstOpCode::XOR4RegMem, TR::InstOpCode::XOR2RegMem, TR::InstOpCode::XOR1RegMem,
-            TR::InstOpCode::XOR4RegMem, TR::InstOpCode::MOV4RegReg);
+        temp.genericLongAnalyser(node, OP::XOR4RegReg, OP::XOR4RegReg, OP::XOR4RegMem, OP::XOR2RegMem, OP::XOR1RegMem,
+            OP::XOR4RegMem, OP::MOV4RegReg);
 
         return node->getRegister();
     }
@@ -3629,8 +3591,8 @@ TR::Register *OMR::X86::I386::TreeEvaluator::l2iEvaluator(TR::Node *node, TR::Co
 
     if (child->getOpCode().isLoadVar() && child->getRegister() == NULL && child->getReferenceCount() == 1) {
         targetRegister = cg->allocateRegister();
-        TR::MemoryReference *tempMR = generateX86MemoryReference(child, cg);
-        generateRegMemInstruction(TR::InstOpCode::L4RegMem, node, targetRegister, tempMR, cg);
+        TR::MemoryReference *tempMR = MRef_node(child, cg);
+        Inst_RegMem(OP::L4RegMem, node, targetRegister, tempMR, cg);
         tempMR->decNodeReferenceCounts(cg);
     } else {
         TR::Register *temp = cg->evaluate(child);
@@ -3639,7 +3601,7 @@ TR::Register *OMR::X86::I386::TreeEvaluator::l2iEvaluator(TR::Node *node, TR::Co
             targetRegister = temp->getLowOrder();
         } else {
             targetRegister = cg->allocateRegister();
-            generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, targetRegister, temp->getLowOrder(), cg);
+            Inst_RegReg(OP::MOV4RegReg, node, targetRegister, temp->getLowOrder(), cg);
         }
     }
 
@@ -3685,46 +3647,45 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lcmpeqEvaluator(TR::Node *node, TR:
             targetRegister = cmpRegister->getLowOrder();
             if (firstChild->getReferenceCount() != 1) {
                 targetRegister = cg->allocateRegister();
-                generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, targetRegister, cmpRegister->getLowOrder(),
-                    cg);
+                Inst_RegReg(OP::MOV4RegReg, node, targetRegister, cmpRegister->getLowOrder(), cg);
             }
-            generateRegRegInstruction(TR::InstOpCode::OR4RegReg, node, targetRegister, cmpRegister->getHighOrder(), cg);
+            Inst_RegReg(OP::OR4RegReg, node, targetRegister, cmpRegister->getHighOrder(), cg);
             cg->stopUsingRegister(targetRegister);
             targetRegister = cg->allocateRegister();
 
             if (cg->enableRegisterInterferences())
                 cg->getLiveRegisters(TR_GPR)->setByteRegisterAssociation(targetRegister);
 
-            generateRegInstruction(TR::InstOpCode::SETE1Reg, node, targetRegister, cg);
+            Inst_Reg(OP::SETE1Reg, node, targetRegister, cg);
         } else {
             compareGPRegisterToConstantForEquality(node, lowValue, cmpRegister->getLowOrder(), cg);
             targetRegister = cg->allocateRegister();
             if (cg->enableRegisterInterferences())
                 cg->getLiveRegisters(TR_GPR)->setByteRegisterAssociation(targetRegister);
 
-            generateRegInstruction(TR::InstOpCode::SETE1Reg, node, targetRegister, cg);
+            Inst_Reg(OP::SETE1Reg, node, targetRegister, cg);
 
             compareGPRegisterToConstantForEquality(node, highValue, cmpRegister->getHighOrder(), cg);
             TR::Register *highTargetRegister = cg->allocateRegister();
             if (cg->enableRegisterInterferences())
                 cg->getLiveRegisters(TR_GPR)->setByteRegisterAssociation(highTargetRegister);
 
-            generateRegInstruction(TR::InstOpCode::SETE1Reg, node, highTargetRegister, cg);
+            Inst_Reg(OP::SETE1Reg, node, highTargetRegister, cg);
 
-            generateRegRegInstruction(TR::InstOpCode::AND1RegReg, node, targetRegister, highTargetRegister, cg);
+            Inst_RegReg(OP::AND1RegReg, node, targetRegister, highTargetRegister, cg);
             cg->stopUsingRegister(highTargetRegister);
         }
 
         // Result of lcmpXX is an integer.
         //
-        generateRegRegInstruction(TR::InstOpCode::MOVSXReg4Reg1, node, targetRegister, targetRegister, cg);
+        Inst_RegReg(OP::MOVSXReg4Reg1, node, targetRegister, targetRegister, cg);
         node->setRegister(targetRegister);
         cg->decReferenceCount(firstChild);
         cg->decReferenceCount(secondChild);
     } else {
         // need analyser-like stuff here for non-constant second children.
         TR_X86CompareAnalyser temp(cg);
-        targetRegister = temp.longEqualityBooleanAnalyser(node, TR::InstOpCode::SETE1Reg, TR::InstOpCode::AND1RegReg);
+        targetRegister = temp.longEqualityBooleanAnalyser(node, OP::SETE1Reg, OP::AND1RegReg);
     }
     return targetRegister;
 }
@@ -3742,87 +3703,86 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lcmpneEvaluator(TR::Node *node, TR:
             targetRegister = cmpRegister->getLowOrder();
             if (firstChild->getReferenceCount() != 1) {
                 targetRegister = cg->allocateRegister();
-                generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, targetRegister, cmpRegister->getLowOrder(),
-                    cg);
+                Inst_RegReg(OP::MOV4RegReg, node, targetRegister, cmpRegister->getLowOrder(), cg);
             }
-            generateRegRegInstruction(TR::InstOpCode::OR4RegReg, node, targetRegister, cmpRegister->getHighOrder(), cg);
+            Inst_RegReg(OP::OR4RegReg, node, targetRegister, cmpRegister->getHighOrder(), cg);
             cg->stopUsingRegister(targetRegister);
             targetRegister = cg->allocateRegister();
 
             if (cg->enableRegisterInterferences())
                 cg->getLiveRegisters(TR_GPR)->setByteRegisterAssociation(targetRegister);
 
-            generateRegInstruction(TR::InstOpCode::SETNE1Reg, node, targetRegister, cg);
+            Inst_Reg(OP::SETNE1Reg, node, targetRegister, cg);
         } else {
             compareGPRegisterToConstantForEquality(node, lowValue, cmpRegister->getLowOrder(), cg);
             targetRegister = cg->allocateRegister();
 
             if (cg->enableRegisterInterferences())
                 cg->getLiveRegisters(TR_GPR)->setByteRegisterAssociation(targetRegister);
-            generateRegInstruction(TR::InstOpCode::SETNE1Reg, node, targetRegister, cg);
+            Inst_Reg(OP::SETNE1Reg, node, targetRegister, cg);
 
             compareGPRegisterToConstantForEquality(node, highValue, cmpRegister->getHighOrder(), cg);
             TR::Register *highTargetRegister = cg->allocateRegister();
             if (cg->enableRegisterInterferences())
                 cg->getLiveRegisters(TR_GPR)->setByteRegisterAssociation(highTargetRegister);
 
-            generateRegInstruction(TR::InstOpCode::SETNE1Reg, node, highTargetRegister, cg);
-            generateRegRegInstruction(TR::InstOpCode::OR1RegReg, node, targetRegister, highTargetRegister, cg);
+            Inst_Reg(OP::SETNE1Reg, node, highTargetRegister, cg);
+            Inst_RegReg(OP::OR1RegReg, node, targetRegister, highTargetRegister, cg);
             cg->stopUsingRegister(highTargetRegister);
         }
 
         // Result of lcmpXX is an integer.
         //
-        generateRegRegInstruction(TR::InstOpCode::MOVSXReg4Reg1, node, targetRegister, targetRegister, cg);
+        Inst_RegReg(OP::MOVSXReg4Reg1, node, targetRegister, targetRegister, cg);
 
         node->setRegister(targetRegister);
         cg->decReferenceCount(firstChild);
         cg->decReferenceCount(secondChild);
     } else {
         TR_X86CompareAnalyser temp(cg);
-        targetRegister = temp.longEqualityBooleanAnalyser(node, TR::InstOpCode::SETNE1Reg, TR::InstOpCode::OR1RegReg);
+        targetRegister = temp.longEqualityBooleanAnalyser(node, OP::SETNE1Reg, OP::OR1RegReg);
     }
     return targetRegister;
 }
 
 TR::Register *OMR::X86::I386::TreeEvaluator::lcmpltEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return compareLongAndSetOrderedBoolean(node, TR::InstOpCode::SETL1Reg, TR::InstOpCode::SETB1Reg, cg);
+    return compareLongAndSetOrderedBoolean(node, OP::SETL1Reg, OP::SETB1Reg, cg);
 }
 
 TR::Register *OMR::X86::I386::TreeEvaluator::lcmpgeEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return compareLongAndSetOrderedBoolean(node, TR::InstOpCode::SETG1Reg, TR::InstOpCode::SETAE1Reg, cg);
+    return compareLongAndSetOrderedBoolean(node, OP::SETG1Reg, OP::SETAE1Reg, cg);
 }
 
 TR::Register *OMR::X86::I386::TreeEvaluator::lcmpgtEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return compareLongAndSetOrderedBoolean(node, TR::InstOpCode::SETG1Reg, TR::InstOpCode::SETA1Reg, cg);
+    return compareLongAndSetOrderedBoolean(node, OP::SETG1Reg, OP::SETA1Reg, cg);
 }
 
 TR::Register *OMR::X86::I386::TreeEvaluator::lcmpleEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return compareLongAndSetOrderedBoolean(node, TR::InstOpCode::SETL1Reg, TR::InstOpCode::SETBE1Reg, cg);
+    return compareLongAndSetOrderedBoolean(node, OP::SETL1Reg, OP::SETBE1Reg, cg);
 }
 
 TR::Register *OMR::X86::I386::TreeEvaluator::lucmpltEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return compareLongAndSetOrderedBoolean(node, TR::InstOpCode::SETB1Reg, TR::InstOpCode::SETB1Reg, cg);
+    return compareLongAndSetOrderedBoolean(node, OP::SETB1Reg, OP::SETB1Reg, cg);
 }
 
 TR::Register *OMR::X86::I386::TreeEvaluator::lucmpgeEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return compareLongAndSetOrderedBoolean(node, TR::InstOpCode::SETA1Reg, TR::InstOpCode::SETAE1Reg, cg);
+    return compareLongAndSetOrderedBoolean(node, OP::SETA1Reg, OP::SETAE1Reg, cg);
 }
 
 TR::Register *OMR::X86::I386::TreeEvaluator::lucmpgtEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return compareLongAndSetOrderedBoolean(node, TR::InstOpCode::SETA1Reg, TR::InstOpCode::SETA1Reg, cg);
+    return compareLongAndSetOrderedBoolean(node, OP::SETA1Reg, OP::SETA1Reg, cg);
 }
 
 TR::Register *OMR::X86::I386::TreeEvaluator::lucmpleEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return compareLongAndSetOrderedBoolean(node, TR::InstOpCode::SETB1Reg, TR::InstOpCode::SETBE1Reg, cg);
+    return compareLongAndSetOrderedBoolean(node, OP::SETB1Reg, OP::SETBE1Reg, cg);
 }
 
 // also handles lucmp
@@ -3834,12 +3794,12 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lcmpEvaluator(TR::Node *node, TR::C
 
     if (secondChild->getOpCodeValue() == TR::lconst && secondChild->getRegister() == NULL) {
         targetRegister = longArithmeticCompareRegisterWithImmediate(node, cg->evaluate(firstChild), secondChild,
-            TR::InstOpCode::JAE4, TR::InstOpCode::JGE4, cg);
+            OP::JAE4, OP::JGE4, cg);
         cg->decReferenceCount(firstChild);
         cg->decReferenceCount(secondChild);
     } else if (firstChild->getOpCodeValue() == TR::lconst && firstChild->getRegister() == NULL) {
         targetRegister = longArithmeticCompareRegisterWithImmediate(node, cg->evaluate(secondChild), firstChild,
-            TR::InstOpCode::JBE4, TR::InstOpCode::JLE4, cg);
+            OP::JBE4, OP::JLE4, cg);
         cg->decReferenceCount(firstChild);
         cg->decReferenceCount(secondChild);
     } else {
@@ -3870,15 +3830,15 @@ TR::Register *OMR::X86::I386::TreeEvaluator::i2lEvaluator(TR::Node *node, TR::Co
     TR::Machine *machine = cg->machine();
 
     if (machine->getVirtualAssociatedWithReal(TR::RealRegister::eax) == childReg) {
-        TR::RegisterDependencyConditions *cdqDependencies = generateRegisterDependencyConditions((uint8_t)2, 2, cg);
+        TR::RegisterDependencyConditions *cdqDependencies = RegDeps((uint8_t)2, 2, cg);
         cdqDependencies->addPreCondition(childReg, TR::RealRegister::eax, cg);
         cdqDependencies->addPreCondition(highReg, TR::RealRegister::edx, cg);
         cdqDependencies->addPostCondition(childReg, TR::RealRegister::eax, cg);
         cdqDependencies->addPostCondition(highReg, TR::RealRegister::edx, cg);
-        generateInstruction(TR::InstOpCode::CDQAcc, node, cdqDependencies, cg);
+        Inst(OP::CDQAcc, node, cdqDependencies, cg);
     } else {
-        generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, highReg, childReg, cg);
-        generateRegImmInstruction(TR::InstOpCode::SAR4RegImm1, node, highReg, 31, cg);
+        Inst_RegReg(OP::MOV4RegReg, node, highReg, childReg, cg);
+        Inst_RegImm(OP::SAR4RegImm1, node, highReg, 31, cg);
     }
 
     node->setRegister(longReg);
@@ -3893,7 +3853,7 @@ TR::Register *OMR::X86::I386::TreeEvaluator::iu2lEvaluator(TR::Node *node, TR::C
     TR::Register *highReg = cg->allocateRegister();
     TR::RegisterPair *longReg = cg->allocateRegisterPair(childReg, highReg);
 
-    generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, node, highReg, highReg, cg);
+    Inst_RegReg(OP::XOR4RegReg, node, highReg, highReg, cg);
 
     node->setRegister(longReg);
     cg->decReferenceCount(child);
@@ -3906,18 +3866,17 @@ TR::Register *OMR::X86::I386::TreeEvaluator::b2lEvaluator(TR::Node *node, TR::Co
     TR::Register *longReg;
 
     if (child->getOpCode().isLoadVar() && child->getRegister() == NULL && child->getReferenceCount() == 1) {
-        TR::MemoryReference *tempMR = generateX86MemoryReference(child, cg);
+        TR::MemoryReference *tempMR = MRef_node(child, cg);
         longReg = cg->allocateRegisterPair(cg->allocateRegister(), cg->allocateRegister());
-        generateRegMemInstruction(TR::InstOpCode::MOVSXReg4Mem1, node, longReg->getLowOrder(), tempMR, cg);
+        Inst_RegMem(OP::MOVSXReg4Mem1, node, longReg->getLowOrder(), tempMR, cg);
         tempMR->decNodeReferenceCounts(cg);
     } else {
         longReg = cg->allocateRegisterPair(cg->intClobberEvaluate(child), cg->allocateRegister());
-        generateRegRegInstruction(TR::InstOpCode::MOVSXReg4Reg1, node, longReg->getLowOrder(), longReg->getLowOrder(),
-            cg);
+        Inst_RegReg(OP::MOVSXReg4Reg1, node, longReg->getLowOrder(), longReg->getLowOrder(), cg);
     }
 
-    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, longReg->getHighOrder(), longReg->getLowOrder(), cg);
-    generateRegImmInstruction(TR::InstOpCode::SAR4RegImm1, node, longReg->getHighOrder(), 8, cg);
+    Inst_RegReg(OP::MOV4RegReg, node, longReg->getHighOrder(), longReg->getLowOrder(), cg);
+    Inst_RegImm(OP::SAR4RegImm1, node, longReg->getHighOrder(), 8, cg);
     node->setRegister(longReg);
     cg->decReferenceCount(child);
 
@@ -3930,17 +3889,16 @@ TR::Register *OMR::X86::I386::TreeEvaluator::bu2lEvaluator(TR::Node *node, TR::C
     TR::Register *longReg;
 
     if (child->getOpCode().isLoadVar() && child->getRegister() == NULL && child->getReferenceCount() == 1) {
-        TR::MemoryReference *tempMR = generateX86MemoryReference(child, cg);
+        TR::MemoryReference *tempMR = MRef_node(child, cg);
         longReg = cg->allocateRegisterPair(cg->allocateRegister(), cg->allocateRegister());
-        generateRegMemInstruction(TR::InstOpCode::MOVZXReg4Mem1, node, longReg->getLowOrder(), tempMR, cg);
+        Inst_RegMem(OP::MOVZXReg4Mem1, node, longReg->getLowOrder(), tempMR, cg);
         tempMR->decNodeReferenceCounts(cg);
     } else {
         longReg = cg->allocateRegisterPair(cg->intClobberEvaluate(child), cg->allocateRegister());
-        generateRegRegInstruction(TR::InstOpCode::MOVZXReg4Reg1, node, longReg->getLowOrder(), longReg->getLowOrder(),
-            cg);
+        Inst_RegReg(OP::MOVZXReg4Reg1, node, longReg->getLowOrder(), longReg->getLowOrder(), cg);
     }
 
-    generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, node, longReg->getHighOrder(), longReg->getHighOrder(), cg);
+    Inst_RegReg(OP::XOR4RegReg, node, longReg->getHighOrder(), longReg->getHighOrder(), cg);
     node->setRegister(longReg);
     cg->decReferenceCount(child);
 
@@ -3953,20 +3911,19 @@ TR::Register *OMR::X86::I386::TreeEvaluator::s2lEvaluator(TR::Node *node, TR::Co
     TR::Register *longReg;
 
     if (child->getOpCode().isLoadVar() && child->getRegister() == NULL && child->getReferenceCount() == 1) {
-        TR::MemoryReference *tempMR = generateX86MemoryReference(child, cg);
+        TR::MemoryReference *tempMR = MRef_node(child, cg);
         longReg = cg->allocateRegisterPair(cg->allocateRegister(), cg->allocateRegister());
         node->setRegister(longReg);
-        generateRegMemInstruction(TR::InstOpCode::MOVSXReg4Mem2, node, longReg->getLowOrder(), tempMR, cg);
+        Inst_RegMem(OP::MOVSXReg4Mem2, node, longReg->getLowOrder(), tempMR, cg);
         tempMR->decNodeReferenceCounts(cg);
     } else {
         longReg = cg->allocateRegisterPair(cg->intClobberEvaluate(child), cg->allocateRegister());
         node->setRegister(longReg);
-        generateRegRegInstruction(TR::InstOpCode::MOVSXReg4Reg2, node, longReg->getLowOrder(), longReg->getLowOrder(),
-            cg);
+        Inst_RegReg(OP::MOVSXReg4Reg2, node, longReg->getLowOrder(), longReg->getLowOrder(), cg);
     }
 
-    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, longReg->getHighOrder(), longReg->getLowOrder(), cg);
-    generateRegImmInstruction(TR::InstOpCode::SAR4RegImm1, node, longReg->getHighOrder(), 16, cg);
+    Inst_RegReg(OP::MOV4RegReg, node, longReg->getHighOrder(), longReg->getLowOrder(), cg);
+    Inst_RegImm(OP::SAR4RegImm1, node, longReg->getHighOrder(), 16, cg);
     cg->decReferenceCount(child);
 
     return longReg;
@@ -3978,19 +3935,18 @@ TR::Register *OMR::X86::I386::TreeEvaluator::su2lEvaluator(TR::Node *node, TR::C
     TR::Register *longReg;
 
     if (child->getOpCode().isLoadVar() && child->getRegister() == NULL && child->getReferenceCount() == 1) {
-        TR::MemoryReference *tempMR = generateX86MemoryReference(child, cg);
+        TR::MemoryReference *tempMR = MRef_node(child, cg);
         longReg = cg->allocateRegisterPair(cg->allocateRegister(), cg->allocateRegister());
         node->setRegister(longReg);
-        generateRegMemInstruction(TR::InstOpCode::MOVZXReg4Mem2, node, longReg->getLowOrder(), tempMR, cg);
+        Inst_RegMem(OP::MOVZXReg4Mem2, node, longReg->getLowOrder(), tempMR, cg);
         tempMR->decNodeReferenceCounts(cg);
     } else {
         longReg = cg->allocateRegisterPair(cg->intClobberEvaluate(child), cg->allocateRegister());
         node->setRegister(longReg);
-        generateRegRegInstruction(TR::InstOpCode::MOVZXReg4Reg2, node, longReg->getLowOrder(), longReg->getLowOrder(),
-            cg);
+        Inst_RegReg(OP::MOVZXReg4Reg2, node, longReg->getLowOrder(), longReg->getLowOrder(), cg);
     }
 
-    generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, node, longReg->getHighOrder(), longReg->getHighOrder(), cg);
+    Inst_RegReg(OP::XOR4RegReg, node, longReg->getHighOrder(), longReg->getHighOrder(), cg);
     cg->decReferenceCount(child);
 
     return longReg;
@@ -4002,19 +3958,18 @@ TR::Register *OMR::X86::I386::TreeEvaluator::c2lEvaluator(TR::Node *node, TR::Co
     TR::Register *longReg;
 
     if (child->getOpCode().isLoadVar() && child->getRegister() == NULL && child->getReferenceCount() == 1) {
-        TR::MemoryReference *tempMR = generateX86MemoryReference(child, cg);
+        TR::MemoryReference *tempMR = MRef_node(child, cg);
         longReg = cg->allocateRegisterPair(cg->allocateRegister(), cg->allocateRegister());
         node->setRegister(longReg);
-        generateRegMemInstruction(TR::InstOpCode::MOVZXReg4Mem2, node, longReg->getLowOrder(), tempMR, cg);
+        Inst_RegMem(OP::MOVZXReg4Mem2, node, longReg->getLowOrder(), tempMR, cg);
         tempMR->decNodeReferenceCounts(cg);
     } else {
         longReg = cg->allocateRegisterPair(cg->intClobberEvaluate(child), cg->allocateRegister());
         node->setRegister(longReg);
-        generateRegRegInstruction(TR::InstOpCode::MOVZXReg4Reg2, node, longReg->getLowOrder(), longReg->getLowOrder(),
-            cg);
+        Inst_RegReg(OP::MOVZXReg4Reg2, node, longReg->getLowOrder(), longReg->getLowOrder(), cg);
     }
 
-    generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, node, longReg->getHighOrder(), longReg->getHighOrder(), cg);
+    Inst_RegReg(OP::XOR4RegReg, node, longReg->getHighOrder(), longReg->getHighOrder(), cg);
     cg->decReferenceCount(child);
 
     return longReg;
@@ -4041,31 +3996,29 @@ TR::Register *OMR::X86::I386::TreeEvaluator::dstoreEvaluator(TR::Node *node, TR:
         TR::TreeEvaluator::lstoreEvaluator(node, cg); // The IA32 version, handles lstorei as well
         return NULL;
     } else {
-        TR::MemoryReference *storeLowMR = generateX86MemoryReference(node, cg);
+        TR::MemoryReference *storeLowMR = MRef_node(node, cg);
         TR::Instruction *instr;
 
         if (valueChild->getOpCode().isLoadConst()) {
-            instr = generateMemImmInstruction(TR::InstOpCode::S4MemImm4, node,
-                generateX86MemoryReference(*storeLowMR, 4, cg), valueChild->getLongIntHigh(), cg);
-            generateMemImmInstruction(TR::InstOpCode::S4MemImm4, node, storeLowMR, valueChild->getLongIntLow(), cg);
+            instr
+                = Inst_MemImm(OP::S4MemImm4, node, MRef_MRefOff(*storeLowMR, 4, cg), valueChild->getLongIntHigh(), cg);
+            Inst_MemImm(OP::S4MemImm4, node, storeLowMR, valueChild->getLongIntLow(), cg);
         } else if (debug("useGPRsForFP")
             && (cg->getLiveRegisters(TR_GPR)->getNumberOfLiveRegisters() < cg->getMaximumNumbersOfAssignableGPRs() - 1)
             && valueChild->getOpCode().isLoadVar() && valueChild->getRegister() == NULL
             && valueChild->getReferenceCount() == 1) {
             TR::Register *tempRegister = cg->allocateRegister(TR_GPR);
-            TR::MemoryReference *loadLowMR = generateX86MemoryReference(valueChild, cg);
-            generateRegMemInstruction(TR::InstOpCode::L4RegMem, node, tempRegister,
-                generateX86MemoryReference(*loadLowMR, 4, cg), cg);
-            instr = generateMemRegInstruction(TR::InstOpCode::S4MemReg, node,
-                generateX86MemoryReference(*storeLowMR, 4, cg), tempRegister, cg);
-            generateRegMemInstruction(TR::InstOpCode::L4RegMem, node, tempRegister, loadLowMR, cg);
-            generateMemRegInstruction(TR::InstOpCode::S4MemReg, node, storeLowMR, tempRegister, cg);
+            TR::MemoryReference *loadLowMR = MRef_node(valueChild, cg);
+            Inst_RegMem(OP::L4RegMem, node, tempRegister, MRef_MRefOff(*loadLowMR, 4, cg), cg);
+            instr = Inst_MemReg(OP::S4MemReg, node, MRef_MRefOff(*storeLowMR, 4, cg), tempRegister, cg);
+            Inst_RegMem(OP::L4RegMem, node, tempRegister, loadLowMR, cg);
+            Inst_MemReg(OP::S4MemReg, node, storeLowMR, tempRegister, cg);
             loadLowMR->decNodeReferenceCounts(cg);
             cg->stopUsingRegister(tempRegister);
         } else {
             TR::Register *sourceRegister = cg->evaluate(valueChild);
             TR_ASSERT(!sourceRegister->isSinglePrecision(), "dstore cannot have float operand\n");
-            instr = generateMemRegInstruction(TR::InstOpCode::MOVSDMemReg, node, storeLowMR, sourceRegister, cg);
+            instr = Inst_MemReg(OP::MOVSDMemReg, node, storeLowMR, sourceRegister, cg);
         }
 
         cg->decReferenceCount(valueChild);
@@ -4082,17 +4035,16 @@ TR::Register *OMR::X86::I386::TreeEvaluator::l2fEvaluator(TR::Node *node, TR::Co
     TR::Node *child = node->getFirstChild();
 
     if (child->getRegister() == NULL && child->getReferenceCount() == 1 && child->getOpCode().isLoadVar()) {
-        TR::MemoryReference *tempMR = generateX86MemoryReference(child, cg);
-        generateMemInstruction(TR::InstOpCode::FLLDMem, node, tempMR, cg);
+        TR::MemoryReference *tempMR = MRef_node(child, cg);
+        Inst_Mem(OP::FLLDMem, node, tempMR, cg);
         tempMR->decNodeReferenceCounts(cg);
     } else {
         TR::SymbolReference *temp = cg->allocateLocalTemp(TR::Int64);
         TR::Register *longReg = cg->evaluate(child);
-        TR::MemoryReference *lowMR = generateX86MemoryReference(temp, cg);
-        generateMemRegInstruction(TR::InstOpCode::S4MemReg, node, lowMR, longReg->getLowOrder(), cg);
-        generateMemRegInstruction(TR::InstOpCode::S4MemReg, node, generateX86MemoryReference(*lowMR, 4, cg),
-            longReg->getHighOrder(), cg);
-        generateMemInstruction(TR::InstOpCode::FLLDMem, node, generateX86MemoryReference(*lowMR, 0, cg), cg);
+        TR::MemoryReference *lowMR = MRef_sym(temp, cg);
+        Inst_MemReg(OP::S4MemReg, node, lowMR, longReg->getLowOrder(), cg);
+        Inst_MemReg(OP::S4MemReg, node, MRef_MRefOff(*lowMR, 4, cg), longReg->getHighOrder(), cg);
+        Inst_Mem(OP::FLLDMem, node, MRef_MRefOff(*lowMR, 0, cg), cg);
         cg->decReferenceCount(child);
     }
 
@@ -4107,17 +4059,16 @@ TR::Register *OMR::X86::I386::TreeEvaluator::l2dEvaluator(TR::Node *node, TR::Co
     TR::Node *child = node->getFirstChild();
 
     if (child->getRegister() == NULL && child->getReferenceCount() == 1 && child->getOpCode().isLoadVar()) {
-        TR::MemoryReference *tempMR = generateX86MemoryReference(child, cg);
-        generateMemInstruction(TR::InstOpCode::DLLDMem, node, tempMR, cg);
+        TR::MemoryReference *tempMR = MRef_node(child, cg);
+        Inst_Mem(OP::DLLDMem, node, tempMR, cg);
         tempMR->decNodeReferenceCounts(cg);
     } else {
         TR::SymbolReference *temp = cg->allocateLocalTemp(TR::Int64);
         TR::Register *longReg = cg->evaluate(child);
-        TR::MemoryReference *lowMR = generateX86MemoryReference(temp, cg);
-        generateMemRegInstruction(TR::InstOpCode::S4MemReg, node, lowMR, longReg->getLowOrder(), cg);
-        generateMemRegInstruction(TR::InstOpCode::S4MemReg, node, generateX86MemoryReference(*lowMR, 4, cg),
-            longReg->getHighOrder(), cg);
-        generateMemInstruction(TR::InstOpCode::DLLDMem, node, generateX86MemoryReference(*lowMR, 0, cg), cg);
+        TR::MemoryReference *lowMR = MRef_sym(temp, cg);
+        Inst_MemReg(OP::S4MemReg, node, lowMR, longReg->getLowOrder(), cg);
+        Inst_MemReg(OP::S4MemReg, node, MRef_MRefOff(*lowMR, 4, cg), longReg->getHighOrder(), cg);
+        Inst_Mem(OP::DLLDMem, node, MRef_MRefOff(*lowMR, 0, cg), cg);
         cg->decReferenceCount(child);
     }
 
@@ -4148,31 +4099,31 @@ TR::Register *OMR::X86::I386::TreeEvaluator::performLload(TR::Node *node, TR::Me
 
             if (cg->comp()->target().cpu.isGenuineIntel()) {
                 TR::Register *xmmReg = cg->allocateRegister(TR_FPR);
-                generateRegMemInstruction(cg->getXMMDoubleLoadOpCode(), node, xmmReg, sourceMR, cg);
+                Inst_RegMem(cg->getXMMDoubleLoadOpCode(), node, xmmReg, sourceMR, cg);
 
                 // allocate: lowRegister
                 lowRegister = cg->allocateRegister();
                 // allocate: highRegister
                 highRegister = cg->allocateRegister();
 
-                generateRegRegInstruction(TR::InstOpCode::MOVDReg4Reg, node, lowRegister, xmmReg, cg);
-                generateRegImmInstruction(TR::InstOpCode::PSRLQRegImm1, node, xmmReg, 0x20, cg);
-                generateRegRegInstruction(TR::InstOpCode::MOVDReg4Reg, node, highRegister, xmmReg, cg);
+                Inst_RegReg(OP::MOVDReg4Reg, node, lowRegister, xmmReg, cg);
+                Inst_RegImm(OP::PSRLQRegImm1, node, xmmReg, 0x20, cg);
+                Inst_RegReg(OP::MOVDReg4Reg, node, highRegister, xmmReg, cg);
 
                 cg->stopUsingRegister(xmmReg);
             } else {
                 // generate stack piece
                 TR::MemoryReference *stackLow = cg->machine()->getDummyLocalMR(TR::Int64);
-                TR::MemoryReference *stackHigh = generateX86MemoryReference(*stackLow, 4, cg);
+                TR::MemoryReference *stackHigh = MRef_MRefOff(*stackLow, 4, cg);
 
                 // allocate: XMM
                 TR::Register *reg = cg->allocateRegister(TR_FPR);
 
                 // generate: xmm <- sourceMR
-                generateRegMemInstruction(cg->getXMMDoubleLoadOpCode(), node, reg, sourceMR, cg);
+                Inst_RegMem(cg->getXMMDoubleLoadOpCode(), node, reg, sourceMR, cg);
                 // generate: stack1 <- xmm
-                TR::MemoryReference *stack = generateX86MemoryReference(*stackLow, 0, cg);
-                generateMemRegInstruction(TR::InstOpCode::MOVSDMemReg, node, stack, reg, cg);
+                TR::MemoryReference *stack = MRef_MRefOff(*stackLow, 0, cg);
+                Inst_MemReg(OP::MOVSDMemReg, node, stack, reg, cg);
                 // stop using: xmm
                 cg->stopUsingRegister(reg);
 
@@ -4182,9 +4133,9 @@ TR::Register *OMR::X86::I386::TreeEvaluator::performLload(TR::Node *node, TR::Me
                 highRegister = cg->allocateRegister();
 
                 // generate: lowRegister <- stack1
-                generateRegMemInstruction(TR::InstOpCode::L4RegMem, node, lowRegister, stackLow, cg);
+                Inst_RegMem(OP::L4RegMem, node, lowRegister, stackLow, cg);
                 // generate: highRegister <- stack1_plus4
-                generateRegMemInstruction(TR::InstOpCode::L4RegMem, node, highRegister, stackHigh, cg);
+                Inst_RegMem(OP::L4RegMem, node, highRegister, stackHigh, cg);
             }
         } else {
             TR_ASSERT_FATAL(cg->comp()->compileRelocatableCode() || cg->comp()->compilePortableCode()
@@ -4198,7 +4149,7 @@ TR::Register *OMR::X86::I386::TreeEvaluator::performLload(TR::Node *node, TR::Me
             highRegister = cg->allocateRegister();
             ecxReg = cg->allocateRegister();
             ebxReg = cg->allocateRegister();
-            deps = generateRegisterDependencyConditions((uint8_t)4, (uint8_t)4, cg);
+            deps = RegDeps((uint8_t)4, (uint8_t)4, cg);
 
             deps->addPostCondition(lowRegister, TR::RealRegister::eax, cg);
             deps->addPostCondition(highRegister, TR::RealRegister::edx, cg);
@@ -4209,19 +4160,16 @@ TR::Register *OMR::X86::I386::TreeEvaluator::performLload(TR::Node *node, TR::Me
             deps->addPreCondition(ecxReg, TR::RealRegister::ecx, cg);
             deps->addPreCondition(ebxReg, TR::RealRegister::ebx, cg);
 
-            generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, ecxReg, highRegister, cg);
-            generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, ebxReg, lowRegister, cg);
-            generateMemInstruction(cg->comp()->target().isSMP() ? TR::InstOpCode::LCMPXCHG8BMem
-                                                                : TR::InstOpCode::CMPXCHG8BMem,
-                node, sourceMR, deps, cg);
+            Inst_RegReg(OP::MOV4RegReg, node, ecxReg, highRegister, cg);
+            Inst_RegReg(OP::MOV4RegReg, node, ebxReg, lowRegister, cg);
+            Inst_Mem(cg->comp()->target().isSMP() ? OP::LCMPXCHG8BMem : OP::CMPXCHG8BMem, node, sourceMR, deps, cg);
 
             cg->stopUsingRegister(ecxReg);
             cg->stopUsingRegister(ebxReg);
         }
     } else {
         lowRegister = loadMemory(node, sourceMR, TR_RematerializableInt, node->getOpCode().isIndirect(), cg);
-        highRegister
-            = loadMemory(node, generateX86MemoryReference(*sourceMR, 4, cg), TR_RematerializableInt, false, cg);
+        highRegister = loadMemory(node, MRef_MRefOff(*sourceMR, 4, cg), TR_RematerializableInt, false, cg);
 
         TR::SymbolReference &mrSymRef = sourceMR->getSymbolReference();
         if (mrSymRef.isUnresolved()) {
@@ -4237,7 +4185,7 @@ TR::Register *OMR::X86::I386::TreeEvaluator::performLload(TR::Node *node, TR::Me
 // also handles lloadi
 TR::Register *OMR::X86::I386::TreeEvaluator::lloadEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    TR::MemoryReference *sourceMR = generateX86MemoryReference(node, cg);
+    TR::MemoryReference *sourceMR = MRef_node(node, cg);
     TR::Register *reg = performLload(node, sourceMR, cg);
     reg->setMemRef(sourceMR);
     sourceMR->decNodeReferenceCounts(cg);
@@ -4252,18 +4200,17 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lbits2dEvaluator(TR::Node *node, TR
     if (child->getRegister() == NULL && child->getOpCode().isLoadVar() && child->getReferenceCount() == 1) {
         // Load up the child as a double, then as a long if necessary
         //
-        tempMR = generateX86MemoryReference(child, cg);
+        tempMR = MRef_node(child, cg);
         performDload(node, tempMR, cg);
         tempMR->decNodeReferenceCounts(cg);
     } else {
         TR::Register *longReg = cg->evaluate(child);
 
         tempMR = cg->machine()->getDummyLocalMR(TR::Int64);
-        generateMemRegInstruction(TR::InstOpCode::S4MemReg, node, tempMR, longReg->getLowOrder(), cg);
-        generateMemRegInstruction(TR::InstOpCode::S4MemReg, node, generateX86MemoryReference(*tempMR, 4, cg),
-            longReg->getHighOrder(), cg);
+        Inst_MemReg(OP::S4MemReg, node, tempMR, longReg->getLowOrder(), cg);
+        Inst_MemReg(OP::S4MemReg, node, MRef_MRefOff(*tempMR, 4, cg), longReg->getHighOrder(), cg);
 
-        performDload(node, generateX86MemoryReference(*tempMR, 0, cg), cg);
+        performDload(node, MRef_MRefOff(*tempMR, 0, cg), cg);
     }
 
     cg->decReferenceCount(child);
@@ -4280,26 +4227,23 @@ TR::Register *OMR::X86::I386::TreeEvaluator::dbits2lEvaluator(TR::Node *node, TR
     if (child->getRegister() == NULL && child->getOpCode().isLoadVar() && (child->getReferenceCount() == 1)) {
         // Load up the child as a long, then as a double if necessary.
         //
-        tempMR = generateX86MemoryReference(child, cg);
+        tempMR = MRef_node(child, cg);
 
-        generateRegMemInstruction(TR::InstOpCode::L4RegMem, node, lowReg, tempMR, cg);
-        generateRegMemInstruction(TR::InstOpCode::L4RegMem, node, highReg, generateX86MemoryReference(*tempMR, 4, cg),
-            cg);
+        Inst_RegMem(OP::L4RegMem, node, lowReg, tempMR, cg);
+        Inst_RegMem(OP::L4RegMem, node, highReg, MRef_MRefOff(*tempMR, 4, cg), cg);
 
         if (child->getReferenceCount() > 1)
-            performDload(child, generateX86MemoryReference(*tempMR, 0, cg), cg);
+            performDload(child, MRef_MRefOff(*tempMR, 0, cg), cg);
 
         tempMR->decNodeReferenceCounts(cg);
     } else {
         TR::Register *doubleReg = cg->evaluate(child);
 
         tempMR = cg->machine()->getDummyLocalMR(TR::Double);
-        generateMemRegInstruction(TR::InstOpCode::MOVSDMemReg, node, tempMR, doubleReg, cg);
+        Inst_MemReg(OP::MOVSDMemReg, node, tempMR, doubleReg, cg);
 
-        generateRegMemInstruction(TR::InstOpCode::L4RegMem, node, lowReg, generateX86MemoryReference(*tempMR, 0, cg),
-            cg);
-        generateRegMemInstruction(TR::InstOpCode::L4RegMem, node, highReg, generateX86MemoryReference(*tempMR, 4, cg),
-            cg);
+        Inst_RegMem(OP::L4RegMem, node, lowReg, MRef_MRefOff(*tempMR, 0, cg), cg);
+        Inst_RegMem(OP::L4RegMem, node, highReg, MRef_MRefOff(*tempMR, 4, cg), cg);
     }
 
     // There's a special-case check for NaN values, which have to be
@@ -4313,25 +4257,25 @@ TR::Register *OMR::X86::I386::TreeEvaluator::dbits2lEvaluator(TR::Node *node, TR
     if (node->normalizeNanValues()) {
         lab0->setStartInternalControlFlow();
         lab2->setEndInternalControlFlow();
-        generateLabelInstruction(TR::InstOpCode::label, node, lab0, cg);
-        generateRegImmInstruction(TR::InstOpCode::CMP4RegImm4, node, highReg, 0x7FF00000, cg);
-        generateLabelInstruction(TR::InstOpCode::JG4, node, lab1, cg);
-        generateLabelInstruction(TR::InstOpCode::JE4, node, lab3, cg);
-        generateRegImmInstruction(TR::InstOpCode::CMP4RegImm4, node, highReg, 0xFFF00000, cg);
-        generateLabelInstruction(TR::InstOpCode::JA4, node, lab1, cg);
-        generateLabelInstruction(TR::InstOpCode::JB4, node, lab2, cg);
-        generateLabelInstruction(TR::InstOpCode::label, node, lab3, cg);
-        generateRegRegInstruction(TR::InstOpCode::TEST4RegReg, node, lowReg, lowReg, cg);
-        generateLabelInstruction(TR::InstOpCode::JE4, node, lab2, cg);
-        generateLabelInstruction(TR::InstOpCode::label, node, lab1, cg);
-        generateRegImmInstruction(TR::InstOpCode::MOV4RegImm4, node, highReg, 0x7FF80000, cg);
-        generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, node, lowReg, lowReg, cg);
+        Inst_Label(OP::label, node, lab0, cg);
+        Inst_RegImm(OP::CMP4RegImm4, node, highReg, 0x7FF00000, cg);
+        Inst_Label(OP::JG4, node, lab1, cg);
+        Inst_Label(OP::JE4, node, lab3, cg);
+        Inst_RegImm(OP::CMP4RegImm4, node, highReg, 0xFFF00000, cg);
+        Inst_Label(OP::JA4, node, lab1, cg);
+        Inst_Label(OP::JB4, node, lab2, cg);
+        Inst_Label(OP::label, node, lab3, cg);
+        Inst_RegReg(OP::TEST4RegReg, node, lowReg, lowReg, cg);
+        Inst_Label(OP::JE4, node, lab2, cg);
+        Inst_Label(OP::label, node, lab1, cg);
+        Inst_RegImm(OP::MOV4RegImm4, node, highReg, 0x7FF80000, cg);
+        Inst_RegReg(OP::XOR4RegReg, node, lowReg, lowReg, cg);
     }
 
-    TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)0, (uint8_t)2, cg);
+    TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)0, (uint8_t)2, cg);
     deps->addPostCondition(lowReg, TR::RealRegister::NoReg, cg);
     deps->addPostCondition(highReg, TR::RealRegister::NoReg, cg);
-    generateLabelInstruction(TR::InstOpCode::label, node, lab2, deps, cg);
+    Inst_Label(OP::label, node, lab2, deps, cg);
 
     TR::RegisterPair *target = cg->allocateRegisterPair(lowReg, highReg);
     node->setRegister(target);
@@ -4365,30 +4309,28 @@ TR::Register *OMR::X86::I386::TreeEvaluator::iflcmpeqEvaluator(TR::Node *node, T
                 if (landFirstChild->getReferenceCount() == 1 && landFirstChild->getRegister() == NULL
                     && landFirstChild->getOpCode().isLoadVar()) {
                     targetRegister = cg->allocateRegister();
-                    TR::MemoryReference *tempMR = generateX86MemoryReference(landFirstChild, cg);
+                    TR::MemoryReference *tempMR = MRef_node(landFirstChild, cg);
                     tempMR->getSymbolReference().addToOffset(4);
-                    generateRegMemInstruction(TR::InstOpCode::L4RegMem, landFirstChild, targetRegister, tempMR, cg);
+                    Inst_RegMem(OP::L4RegMem, landFirstChild, targetRegister, tempMR, cg);
                     targetNeedsToBeExplicitlyStopped = true;
                 } else {
                     targetRegister = cg->evaluate(landFirstChild)->getHighOrder();
                 }
 
-                generateRegRegInstruction(TR::InstOpCode::TEST4RegReg, node, targetRegister, targetRegister, cg);
+                Inst_RegReg(OP::TEST4RegReg, node, targetRegister, targetRegister, cg);
                 cg->decReferenceCount(landFirstChild);
             } else {
                 cmpRegister = cg->evaluate(firstChild);
                 targetRegister = cmpRegister->getLowOrder();
                 if (firstChild->getReferenceCount() != 1) {
                     targetRegister = cg->allocateRegister();
-                    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, targetRegister,
-                        cmpRegister->getLowOrder(), cg);
+                    Inst_RegReg(OP::MOV4RegReg, node, targetRegister, cmpRegister->getLowOrder(), cg);
                     targetNeedsToBeExplicitlyStopped = true;
                 }
-                generateRegRegInstruction(TR::InstOpCode::OR4RegReg, node, targetRegister, cmpRegister->getHighOrder(),
-                    cg);
+                Inst_RegReg(OP::OR4RegReg, node, targetRegister, cmpRegister->getHighOrder(), cg);
             }
 
-            generateConditionalJumpInstruction(TR::InstOpCode::JE4, node, cg);
+            Inst_ConditionalJump(OP::JE4, node, cg);
 
             if (targetNeedsToBeExplicitlyStopped) {
                 cg->stopUsingRegister(targetRegister);
@@ -4401,42 +4343,42 @@ TR::Register *OMR::X86::I386::TreeEvaluator::iflcmpeqEvaluator(TR::Node *node, T
             doneLabel->setEndInternalControlFlow();
 
             cmpRegister = cg->evaluate(firstChild);
-            generateLabelInstruction(TR::InstOpCode::label, node, startLabel, cg);
+            Inst_Label(OP::label, node, startLabel, cg);
             compareGPRegisterToConstantForEquality(node, lowValue, cmpRegister->getLowOrder(), cg);
 
             // Evaluate the global register dependencies and emit the branches by hand;
-            // we cannot call generateConditionalJumpInstruction() here because we need
+            // we cannot call Inst_ConditionalJump() here because we need
             // to add extra post-conditions, and the conditions need to be present on
             // multiple instructions.
             //
             if (node->getNumChildren() == 3) {
                 TR::Node *third = node->getChild(2);
                 cg->evaluate(third);
-                deps = generateRegisterDependencyConditions(third, cg, 2);
+                deps = RegDeps(third, cg, 2);
                 deps->addPostCondition(cmpRegister->getLowOrder(), TR::RealRegister::NoReg, cg);
                 deps->addPostCondition(cmpRegister->getHighOrder(), TR::RealRegister::NoReg, cg);
                 deps->stopAddingConditions();
-                generateLabelInstruction(TR::InstOpCode::JNE4, node, doneLabel, deps, cg);
+                Inst_Label(OP::JNE4, node, doneLabel, deps, cg);
                 compareGPRegisterToConstantForEquality(node, highValue, cmpRegister->getHighOrder(), cg);
-                generateLabelInstruction(TR::InstOpCode::JE4, node, destinationLabel, deps, cg);
+                Inst_Label(OP::JE4, node, destinationLabel, deps, cg);
                 cg->decReferenceCount(third);
             } else {
-                generateLabelInstruction(TR::InstOpCode::JNE4, node, doneLabel, cg);
+                Inst_Label(OP::JNE4, node, doneLabel, cg);
                 compareGPRegisterToConstantForEquality(node, highValue, cmpRegister->getHighOrder(), cg);
-                generateLabelInstruction(TR::InstOpCode::JE4, node, destinationLabel, cg);
-                deps = generateRegisterDependencyConditions((uint8_t)0, 2, cg);
+                Inst_Label(OP::JE4, node, destinationLabel, cg);
+                deps = RegDeps((uint8_t)0, 2, cg);
                 deps->addPostCondition(cmpRegister->getLowOrder(), TR::RealRegister::NoReg, cg);
                 deps->addPostCondition(cmpRegister->getHighOrder(), TR::RealRegister::NoReg, cg);
             }
 
-            generateLabelInstruction(TR::InstOpCode::label, node, doneLabel, deps, cg);
+            Inst_Label(OP::label, node, doneLabel, deps, cg);
         }
 
         cg->decReferenceCount(firstChild);
         cg->decReferenceCount(secondChild);
     } else {
         TR_X86CompareAnalyser temp(cg);
-        temp.longEqualityCompareAndBranchAnalyser(node, NULL, destinationLabel, TR::InstOpCode::JE4);
+        temp.longEqualityCompareAndBranchAnalyser(node, NULL, destinationLabel, OP::JE4);
     }
     return NULL;
 }
@@ -4467,29 +4409,27 @@ TR::Register *OMR::X86::I386::TreeEvaluator::iflcmpneEvaluator(TR::Node *node, T
                 if (landFirstChild->getReferenceCount() == 1 && landFirstChild->getRegister() == NULL
                     && landFirstChild->getOpCode().isLoadVar()) {
                     targetRegister = cg->allocateRegister();
-                    TR::MemoryReference *tempMR = generateX86MemoryReference(landFirstChild, cg);
+                    TR::MemoryReference *tempMR = MRef_node(landFirstChild, cg);
                     tempMR->getSymbolReference().addToOffset(4);
-                    generateRegMemInstruction(TR::InstOpCode::L4RegMem, landFirstChild, targetRegister, tempMR, cg);
+                    Inst_RegMem(OP::L4RegMem, landFirstChild, targetRegister, tempMR, cg);
                     targetNeedsToBeExplicitlyStopped = true;
                 } else {
                     targetRegister = cg->evaluate(landFirstChild)->getHighOrder();
                 }
-                generateRegRegInstruction(TR::InstOpCode::TEST4RegReg, node, targetRegister, targetRegister, cg);
+                Inst_RegReg(OP::TEST4RegReg, node, targetRegister, targetRegister, cg);
                 cg->decReferenceCount(landFirstChild);
             } else {
                 cmpRegister = cg->evaluate(firstChild);
                 targetRegister = cmpRegister->getLowOrder();
                 if (firstChild->getReferenceCount() != 1) {
                     targetRegister = cg->allocateRegister();
-                    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, targetRegister,
-                        cmpRegister->getLowOrder(), cg);
+                    Inst_RegReg(OP::MOV4RegReg, node, targetRegister, cmpRegister->getLowOrder(), cg);
                     targetNeedsToBeExplicitlyStopped = true;
                 }
-                generateRegRegInstruction(TR::InstOpCode::OR4RegReg, node, targetRegister, cmpRegister->getHighOrder(),
-                    cg);
+                Inst_RegReg(OP::OR4RegReg, node, targetRegister, cmpRegister->getHighOrder(), cg);
             }
 
-            generateConditionalJumpInstruction(TR::InstOpCode::JNE4, node, cg);
+            Inst_ConditionalJump(OP::JNE4, node, cg);
 
             if (targetNeedsToBeExplicitlyStopped) {
                 cg->stopUsingRegister(targetRegister);
@@ -4499,23 +4439,23 @@ TR::Register *OMR::X86::I386::TreeEvaluator::iflcmpneEvaluator(TR::Node *node, T
             compareGPRegisterToConstantForEquality(node, lowValue, cmpRegister->getLowOrder(), cg);
 
             // Evaluate the global register dependencies and emit the branches by hand;
-            // we cannot call generateConditionalJumpInstruction() here because we need
+            // we cannot call Inst_ConditionalJump() here because we need
             // to add extra post-conditions, and the conditions need to be present on
             // multiple instructions.
             //
             if (node->getNumChildren() == 3) {
                 TR::Node *third = node->getChild(2);
                 cg->evaluate(third);
-                deps = generateRegisterDependencyConditions(third, cg, 1);
+                deps = RegDeps(third, cg, 1);
                 deps->stopAddingConditions();
-                generateLabelInstruction(TR::InstOpCode::JNE4, node, destinationLabel, deps, cg);
+                Inst_Label(OP::JNE4, node, destinationLabel, deps, cg);
                 compareGPRegisterToConstantForEquality(node, highValue, cmpRegister->getHighOrder(), cg);
-                generateLabelInstruction(TR::InstOpCode::JNE4, node, destinationLabel, deps, cg);
+                Inst_Label(OP::JNE4, node, destinationLabel, deps, cg);
                 cg->decReferenceCount(third);
             } else {
-                generateLabelInstruction(TR::InstOpCode::JNE4, node, destinationLabel, cg);
+                Inst_Label(OP::JNE4, node, destinationLabel, cg);
                 compareGPRegisterToConstantForEquality(node, highValue, cmpRegister->getHighOrder(), cg);
-                generateLabelInstruction(TR::InstOpCode::JNE4, node, destinationLabel, cg);
+                Inst_Label(OP::JNE4, node, destinationLabel, cg);
             }
         }
 
@@ -4523,7 +4463,7 @@ TR::Register *OMR::X86::I386::TreeEvaluator::iflcmpneEvaluator(TR::Node *node, T
         cg->decReferenceCount(secondChild);
     } else {
         TR_X86CompareAnalyser temp(cg);
-        temp.longEqualityCompareAndBranchAnalyser(node, destinationLabel, destinationLabel, TR::InstOpCode::JNE4);
+        temp.longEqualityCompareAndBranchAnalyser(node, destinationLabel, destinationLabel, OP::JNE4);
     }
     return NULL;
 }
@@ -4531,12 +4471,11 @@ TR::Register *OMR::X86::I386::TreeEvaluator::iflcmpneEvaluator(TR::Node *node, T
 TR::Register *OMR::X86::I386::TreeEvaluator::iflcmpltEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
     if (generateLAddOrSubForOverflowCheck(node, cg)) {
-        generateConditionalJumpInstruction(TR::InstOpCode::JO4, node, cg);
+        Inst_ConditionalJump(OP::JO4, node, cg);
     } else {
-        TR::InstOpCode::Mnemonic compareOp = node->getOpCode().isUnsigned() ? TR::InstOpCode::JB4 : TR::InstOpCode::JL4;
-        TR::InstOpCode::Mnemonic reverseCompareOp
-            = node->getOpCode().isUnsigned() ? TR::InstOpCode::JA4 : TR::InstOpCode::JG4;
-        compareLongsForOrder(node, compareOp, reverseCompareOp, TR::InstOpCode::JB4, cg);
+        OP::Mnemonic compareOp = node->getOpCode().isUnsigned() ? OP::JB4 : OP::JL4;
+        OP::Mnemonic reverseCompareOp = node->getOpCode().isUnsigned() ? OP::JA4 : OP::JG4;
+        compareLongsForOrder(node, compareOp, reverseCompareOp, OP::JB4, cg);
     }
     return NULL;
 }
@@ -4544,31 +4483,28 @@ TR::Register *OMR::X86::I386::TreeEvaluator::iflcmpltEvaluator(TR::Node *node, T
 TR::Register *OMR::X86::I386::TreeEvaluator::iflcmpgeEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
     if (generateLAddOrSubForOverflowCheck(node, cg)) {
-        generateConditionalJumpInstruction(TR::InstOpCode::JNO4, node, cg);
+        Inst_ConditionalJump(OP::JNO4, node, cg);
     } else {
-        TR::InstOpCode::Mnemonic compareOp = node->getOpCode().isUnsigned() ? TR::InstOpCode::JA4 : TR::InstOpCode::JG4;
-        TR::InstOpCode::Mnemonic reverseCompareOp
-            = node->getOpCode().isUnsigned() ? TR::InstOpCode::JB4 : TR::InstOpCode::JL4;
-        compareLongsForOrder(node, compareOp, reverseCompareOp, TR::InstOpCode::JAE4, cg);
+        OP::Mnemonic compareOp = node->getOpCode().isUnsigned() ? OP::JA4 : OP::JG4;
+        OP::Mnemonic reverseCompareOp = node->getOpCode().isUnsigned() ? OP::JB4 : OP::JL4;
+        compareLongsForOrder(node, compareOp, reverseCompareOp, OP::JAE4, cg);
     }
     return NULL;
 }
 
 TR::Register *OMR::X86::I386::TreeEvaluator::iflcmpgtEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    TR::InstOpCode::Mnemonic compareOp = node->getOpCode().isUnsigned() ? TR::InstOpCode::JA4 : TR::InstOpCode::JG4;
-    TR::InstOpCode::Mnemonic reverseCompareOp
-        = node->getOpCode().isUnsigned() ? TR::InstOpCode::JB4 : TR::InstOpCode::JL4;
-    compareLongsForOrder(node, compareOp, reverseCompareOp, TR::InstOpCode::JA4, cg);
+    OP::Mnemonic compareOp = node->getOpCode().isUnsigned() ? OP::JA4 : OP::JG4;
+    OP::Mnemonic reverseCompareOp = node->getOpCode().isUnsigned() ? OP::JB4 : OP::JL4;
+    compareLongsForOrder(node, compareOp, reverseCompareOp, OP::JA4, cg);
     return NULL;
 }
 
 TR::Register *OMR::X86::I386::TreeEvaluator::iflcmpleEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    TR::InstOpCode::Mnemonic compareOp = node->getOpCode().isUnsigned() ? TR::InstOpCode::JB4 : TR::InstOpCode::JL4;
-    TR::InstOpCode::Mnemonic reverseCompareOp
-        = node->getOpCode().isUnsigned() ? TR::InstOpCode::JA4 : TR::InstOpCode::JG4;
-    compareLongsForOrder(node, compareOp, reverseCompareOp, TR::InstOpCode::JBE4, cg);
+    OP::Mnemonic compareOp = node->getOpCode().isUnsigned() ? OP::JB4 : OP::JL4;
+    OP::Mnemonic reverseCompareOp = node->getOpCode().isUnsigned() ? OP::JA4 : OP::JG4;
+    compareLongsForOrder(node, compareOp, reverseCompareOp, OP::JBE4, cg);
     return NULL;
 }
 
@@ -4586,33 +4522,33 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lselectEvaluator(TR::Node *node, TR
     if (!longCompare && condOp.isCompareForEquality() && condition->getFirstChild()->getOpCode().isIntegerOrAddress()) {
         compareIntegersForEquality(condition, cg);
         if (condOp.isCompareTrueIfEqual()) {
-            generateRegRegInstruction(TR::InstOpCode::CMOVNE4RegReg, node, trueReg->getRegisterPair()->getLowOrder(),
+            Inst_RegReg(OP::CMOVNE4RegReg, node, trueReg->getRegisterPair()->getLowOrder(),
                 falseReg->getRegisterPair()->getLowOrder(), cg);
-            generateRegRegInstruction(TR::InstOpCode::CMOVNE4RegReg, node, trueReg->getRegisterPair()->getHighOrder(),
+            Inst_RegReg(OP::CMOVNE4RegReg, node, trueReg->getRegisterPair()->getHighOrder(),
                 falseReg->getRegisterPair()->getHighOrder(), cg);
         } else {
-            generateRegRegInstruction(TR::InstOpCode::CMOVE4RegReg, node, trueReg->getRegisterPair()->getLowOrder(),
+            Inst_RegReg(OP::CMOVE4RegReg, node, trueReg->getRegisterPair()->getLowOrder(),
                 falseReg->getRegisterPair()->getLowOrder(), cg);
-            generateRegRegInstruction(TR::InstOpCode::CMOVE4RegReg, node, trueReg->getRegisterPair()->getHighOrder(),
+            Inst_RegReg(OP::CMOVE4RegReg, node, trueReg->getRegisterPair()->getHighOrder(),
                 falseReg->getRegisterPair()->getHighOrder(), cg);
         }
     } else if (!longCompare && condOp.isCompareForOrder()
         && condition->getFirstChild()->getOpCode().isIntegerOrAddress()) {
         compareIntegersForOrder(condition, cg);
-        generateRegRegInstruction((condOp.isCompareTrueIfEqual())
-                ? ((condOp.isCompareTrueIfGreater()) ? TR::InstOpCode::CMOVL4RegReg : TR::InstOpCode::CMOVG4RegReg)
-                : ((condOp.isCompareTrueIfGreater()) ? TR::InstOpCode::CMOVLE4RegReg : TR::InstOpCode::CMOVGE4RegReg),
+        Inst_RegReg((condOp.isCompareTrueIfEqual())
+                ? ((condOp.isCompareTrueIfGreater()) ? OP::CMOVL4RegReg : OP::CMOVG4RegReg)
+                : ((condOp.isCompareTrueIfGreater()) ? OP::CMOVLE4RegReg : OP::CMOVGE4RegReg),
             node, trueReg->getRegisterPair()->getLowOrder(), falseReg->getRegisterPair()->getLowOrder(), cg);
-        generateRegRegInstruction((condOp.isCompareTrueIfEqual())
-                ? ((condOp.isCompareTrueIfGreater()) ? TR::InstOpCode::CMOVL4RegReg : TR::InstOpCode::CMOVG4RegReg)
-                : ((condOp.isCompareTrueIfGreater()) ? TR::InstOpCode::CMOVLE4RegReg : TR::InstOpCode::CMOVGE4RegReg),
+        Inst_RegReg((condOp.isCompareTrueIfEqual())
+                ? ((condOp.isCompareTrueIfGreater()) ? OP::CMOVL4RegReg : OP::CMOVG4RegReg)
+                : ((condOp.isCompareTrueIfGreater()) ? OP::CMOVLE4RegReg : OP::CMOVGE4RegReg),
             node, trueReg->getRegisterPair()->getHighOrder(), falseReg->getRegisterPair()->getHighOrder(), cg);
     } else {
         TR::Register *condReg = cg->evaluate(condition);
-        generateRegRegInstruction(TR::InstOpCode::TEST4RegReg, node, condReg, condReg, cg); // the condition is an int
-        generateRegRegInstruction(TR::InstOpCode::CMOVE4RegReg, node, trueReg->getRegisterPair()->getLowOrder(),
+        Inst_RegReg(OP::TEST4RegReg, node, condReg, condReg, cg); // the condition is an int
+        Inst_RegReg(OP::CMOVE4RegReg, node, trueReg->getRegisterPair()->getLowOrder(),
             falseReg->getRegisterPair()->getLowOrder(), cg);
-        generateRegRegInstruction(TR::InstOpCode::CMOVE4RegReg, node, trueReg->getRegisterPair()->getHighOrder(),
+        Inst_RegReg(OP::CMOVE4RegReg, node, trueReg->getRegisterPair()->getHighOrder(),
             falseReg->getRegisterPair()->getHighOrder(), cg);
     }
 
@@ -4631,8 +4567,8 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairByteswapEvaluator(TR::No
     TR::Register *lo = pair->getLowOrder();
     TR::Register *hi = pair->getHighOrder();
 
-    generateRegInstruction(TR::InstOpCode::BSWAP4Reg, node, lo, cg);
-    generateRegInstruction(TR::InstOpCode::BSWAP4Reg, node, hi, cg);
+    Inst_Reg(OP::BSWAP4Reg, node, lo, cg);
+    Inst_Reg(OP::BSWAP4Reg, node, hi, cg);
     pair->setLowOrder(hi, cg);
     pair->setHighOrder(lo, cg);
 
@@ -4643,16 +4579,16 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairByteswapEvaluator(TR::No
 
 TR::Register *OMR::X86::I386::TreeEvaluator::integerPairMinMaxEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    TR::InstOpCode::Mnemonic SETccHi = TR::InstOpCode::bad;
-    TR::InstOpCode::Mnemonic SETccLo = TR::InstOpCode::bad;
+    OP::Mnemonic SETccHi = OP::bad;
+    OP::Mnemonic SETccLo = OP::bad;
     switch (node->getOpCodeValue()) {
         case TR::lmin:
-            SETccHi = TR::InstOpCode::SETL1Reg;
-            SETccLo = TR::InstOpCode::SETB1Reg;
+            SETccHi = OP::SETL1Reg;
+            SETccLo = OP::SETB1Reg;
             break;
         case TR::lmax:
-            SETccHi = TR::InstOpCode::SETG1Reg;
-            SETccLo = TR::InstOpCode::SETA1Reg;
+            SETccHi = OP::SETG1Reg;
+            SETccLo = OP::SETA1Reg;
             break;
         default:
             TR_ASSERT(false, "INCORRECT IL OPCODE.");
@@ -4662,18 +4598,18 @@ TR::Register *OMR::X86::I386::TreeEvaluator::integerPairMinMaxEvaluator(TR::Node
     auto operand1 = cg->evaluate(node->getChild(1));
     auto result = cg->allocateRegisterPair(cg->allocateRegister(), cg->allocateRegister());
 
-    generateRegRegInstruction(TR::InstOpCode::CMP4RegReg, node, operand0->getLowOrder(), operand1->getLowOrder(), cg);
-    generateRegInstruction(SETccLo, node, result->getLowOrder(), cg); // t1 = (low0 < low1)
-    generateRegRegInstruction(TR::InstOpCode::CMP4RegReg, node, operand0->getHighOrder(), operand1->getHighOrder(), cg);
-    generateRegInstruction(SETccHi, node, result->getHighOrder(), cg); // t2 = (high0 < high1)
-    generateRegRegInstruction(TR::InstOpCode::CMOVE4RegReg, node, result->getHighOrder(), result->getLowOrder(),
+    Inst_RegReg(OP::CMP4RegReg, node, operand0->getLowOrder(), operand1->getLowOrder(), cg);
+    Inst_Reg(SETccLo, node, result->getLowOrder(), cg); // t1 = (low0 < low1)
+    Inst_RegReg(OP::CMP4RegReg, node, operand0->getHighOrder(), operand1->getHighOrder(), cg);
+    Inst_Reg(SETccHi, node, result->getHighOrder(), cg); // t2 = (high0 < high1)
+    Inst_RegReg(OP::CMOVE4RegReg, node, result->getHighOrder(), result->getLowOrder(),
         cg); // if (high0 == high1) then t2 = t1 = (low0 < low1)
 
-    generateRegRegInstruction(TR::InstOpCode::TEST1RegReg, node, result->getHighOrder(), result->getHighOrder(), cg);
-    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, result->getLowOrder(), operand0->getLowOrder(), cg);
-    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, result->getHighOrder(), operand0->getHighOrder(), cg);
-    generateRegRegInstruction(TR::InstOpCode::CMOVE4RegReg, node, result->getLowOrder(), operand1->getLowOrder(), cg);
-    generateRegRegInstruction(TR::InstOpCode::CMOVE4RegReg, node, result->getHighOrder(), operand1->getHighOrder(), cg);
+    Inst_RegReg(OP::TEST1RegReg, node, result->getHighOrder(), result->getHighOrder(), cg);
+    Inst_RegReg(OP::MOV4RegReg, node, result->getLowOrder(), operand0->getLowOrder(), cg);
+    Inst_RegReg(OP::MOV4RegReg, node, result->getHighOrder(), operand0->getHighOrder(), cg);
+    Inst_RegReg(OP::CMOVE4RegReg, node, result->getLowOrder(), operand1->getLowOrder(), cg);
+    Inst_RegReg(OP::CMOVE4RegReg, node, result->getHighOrder(), operand1->getHighOrder(), cg);
 
     node->setRegister(result);
     cg->decReferenceCount(node->getChild(0));
@@ -4688,15 +4624,15 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lcmpsetEvaluator(TR::Node *node, TR
     TR::Node *replaceValue = node->getChild(2);
 
     TR::Register *pointerReg = cg->evaluate(pointer);
-    TR::MemoryReference *memRef = generateX86MemoryReference(pointerReg, 0, cg);
+    TR::MemoryReference *memRef = MRef_Bdisp32(pointerReg, 0, cg);
     TR::Register *compareReg
         = cg->longClobberEvaluate(compareValue); // clobber evaluate because edx:eax may potentially get clobbered
     TR::Register *replaceReg = cg->evaluate(replaceValue);
 
     TR::Register *resultReg = cg->allocateRegister();
-    generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, node, resultReg, resultReg, cg);
+    Inst_RegReg(OP::XOR4RegReg, node, resultReg, resultReg, cg);
 
-    TR::RegisterDependencyConditions *deps = generateRegisterDependencyConditions((uint8_t)4, (uint8_t)4, cg);
+    TR::RegisterDependencyConditions *deps = RegDeps((uint8_t)4, (uint8_t)4, cg);
     deps->addPreCondition(compareReg->getHighOrder(), TR::RealRegister::edx, cg);
     deps->addPreCondition(compareReg->getLowOrder(), TR::RealRegister::eax, cg);
     deps->addPreCondition(replaceReg->getHighOrder(), TR::RealRegister::ecx, cg);
@@ -4705,12 +4641,11 @@ TR::Register *OMR::X86::I386::TreeEvaluator::lcmpsetEvaluator(TR::Node *node, TR
     deps->addPostCondition(compareReg->getLowOrder(), TR::RealRegister::eax, cg);
     deps->addPostCondition(replaceReg->getHighOrder(), TR::RealRegister::ecx, cg);
     deps->addPostCondition(replaceReg->getLowOrder(), TR::RealRegister::ebx, cg);
-    generateMemInstruction(cg->comp()->target().isSMP() ? TR::InstOpCode::LCMPXCHG8BMem : TR::InstOpCode::CMPXCHG8BMem,
-        node, memRef, deps, cg);
+    Inst_Mem(cg->comp()->target().isSMP() ? OP::LCMPXCHG8BMem : OP::CMPXCHG8BMem, node, memRef, deps, cg);
 
     cg->stopUsingRegister(compareReg);
 
-    generateRegInstruction(TR::InstOpCode::SETNE1Reg, node, resultReg, cg);
+    Inst_Reg(OP::SETNE1Reg, node, resultReg, cg);
 
     node->setRegister(resultReg);
     cg->decReferenceCount(pointer);

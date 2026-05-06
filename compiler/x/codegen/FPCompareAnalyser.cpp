@@ -252,8 +252,8 @@ const uint8_t TR_X86FPCompareAnalyser::_actionMap[NUM_FPCOMPARE_ACTION_SETS] = {
     /* 1  1  1  1  1  1  1 */ fpCmpReg1Reg2
 };
 
-TR::Register *TR_IA32XMMCompareAnalyser::xmmCompareAnalyser(TR::Node *root, TR::InstOpCode::Mnemonic cmpRegRegOpCode,
-    TR::InstOpCode::Mnemonic cmpRegMemOpCode)
+TR::Register *TR_IA32XMMCompareAnalyser::xmmCompareAnalyser(TR::Node *root, OP::Mnemonic cmpRegRegOpCode,
+    OP::Mnemonic cmpRegMemOpCode)
 {
     TR::Node *firstChild, *secondChild;
     TR::ILOpCodes cmpOp = root->getOpCodeValue();
@@ -333,18 +333,18 @@ TR::Register *TR_IA32XMMCompareAnalyser::xmmCompareAnalyser(TR::Node *root, TR::
     // Generate the compare instruction.
     //
     if (getCmpReg1Mem2() || reverseMemOp) {
-        TR::MemoryReference *tempMR = generateX86MemoryReference(secondChild, _cg);
-        generateRegMemInstruction(cmpRegMemOpCode, root, firstRegister, tempMR, _cg);
+        TR::MemoryReference *tempMR = MRef_node(secondChild, _cg);
+        Inst_RegMem(cmpRegMemOpCode, root, firstRegister, tempMR, _cg);
         tempMR->decNodeReferenceCounts(_cg);
     } else if (getCmpReg2Mem1()) {
-        TR::MemoryReference *tempMR = generateX86MemoryReference(firstChild, _cg);
-        generateRegMemInstruction(cmpRegMemOpCode, root, secondRegister, tempMR, _cg);
+        TR::MemoryReference *tempMR = MRef_node(firstChild, _cg);
+        Inst_RegMem(cmpRegMemOpCode, root, secondRegister, tempMR, _cg);
         notReversedOperands();
         tempMR->decNodeReferenceCounts(_cg);
     } else if (getCmpReg1Reg2() || reverseCmpOp) {
-        generateRegRegInstruction(cmpRegRegOpCode, root, firstRegister, secondRegister, _cg);
+        Inst_RegReg(cmpRegRegOpCode, root, firstRegister, secondRegister, _cg);
     } else if (getCmpReg2Reg1()) {
-        generateRegRegInstruction(cmpRegRegOpCode, root, secondRegister, firstRegister, _cg);
+        Inst_RegReg(cmpRegRegOpCode, root, secondRegister, firstRegister, _cg);
         notReversedOperands();
     }
 

@@ -471,15 +471,13 @@ private:
     static TR::Register *performLload(TR::Node *node, TR::MemoryReference *sourceMR, TR::CodeGenerator *cg);
 
     static TR::Register *longArithmeticCompareRegisterWithImmediate(TR::Node *node, TR::Register *cmpRegister,
-        TR::Node *immedChild, TR::InstOpCode::Mnemonic firstBranchOpCode, TR::InstOpCode::Mnemonic secondBranchOpCode,
-        TR::CodeGenerator *cg);
+        TR::Node *immedChild, OP::Mnemonic firstBranchOpCode, OP::Mnemonic secondBranchOpCode, TR::CodeGenerator *cg);
 
-    static TR::Register *compareLongAndSetOrderedBoolean(TR::Node *node, TR::InstOpCode::Mnemonic highSetOpCode,
-        TR::InstOpCode::Mnemonic lowSetOpCode, TR::CodeGenerator *cg);
+    static TR::Register *compareLongAndSetOrderedBoolean(TR::Node *node, OP::Mnemonic highSetOpCode,
+        OP::Mnemonic lowSetOpCode, TR::CodeGenerator *cg);
 
-    static void compareLongsForOrder(TR::Node *node, TR::InstOpCode::Mnemonic highOrderBranchOp,
-        TR::InstOpCode::Mnemonic highOrderReversedBranchOp, TR::InstOpCode::Mnemonic lowOrderBranchOp,
-        TR::CodeGenerator *cg);
+    static void compareLongsForOrder(TR::Node *node, OP::Mnemonic highOrderBranchOp,
+        OP::Mnemonic highOrderReversedBranchOp, OP::Mnemonic lowOrderBranchOp, TR::CodeGenerator *cg);
 };
 
 }}} // namespace OMR::X86::I386

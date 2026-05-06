@@ -51,24 +51,21 @@ public:
         , _machine(cg->machine())
     {}
 
-    void integerCompareAnalyser(TR::Node *root, TR::InstOpCode::Mnemonic regRegOpCode,
-        TR::InstOpCode::Mnemonic regMemOpCode, TR::InstOpCode::Mnemonic memRegOpCode);
+    void integerCompareAnalyser(TR::Node *root, OP::Mnemonic regRegOpCode, OP::Mnemonic regMemOpCode,
+        OP::Mnemonic memRegOpCode);
 
     void integerCompareAnalyser(TR::Node *root, TR::Node *firstChild, TR::Node *secondChild,
-        bool determineEvaluationOrder, TR::InstOpCode::Mnemonic regRegOpCode, TR::InstOpCode::Mnemonic regMemOpCode,
-        TR::InstOpCode::Mnemonic memRegOpCode);
+        bool determineEvaluationOrder, OP::Mnemonic regRegOpCode, OP::Mnemonic regMemOpCode, OP::Mnemonic memRegOpCode);
 
-    void longOrderedCompareAndBranchAnalyser(TR::Node *root, TR::InstOpCode::Mnemonic lowBranchOpCode,
-        TR::InstOpCode::Mnemonic highBranchOpCode, TR::InstOpCode::Mnemonic highReversedBranchOpCode);
+    void longOrderedCompareAndBranchAnalyser(TR::Node *root, OP::Mnemonic lowBranchOpCode,
+        OP::Mnemonic highBranchOpCode, OP::Mnemonic highReversedBranchOpCode);
 
     void longEqualityCompareAndBranchAnalyser(TR::Node *root, TR::LabelSymbol *firstBranchLabel,
-        TR::LabelSymbol *secondBranchLabel, TR::InstOpCode::Mnemonic secondBranchOp);
+        TR::LabelSymbol *secondBranchLabel, OP::Mnemonic secondBranchOp);
 
-    TR::Register *longEqualityBooleanAnalyser(TR::Node *root, TR::InstOpCode::Mnemonic setOpCode,
-        TR::InstOpCode::Mnemonic combineOpCode);
+    TR::Register *longEqualityBooleanAnalyser(TR::Node *root, OP::Mnemonic setOpCode, OP::Mnemonic combineOpCode);
 
-    TR::Register *longOrderedBooleanAnalyser(TR::Node *root, TR::InstOpCode::Mnemonic highSetOpCode,
-        TR::InstOpCode::Mnemonic lowSetOpCode);
+    TR::Register *longOrderedBooleanAnalyser(TR::Node *root, OP::Mnemonic highSetOpCode, OP::Mnemonic lowSetOpCode);
 
     TR::Register *longCMPAnalyser(TR::Node *root);
 

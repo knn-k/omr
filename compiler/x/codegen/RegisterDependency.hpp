@@ -51,6 +51,10 @@ public:
         : OMR::RegisterDependencyConditionsConnector(node, cg, additionalRegDeps)
     {}
 };
+
+TR::RegisterDependencyConditions *RegDeps(TR::Node *node, TR::CodeGenerator *cg, uint32_t additionalRegDeps = 0);
+TR::RegisterDependencyConditions *RegDeps(uint32_t numPreConds, uint32_t numPostConds, TR::CodeGenerator *cg);
+
 } // namespace TR
 
 #endif

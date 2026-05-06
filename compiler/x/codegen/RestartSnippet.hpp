@@ -59,14 +59,14 @@ public:
 
     bool getForceLongRestartJump() { return _forceLongRestartJump; }
 
-    uint8_t *genRestartJump(TR::InstOpCode::Mnemonic branchOp, uint8_t *bufferCursor, TR::LabelSymbol *label)
+    uint8_t *genRestartJump(OP::Mnemonic branchOp, uint8_t *bufferCursor, TR::LabelSymbol *label)
     {
         TR::InstOpCode opcode(branchOp);
 
         uint8_t *destination = label->getCodeLocation();
         intptr_t distance = destination - (bufferCursor + 2);
 
-        TR_ASSERT((branchOp >= TR::InstOpCode::JA4) && (branchOp <= TR::InstOpCode::JMP4),
+        TR_ASSERT((branchOp >= OP::JA4) && (branchOp <= OP::JMP4),
             "opcode must be a long branch for conditional restart in a restart snippet\n");
 
         if (getForceLongRestartJump()) {
@@ -90,13 +90,12 @@ public:
 
     uint8_t *genRestartJump(uint8_t *bufferCursor, TR::LabelSymbol *label)
     {
-        return genRestartJump(TR::InstOpCode::JMP4, bufferCursor, label);
+        return genRestartJump(OP::JMP4, bufferCursor, label);
     }
 
     uint8_t *genRestartJump(uint8_t *bufferCursor) { return genRestartJump(bufferCursor, _restartLabel); }
 
-    uint32_t estimateRestartJumpLength(TR::InstOpCode::Mnemonic branchOp, int32_t estimatedSnippetLocation,
-        TR::LabelSymbol *label)
+    uint32_t estimateRestartJumpLength(OP::Mnemonic branchOp, int32_t estimatedSnippetLocation, TR::LabelSymbol *label)
     {
         intptr_t location = label->getEstimatedCodeLocation();
         if (label->getCodeLocation() != 0) {
@@ -107,7 +106,7 @@ public:
             return 2;
         }
         // long branch required
-        if (branchOp == TR::InstOpCode::JMP4)
+        if (branchOp == OP::JMP4)
             return 5;
         else
             return 6;
@@ -115,7 +114,7 @@ public:
 
     uint32_t estimateRestartJumpLength(int32_t estimatedSnippetLocation, TR::LabelSymbol *label)
     {
-        return estimateRestartJumpLength(TR::InstOpCode::JMP4, estimatedSnippetLocation, label);
+        return estimateRestartJumpLength(OP::JMP4, estimatedSnippetLocation, label);
     }
 
     uint32_t estimateRestartJumpLength(int32_t estimatedSnippetLocation)
@@ -123,7 +122,7 @@ public:
         return estimateRestartJumpLength(estimatedSnippetLocation, _restartLabel);
     }
 
-    uint32_t estimateRestartJumpLength(TR::InstOpCode::Mnemonic branchOp, int32_t estimatedSnippetLocation)
+    uint32_t estimateRestartJumpLength(OP::Mnemonic branchOp, int32_t estimatedSnippetLocation)
     {
         return estimateRestartJumpLength(branchOp, estimatedSnippetLocation, _restartLabel);
     }
