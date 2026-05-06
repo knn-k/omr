@@ -141,6 +141,7 @@ OBJECTS += omrintrospect_common
 OBJECTS += omrosdump
 OBJECTS += omrportcontrol
 OBJECTS += omrportptb
+OBJECTS += omrnetwork
 
 OBJECTS += omrsignal
 ifneq (win,$(OMR_HOST_OS))
