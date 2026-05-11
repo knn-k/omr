@@ -44,7 +44,7 @@ TR::Register *genericReturnEvaluator(TR::Node *node, TR::RealRegister::RegNum rn
     TR::RegisterDependencyConditions *deps
         = new (cg->trHeapMemory()) TR::RegisterDependencyConditions(1, 0, cg->trMemory());
     deps->addPreCondition(returnRegister, rnum);
-    generateAdminInstruction(cg, TR::InstOpCode::retn, node, deps);
+    generateAdminInstruction(cg, OP::retn, node, deps);
 
     cg->comp()->setReturnInfo(i);
     cg->decReferenceCount(firstChild);
@@ -70,7 +70,7 @@ TR::Register *OMR::ARM64::TreeEvaluator::areturnEvaluator(TR::Node *node, TR::Co
 // void return
 TR::Register *OMR::ARM64::TreeEvaluator::returnEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    generateAdminInstruction(cg, TR::InstOpCode::retn, node);
+    generateAdminInstruction(cg, OP::retn, node);
     cg->comp()->setReturnInfo(TR_VoidReturn);
     return NULL;
 }
@@ -81,11 +81,11 @@ TR::Register *OMR::ARM64::TreeEvaluator::gotoEvaluator(TR::Node *node, TR::CodeG
     if (node->getNumChildren() > 0) {
         TR::Node *child = node->getFirstChild();
         cg->evaluate(child);
-        generateLabelInstruction(cg, TR::InstOpCode::b, node, gotoLabel,
+        generateLabelInstruction(cg, OP::b, node, gotoLabel,
             generateRegisterDependencyConditions(cg, child, 0));
         cg->decReferenceCount(child);
     } else {
-        generateLabelInstruction(cg, TR::InstOpCode::b, node, gotoLabel);
+        generateLabelInstruction(cg, OP::b, node, gotoLabel);
     }
     return NULL;
 }
@@ -192,11 +192,11 @@ static TR::Instruction *ificmpHelper(TR::Node *node, TR::ARM64ConditionCode cc, 
             && ((node->getNumChildren() != 3)
                 || (countIntegerAndAddressTypesInGlRegDeps(node->getChild(2), cg)
                     < cg->getLinkage()->getProperties().getNumAllocatableIntegerRegisters()))) {
-            TR::InstOpCode::Mnemonic op;
+            OP::Mnemonic op;
             if (cc == TR::CC_EQ)
-                op = is64bit ? TR::InstOpCode::cbzx : TR::InstOpCode::cbzw;
+                op = is64bit ? OP::cbzx : OP::cbzw;
             else
-                op = is64bit ? TR::InstOpCode::cbnzx : TR::InstOpCode::cbnzw;
+                op = is64bit ? OP::cbnzx : OP::cbnzw;
 
             dstLabel = node->getBranchDestination()->getNode()->getLabel();
             if (node->getNumChildren() == 3) {
@@ -549,7 +549,7 @@ TR::Register *OMR::ARM64::TreeEvaluator::lcmpEvaluator(TR::Node *node, TR::CodeG
     generateCompareInstruction(cg, node, src1Reg, src2Reg, true);
     generateCSetInstruction(cg, node, trgReg, TR::CC_GE);
     generateCSetInstruction(cg, node, tmpReg, TR::CC_LE);
-    generateTrg1Src2Instruction(cg, TR::InstOpCode::subw, node, trgReg, trgReg, tmpReg);
+    generateTrg1Src2Instruction(cg, OP::subw, node, trgReg, trgReg, tmpReg);
 
     cg->stopUsingRegister(tmpReg);
 
@@ -605,7 +605,7 @@ TR::Register *OMR::ARM64::TreeEvaluator::lookupEvaluator(TR::Node *node, TR::Cod
         cg->evaluate(defaultChild->getFirstChild());
         conditions = conditions->clone(cg, generateRegisterDependencyConditions(cg, defaultChild->getFirstChild(), 0));
     }
-    generateLabelInstruction(cg, TR::InstOpCode::b, node, defaultChild->getBranchDestination()->getNode()->getLabel(),
+    generateLabelInstruction(cg, OP::b, node, defaultChild->getBranchDestination()->getNode()->getLabel(),
         conditions);
 
     if (tmpRegister) {
@@ -647,7 +647,7 @@ TR::Register *OMR::ARM64::TreeEvaluator::tableEvaluator(TR::Node *node, TR::Code
                 node->getChild(2 + i)->getBranchDestination()->getNode()->getLabel(), TR::CC_EQ);
         }
 
-        generateLabelInstruction(cg, TR::InstOpCode::b, node,
+        generateLabelInstruction(cg, OP::b, node,
             defaultChild->getBranchDestination()->getNode()->getLabel(), conditions);
     } else {
         if (!constantIsUnsignedImm12(numBranchTableEntries)) {
@@ -659,17 +659,17 @@ TR::Register *OMR::ARM64::TreeEvaluator::tableEvaluator(TR::Node *node, TR::Code
 
         generateConditionalBranchInstruction(cg, node, defaultChild->getBranchDestination()->getNode()->getLabel(),
             TR::CC_CS);
-        generateTrg1ImmInstruction(cg, TR::InstOpCode::adr, node, tmpRegister,
+        generateTrg1ImmInstruction(cg, OP::adr, node, tmpRegister,
             12); // distance between this instruction to the jump table
-        generateTrg1Src2ShiftedInstruction(cg, TR::InstOpCode::addx, node, tmpRegister, tmpRegister, selectorReg,
+        generateTrg1Src2ShiftedInstruction(cg, OP::addx, node, tmpRegister, tmpRegister, selectorReg,
             TR::SH_LSL, 2);
-        generateRegBranchInstruction(cg, TR::InstOpCode::br, node, tmpRegister);
+        generateRegBranchInstruction(cg, OP::br, node, tmpRegister);
 
         for (i = 2; i < node->getNumChildren() - 1; i++) {
-            generateLabelInstruction(cg, TR::InstOpCode::b, node,
+            generateLabelInstruction(cg, OP::b, node,
                 node->getChild(i)->getBranchDestination()->getNode()->getLabel());
         }
-        generateLabelInstruction(cg, TR::InstOpCode::b, node,
+        generateLabelInstruction(cg, OP::b, node,
             node->getChild(i)->getBranchDestination()->getNode()->getLabel(), conditions);
     }
 
@@ -702,7 +702,7 @@ static TR::Register *commonMinMaxEvaluator(TR::Node *node, bool is64bit, TR::ARM
     // Optimize the code by using generateCompareImmInstruction() when possible
     generateCompareInstruction(cg, node, src1Reg, src2Reg, is64bit);
 
-    TR::InstOpCode::Mnemonic op = is64bit ? TR::InstOpCode::cselx : TR::InstOpCode::cselw;
+    OP::Mnemonic op = is64bit ? OP::cselx : OP::cselw;
     generateCondTrg1Src2Instruction(cg, op, node, trgReg, src1Reg, src2Reg, cc);
 
     node->setRegister(trgReg);
@@ -845,14 +845,14 @@ TR::Register *OMR::ARM64::TreeEvaluator::iselectEvaluator(TR::Node *node, TR::Co
         bool is64bit = (TR::DataType::getSize(cmp1Node->getDataType()) == 8);
 
         generateCompareInstruction(cg, node, cmp1Reg, cmp2Reg, is64bit);
-        generateCondTrg1Src2Instruction(cg, TR::InstOpCode::cselx, node, resultReg, trueReg, falseReg, cc);
+        generateCondTrg1Src2Instruction(cg, OP::cselx, node, resultReg, trueReg, falseReg, cc);
 
         cg->recursivelyDecReferenceCount(condNode);
     } else {
         TR::Register *condReg = cg->evaluate(condNode);
 
         generateCompareImmInstruction(cg, node, condReg, 0, true); // 64-bit compare
-        generateCondTrg1Src2Instruction(cg, TR::InstOpCode::cselx, node, resultReg, trueReg, falseReg, TR::CC_NE);
+        generateCondTrg1Src2Instruction(cg, OP::cselx, node, resultReg, trueReg, falseReg, TR::CC_NE);
 
         cg->decReferenceCount(condNode);
     }
@@ -943,9 +943,9 @@ TR::Register *OMR::ARM64::TreeEvaluator::igotoEvaluator(TR::Node *node, TR::Code
         cg->decReferenceCount(glregdep);
     }
     if (deps)
-        generateRegBranchInstruction(cg, TR::InstOpCode::br, node, addrReg, deps);
+        generateRegBranchInstruction(cg, OP::br, node, addrReg, deps);
     else
-        generateRegBranchInstruction(cg, TR::InstOpCode::br, node, addrReg);
+        generateRegBranchInstruction(cg, OP::br, node, addrReg);
     cg->decReferenceCount(labelAddr);
     node->setRegister(NULL);
     return NULL;

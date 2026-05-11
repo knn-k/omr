@@ -40,7 +40,7 @@ uint8_t *TR::ARM64HelperCallSnippet::emitSnippetBodyInner(uint8_t *cursor)
     }
 
     *(int32_t *)cursor
-        = TR::InstOpCode::getOpCodeBinaryEncoding(TR::InstOpCode::bl) | ((distance >> 2) & 0x3ffffff); // imm26
+        = OP::getOpCodeBinaryEncoding(OP::bl) | ((distance >> 2) & 0x3ffffff); // imm26
 
     cg()->addExternalRelocation(
         TR::ExternalRelocation::create(cursor, (uint8_t *)getDestination(), TR_HelperAddress, cg()), __FILE__, __LINE__,
@@ -54,7 +54,7 @@ uint8_t *TR::ARM64HelperCallSnippet::emitSnippetBodyInner(uint8_t *cursor)
         if (constantIsSignedImm28(distance)) {
             // b distance
             *(int32_t *)cursor
-                = TR::InstOpCode::getOpCodeBinaryEncoding(TR::InstOpCode::b) | ((distance >> 2) & 0x3ffffff); // imm26
+                = OP::getOpCodeBinaryEncoding(OP::b) | ((distance >> 2) & 0x3ffffff); // imm26
             cursor += ARM64_INSTRUCTION_LENGTH;
         } else {
             TR_ASSERT(false, "Target too far away.  Not supported yet");
