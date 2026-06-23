@@ -86,7 +86,7 @@ public:
         else
             TR_ASSERT(false, "Attempting to allocate an array without a memory object");
         if (zeroInit)
-            memset(_array, 0, initialSize * sizeof(T));
+            memset(static_cast<void *>(_array), 0, initialSize * sizeof(T));
     }
 
     TR_Array(const TR_Array<T> &other) { copy(other); }
