@@ -1423,7 +1423,7 @@ TR::Register *OMR::ARM64::TreeEvaluator::mToLongBitsEvaluator(TR::Node *node, TR
             generateUBFXInstruction(cg, node, resReg, resReg, 7, 2, false);
             break;
         default:
-            TR_ASSERT_FATAL_WITH_NODE(node, false, "Unexpected element type");
+            TR_ASSERT_FATAL_WITH_NODE(node, false, "Unexpected element type in mToLongBits");
             break;
     }
 
@@ -1527,7 +1527,7 @@ TR::Register *OMR::ARM64::TreeEvaluator::mLongBitsToMaskEvaluator(TR::Node *node
             generateTrg1Src1Instruction(cg, TR::InstOpCode::vnot16b, node, maskReg, maskReg);
             break;
         default:
-            TR_ASSERT_FATAL_WITH_NODE(node, false, "Unexpected element type");
+            TR_ASSERT_FATAL_WITH_NODE(node, false, "Unexpected element type in mLongBitsToMask");
             break;
     }
 
