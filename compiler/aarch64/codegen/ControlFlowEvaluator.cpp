@@ -227,8 +227,7 @@ static TR::Instruction *ificmpHelper(TR::Node *node, TR::ARM64ConditionCode cc, 
     if ((!secondChildNeedsRelocation) && (!secondChildNeedsPicSite) && secondChild->getOpCode().isLoadConst()
         && secondChild->getRegister() == NULL) {
         int64_t value = is64bit ? secondChild->getLongInt() : secondChild->getInt();
-        if (constantIsUnsignedImm12(value) || constantIsUnsignedImm12(-value) || constantIsUnsignedImm12Shifted(value)
-            || constantIsUnsignedImm12Shifted(-value)) {
+        if (embeddableInCompareImmInstruction(value)) {
             Inst_CompareImm(cg, node, src1Reg, value, is64bit);
             useRegCompare = false;
         }
@@ -400,8 +399,7 @@ static TR::Register *icmpHelper(TR::Node *node, TR::ARM64ConditionCode cc, bool 
 
     if ((!secondChildNeedsRelocation) && secondChild->getOpCode().isLoadConst() && secondChild->getRegister() == NULL) {
         int64_t value = is64bit ? secondChild->getLongInt() : secondChild->getInt();
-        if (constantIsUnsignedImm12(value) || constantIsUnsignedImm12(-value) || constantIsUnsignedImm12Shifted(value)
-            || constantIsUnsignedImm12Shifted(-value)) {
+        if (embeddableInCompareImmInstruction(value)) {
             Inst_CompareImm(cg, node, src1Reg, value, is64bit);
             useRegCompare = false;
         }
@@ -634,9 +632,15 @@ TR::Register *OMR::ARM64::TreeEvaluator::lookupEvaluator(TR::Node *node, TR::Cod
     TR::Node *defaultChild = node->getSecondChild();
     TR::RegisterDependencyConditions *conditions;
     TR::Register *tmpRegister = NULL;
+    bool useTmpRegister = false;
 
-    if (!constantIsUnsignedImm12(node->getChild(2)->getCaseConstant())
-        || !constantIsUnsignedImm12(node->getChild(numChildren - 1)->getCaseConstant())) {
+    for (int32_t i = 2; i < numChildren; i++) {
+        if (!embeddableInCompareImmInstruction(node->getChild(i)->getCaseConstant())) {
+            useTmpRegister = true;
+            break;
+        }
+    }
+    if (useTmpRegister) {
         conditions = RegDeps(2, 2, cg);
         tmpRegister = cg->allocateRegister();
         TR::addDependency(conditions, tmpRegister, TR::RealRegister::NoReg, TR_GPR, cg);
@@ -658,7 +662,7 @@ TR::Register *OMR::ARM64::TreeEvaluator::lookupEvaluator(TR::Node *node, TR::Cod
 
             if (caseValue == 0) {
                 useCbz = true;
-            } else if (constantIsUnsignedImm12(caseValue) || constantIsUnsignedImm12Shifted(caseValue)) {
+            } else if (embeddableInCompareImmInstruction(caseValue)) {
                 Inst_CompareImm(cg, node, selectorReg, caseValue);
             } else {
                 loadConstant32(cg, node, caseValue, tmpRegister);

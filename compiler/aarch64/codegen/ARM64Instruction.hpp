@@ -166,6 +166,17 @@ inline bool constantIsSignedImm21(intptr_t intValue) { return (-0x100000 <= intV
  */
 inline bool constantIsSignedImm28(intptr_t intValue) { return (-0x8000000 <= intValue && intValue < 0x8000000); }
 
+/*
+ * @brief Answers if the signed integer value can be embedded in CompareImmInstruction
+ * @param[in] intValue : signed integer value
+ * @return true if the value can be embedded in CompareImmInstruction, false otherwise
+ */
+inline bool embeddableInCompareImmInstruction(int64_t intValue)
+{
+    return (constantIsUnsignedImm12(intValue) || constantIsUnsignedImm12(-intValue)
+        || constantIsUnsignedImm12Shifted(intValue) || constantIsUnsignedImm12Shifted(-intValue));
+}
+
 namespace TR {
 
 class ARM64ImmInstruction : public TR::Instruction {
