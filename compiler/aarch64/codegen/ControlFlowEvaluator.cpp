@@ -724,9 +724,14 @@ TR::Register *OMR::ARM64::TreeEvaluator::tableEvaluator(TR::Node *node, TR::Code
 
     if (5 > numBranchTableEntries) {
         for (i = 0; i < numBranchTableEntries; i++) {
-            Inst_CompareImm(cg, node, selectorReg, i);
-            Inst_ConditionalBranch(cg, node, node->getChild(2 + i)->getBranchDestination()->getNode()->getLabel(),
-                TR::CC_EQ);
+            if (i == 0) {
+                Inst_CompareBranch(cg, OP::cbzw, node, selectorReg,
+                    node->getChild(2)->getBranchDestination()->getNode()->getLabel());
+            } else {
+                Inst_CompareImm(cg, node, selectorReg, i);
+                Inst_ConditionalBranch(cg, node, node->getChild(2 + i)->getBranchDestination()->getNode()->getLabel(),
+                    TR::CC_EQ);
+            }
         }
 
         Inst_Label(cg, OP::b, node, defaultChild->getBranchDestination()->getNode()->getLabel(), conditions);
