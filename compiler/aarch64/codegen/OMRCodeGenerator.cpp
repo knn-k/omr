@@ -709,6 +709,8 @@ bool OMR::ARM64::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::I
             return true;
         case TR::vfma:
         case TR::vmfma:
+            // Int64 is not supported
+            return (et == TR::Int8 || et == TR::Int16 || et == TR::Int32 || et == TR::Float || et == TR::Double);
         case TR::vsqrt:
         case TR::vmsqrt:
             return (et == TR::Float || et == TR::Double);

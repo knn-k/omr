@@ -2084,12 +2084,22 @@ TR::Register *OMR::ARM64::TreeEvaluator::vfmaEvaluator(TR::Node *node, TR::CodeG
     OP::Mnemonic op;
 
     switch (node->getDataType().getVectorElementType()) {
+        case TR::Int8:
+            op = OP::vmla16b;
+            break;
+        case TR::Int16:
+            op = OP::vmla8h;
+            break;
+        case TR::Int32:
+            op = OP::vmla4s;
+            break;
         case TR::Float:
             op = OP::vfmla4s;
             break;
         case TR::Double:
             op = OP::vfmla2d;
             break;
+        case TR::Int64:
         default:
             TR_ASSERT_FATAL_WITH_NODE(node, false, "unrecognized vector type %s", node->getDataType().toString());
             return NULL;
@@ -3244,12 +3254,22 @@ TR::Register *OMR::ARM64::TreeEvaluator::vmfmaEvaluator(TR::Node *node, TR::Code
     OP::Mnemonic op;
 
     switch (node->getDataType().getVectorElementType()) {
+        case TR::Int8:
+            op = OP::vmla16b;
+            break;
+        case TR::Int16:
+            op = OP::vmla8h;
+            break;
+        case TR::Int32:
+            op = OP::vmla4s;
+            break;
         case TR::Float:
             op = OP::vfmla4s;
             break;
         case TR::Double:
             op = OP::vfmla2d;
             break;
+        case TR::Int64:
         default:
             TR_ASSERT_FATAL_WITH_NODE(node, false, "unrecognized vector type %s", node->getDataType().toString());
             return NULL;
