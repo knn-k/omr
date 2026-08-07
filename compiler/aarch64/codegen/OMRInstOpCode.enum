@@ -619,8 +619,6 @@
 		umsubl,                                                 	/* 0x9BA08000	UMSUBL    	 */
 		smulh,                                                  	/* 0x9B407C00	SMULH     	 */
 		umulh,                                                  	/* 0x9BC07C00	UMULH     	 */
-		fmaddd,                                                 	/* 0X1F000000   FMADD        */
-		fmadds,                                                 	/* 0X1F400000   FMADD        */
 	/* Data-processing (2 source) */
 		crc32x,                                                 	/* 0x9AC04C00	CRC32X    	 */
 		crc32cx,                                                	/* 0x9AC05C00	CRC32CX   	 */
@@ -703,6 +701,11 @@
 		fmaxd,                                                  	/* 0x1E604800	FMAX      	 */
 		fmins,                                                  	/* 0x1E205800	FMIN      	 */
 		fmind,                                                  	/* 0x1E605800	FMIN      	 */
+	/* Floating-Point Data-processing (3 source) */
+		fmadds,                                                 	/* 0X1F000000	FMADD     	 */
+		fmaddd,                                                 	/* 0X1F400000	FMADD     	 */
+		fmsubs,                                                 	/* 0X1F008000	FMSUB     	 */
+		fmsubd,                                                 	/* 0X1F408000	FMSUB     	 */
 	/* Vector Immediate */
 		vmovi16b,                                               	/* 0x4F00E400,	MOVI      	 */
 		vmovi8h,                                                	/* 0x4F008400,	MOVI      	 */

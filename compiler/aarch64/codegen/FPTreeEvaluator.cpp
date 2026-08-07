@@ -310,23 +310,103 @@ static TR::Register *doublePrecisionEvaluator(TR::Node *node, OP::Mnemonic op, T
     return commonFpEvaluator(node, op, true, cg);
 }
 
+// multiply and add
+// multiply and subtract
+static TR::Register *generateFmaddOrFmsub(TR::Node *node, TR::Node *mulNode, TR::Node *anotherNode, OP::Mnemonic op,
+    TR::CodeGenerator *cg)
+{
+    if ((mulNode->getOpCodeValue() == TR::fmul || mulNode->getOpCodeValue() == TR::dmul)
+        && mulNode->getReferenceCount() == 1 && mulNode->getRegister() == NULL) {
+        TR::Register *trgReg;
+        TR::Node *mulFirstChild = mulNode->getFirstChild();
+        TR::Node *mulSecondChild = mulNode->getSecondChild();
+        TR::Register *mulSrc1Reg = cg->evaluate(mulFirstChild);
+        TR::Register *mulSrc2Reg = cg->evaluate(mulSecondChild);
+        TR::Register *src3Reg = cg->evaluate(anotherNode);
+
+        if (mulFirstChild->getReferenceCount() == 1) {
+            trgReg = mulSrc1Reg;
+        } else if (mulSecondChild->getReferenceCount() == 1) {
+            trgReg = mulSrc2Reg;
+        } else if (anotherNode->getReferenceCount() == 1) {
+            trgReg = src3Reg;
+        } else {
+            trgReg = cg->allocateRegister(TR_FPR);
+        }
+
+        Inst_Trg1Src3(cg, op, node, trgReg, mulSrc1Reg, mulSrc2Reg, src3Reg);
+
+        node->setRegister(trgReg);
+        cg->decReferenceCount(mulFirstChild);
+        cg->decReferenceCount(mulSecondChild);
+        cg->decReferenceCount(mulNode);
+        cg->decReferenceCount(anotherNode);
+        return trgReg;
+    } else {
+        return NULL; // not applicable
+    }
+}
+
 TR::Register *OMR::ARM64::TreeEvaluator::faddEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
+    TR::Node *firstChild = node->getFirstChild();
+    TR::Node *secondChild = node->getSecondChild();
+    TR::Register *retReg;
+
+    retReg = generateFmaddOrFmsub(node, firstChild, secondChild, OP::fmadds, cg); // x*y + z
+    if (retReg) {
+        return retReg;
+    }
+    retReg = generateFmaddOrFmsub(node, secondChild, firstChild, OP::fmadds, cg); // x + y*z
+    if (retReg) {
+        return retReg;
+    }
+
     return singlePrecisionEvaluator(node, OP::fadds, cg);
 }
 
 TR::Register *OMR::ARM64::TreeEvaluator::daddEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
+    TR::Node *firstChild = node->getFirstChild();
+    TR::Node *secondChild = node->getSecondChild();
+    TR::Register *retReg;
+
+    retReg = generateFmaddOrFmsub(node, firstChild, secondChild, OP::fmaddd, cg); // x*y + z
+    if (retReg) {
+        return retReg;
+    }
+    retReg = generateFmaddOrFmsub(node, secondChild, firstChild, OP::fmaddd, cg); // x + y*z
+    if (retReg) {
+        return retReg;
+    }
+
     return doublePrecisionEvaluator(node, OP::faddd, cg);
 }
 
 TR::Register *OMR::ARM64::TreeEvaluator::fsubEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
+    TR::Node *firstChild = node->getFirstChild();
+    TR::Node *secondChild = node->getSecondChild();
+    TR::Register *retReg;
+
+    retReg = generateFmaddOrFmsub(node, secondChild, firstChild, OP::fmsubs, cg); // x - y*z
+    if (retReg) {
+        return retReg;
+    }
+
     return singlePrecisionEvaluator(node, OP::fsubs, cg);
 }
 
 TR::Register *OMR::ARM64::TreeEvaluator::dsubEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
+    TR::Node *firstChild = node->getFirstChild();
+    TR::Node *secondChild = node->getSecondChild();
+    TR::Register *retReg;
+
+    retReg = generateFmaddOrFmsub(node, secondChild, firstChild, OP::fmsubd, cg); // x - y*z
+    if (retReg) {
+        return retReg;
+    }
     return doublePrecisionEvaluator(node, OP::fsubd, cg);
 }
 

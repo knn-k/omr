@@ -624,8 +624,6 @@ const OMR::ARM64::InstOpCode::OpCodeBinaryEntry OMR::ARM64::InstOpCode::binaryEn
     0x9BA08000, /* UMSUBL    	umsubl	 */
     0x9B407C00, /* SMULH     	smulh	 */
     0x9BC07C00, /* UMULH     	umulh	 */
-    0X1F400000, /* FMADD        fmaddd   */
-    0X1F000000, /* FMADD        fmadds   */
     /* Data-processing (2 source) */
     0x9AC04C00, /* CRC32X    	crc32x	 */
     0x9AC05C00, /* CRC32CX   	crc32cx	 */
@@ -708,6 +706,11 @@ const OMR::ARM64::InstOpCode::OpCodeBinaryEntry OMR::ARM64::InstOpCode::binaryEn
     0x1E604800, /* FMAX      	fmaxd	 */
     0x1E205800, /* FMIN      	fmins	 */
     0x1E605800, /* FMIN      	fmind	 */
+    /* Floating-Point Data-processing (3 source) */
+    0X1F000000, /* FMADD     	fmadds	 */
+    0X1F400000, /* FMADD     	fmaddd	 */
+    0X1F008000, /* FMSUB     	fmsubs	 */
+    0X1F408000, /* FMSUB     	fmsubd	 */
     /* Vector Immediate */
     0x4F00E400, /* MOVI      	vmovi16b */
     0x4F008400, /* MOVI      	vmovi8h	 */
