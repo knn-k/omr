@@ -607,7 +607,6 @@ protected:
 };
 
 class ARM64ConditionalBranchInstruction : public ARM64LabelInstruction {
-    int32_t _estimatedBinaryLocation;
     TR::ARM64ConditionCode _cc;
 
 public:
@@ -623,7 +622,6 @@ public:
         TR::CodeGenerator *cg)
         : ARM64LabelInstruction(op, node, sym, cg)
         , _cc(cc)
-        , _estimatedBinaryLocation(0)
     {}
 
     /*
@@ -639,7 +637,6 @@ public:
         TR::Instruction *precedingInstruction, TR::CodeGenerator *cg)
         : ARM64LabelInstruction(op, node, sym, precedingInstruction, cg)
         , _cc(cc)
-        , _estimatedBinaryLocation(0)
     {}
 
     /*
@@ -655,7 +652,6 @@ public:
         TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
         : ARM64LabelInstruction(op, node, sym, cond, cg)
         , _cc(cc)
-        , _estimatedBinaryLocation(0)
     {}
 
     /*
@@ -672,7 +668,6 @@ public:
         TR::RegisterDependencyConditions *cond, TR::Instruction *precedingInstruction, TR::CodeGenerator *cg)
         : ARM64LabelInstruction(op, node, sym, cond, precedingInstruction, cg)
         , _cc(cc)
-        , _estimatedBinaryLocation(0)
     {}
 
     /**
@@ -680,19 +675,6 @@ public:
      * @return instruction kind
      */
     virtual Kind getKind() { return IsConditionalBranch; }
-
-    /**
-     * @brief Gets estimated binary location
-     * @return estimated binary location
-     */
-    int32_t getEstimatedBinaryLocation() { return _estimatedBinaryLocation; }
-
-    /**
-     * @brief Sets estimated binary location
-     * @param[in] l : estimated binary location
-     * @return estimated binary location
-     */
-    int32_t setEstimatedBinaryLocation(int32_t l) { return (_estimatedBinaryLocation = l); }
 
     /**
      * @brief Gets condition code
@@ -739,7 +721,6 @@ public:
 };
 
 class ARM64CompareBranchInstruction : public ARM64LabelInstruction {
-    int32_t _estimatedBinaryLocation;
     TR::Register *_source1Register;
 
 public:
@@ -755,7 +736,6 @@ public:
         TR::CodeGenerator *cg)
         : ARM64LabelInstruction(op, node, sym, cg)
         , _source1Register(sreg)
-        , _estimatedBinaryLocation(0)
     {
         useRegister(sreg);
     }
@@ -773,7 +753,6 @@ public:
         TR::Instruction *precedingInstruction, TR::CodeGenerator *cg)
         : ARM64LabelInstruction(op, node, sym, precedingInstruction, cg)
         , _source1Register(sreg)
-        , _estimatedBinaryLocation(0)
     {
         useRegister(sreg);
     }
@@ -791,7 +770,6 @@ public:
         TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
         : ARM64LabelInstruction(op, node, sym, cond, cg)
         , _source1Register(sreg)
-        , _estimatedBinaryLocation(0)
     {
         useRegister(sreg);
     }
@@ -810,7 +788,6 @@ public:
         TR::RegisterDependencyConditions *cond, TR::Instruction *precedingInstruction, TR::CodeGenerator *cg)
         : ARM64LabelInstruction(op, node, sym, cond, precedingInstruction, cg)
         , _source1Register(sreg)
-        , _estimatedBinaryLocation(0)
     {
         useRegister(sreg);
     }
@@ -820,19 +797,6 @@ public:
      * @return instruction kind
      */
     virtual Kind getKind() { return IsCompareBranch; }
-
-    /**
-     * @brief Gets estimated binary location
-     * @return estimated binary location
-     */
-    int32_t getEstimatedBinaryLocation() { return _estimatedBinaryLocation; }
-
-    /**
-     * @brief Sets estimated binary location
-     * @param[in] l : estimated binary location
-     * @return estimated binary location
-     */
-    int32_t setEstimatedBinaryLocation(int32_t l) { return (_estimatedBinaryLocation = l); }
 
     /**
      * @brief Gets source register
@@ -906,7 +870,6 @@ public:
 };
 
 class ARM64TestBitBranchInstruction : public ARM64LabelInstruction {
-    int32_t _estimatedBinaryLocation;
     TR::Register *_source1Register;
     uint32_t _bitpos;
 
@@ -924,7 +887,6 @@ public:
         TR::LabelSymbol *sym, TR::CodeGenerator *cg)
         : ARM64LabelInstruction(op, node, sym, cg)
         , _source1Register(sreg)
-        , _estimatedBinaryLocation(0)
         , _bitpos(bitpos)
     {
         useRegister(sreg);
@@ -944,7 +906,6 @@ public:
         TR::LabelSymbol *sym, TR::Instruction *precedingInstruction, TR::CodeGenerator *cg)
         : ARM64LabelInstruction(op, node, sym, precedingInstruction, cg)
         , _source1Register(sreg)
-        , _estimatedBinaryLocation(0)
         , _bitpos(bitpos)
     {
         useRegister(sreg);
@@ -964,7 +925,6 @@ public:
         TR::LabelSymbol *sym, TR::RegisterDependencyConditions *cond, TR::CodeGenerator *cg)
         : ARM64LabelInstruction(op, node, sym, cond, cg)
         , _source1Register(sreg)
-        , _estimatedBinaryLocation(0)
         , _bitpos(bitpos)
     {
         useRegister(sreg);
@@ -986,7 +946,6 @@ public:
         TR::CodeGenerator *cg)
         : ARM64LabelInstruction(op, node, sym, cond, precedingInstruction, cg)
         , _source1Register(sreg)
-        , _estimatedBinaryLocation(0)
         , _bitpos(bitpos)
     {
         useRegister(sreg);
@@ -1010,19 +969,6 @@ public:
      * @return bit position
      */
     uint32_t setBitPos(uint32_t bitpos) { return (_bitpos = bitpos); }
-
-    /**
-     * @brief Gets estimated binary location
-     * @return estimated binary location
-     */
-    int32_t getEstimatedBinaryLocation() { return _estimatedBinaryLocation; }
-
-    /**
-     * @brief Sets estimated binary location
-     * @param[in] l : estimated binary location
-     * @return estimated binary location
-     */
-    int32_t setEstimatedBinaryLocation(int32_t l) { return (_estimatedBinaryLocation = l); }
 
     /**
      * @brief Gets source register
