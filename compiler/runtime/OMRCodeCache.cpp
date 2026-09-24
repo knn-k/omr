@@ -484,7 +484,7 @@ void OMR::CodeCache::unreserveSpaceForTrampoline()
 int32_t OMR::CodeCache::reserveResolvedTrampoline(TR_OpaqueMethodBlock *method, bool inBinaryEncoding)
 {
     int32_t retValue = CodeCacheErrorCode::ERRORCODE_SUCCESS; // assume success
-    TR_ASSERT(_reserved, "CodeCache %p is not reserved when calling reservedResolvedTrampoline\n", this);
+    TR_ASSERT_FATAL(_reserved, "CodeCache %p is not reserved when calling reservedResolvedTrampoline\n", this);
 
     // does the platform need trampolines at all?
     TR::CodeCacheConfig &config = _manager->codeCacheConfig();
